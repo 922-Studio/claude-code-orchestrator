@@ -1,0 +1,148 @@
+# Server Infrastructure Reference
+
+**Access**: `ssh lab` (key-based auth, passwordless sudo)
+**Hostname**: `home-lab`
+**OS**: Ubuntu Server 24.04 LTS
+**Tailscale IP**: `100.112.171.16`
+**Domain**: `*.922-studio.com` (via Cloudflare Tunnel)
+
+> Full documentation: Read `/Users/gregor/dev/922/HomeStructure/docs/` (MkDocs site)
+
+## Storage
+
+| Device | Size | Mount | Purpose |
+|--------|------|-------|---------|
+| NVMe SSD | 238 GB | `/` (LVM) | OS + Docker volumes |
+| USB HDD | 200 GB NTFS | `/mnt/backups` | Backups |
+| USB HDD | 700 GB ext4 | `/mnt/storage` | Storage |
+
+> Details: Read `HomeStructure/docs/config/storage.md`
+
+## Networking
+
+- **LAN**: `192.168.x.x` (ufw blocks inbound)
+- **Tailscale**: `100.112.171.16` (full access)
+- **Cloudflare Tunnel**: Zero inbound ports, outbound QUIC
+- **Firewall**: ufw + DOCKER-USER chain (only Tailscale/LAN/Docker allowed)
+
+> Details: Read `HomeStructure/docs/config/networking.md` and `HomeStructure/docs/config/security.md`
+
+## Public Routes (Cloudflare Tunnel)
+
+| Domain | Target | Service |
+|--------|--------|---------|
+| `922-studio.com` | :8010 | Landing Page |
+| `gregor.922-studio.com` | :3922 | Portfolio |
+| `lab.922-studio.com` | Caddy → :8000 | HomeUI |
+| `lab-auth.922-studio.com` | Caddy → :8100 | HomeAuth |
+| `lab-api.922-studio.com` | Caddy → :8080 | HomeAPI (with forward_auth) |
+| `lab-collector.922-studio.com` | Caddy → :8011 | HomeCollector |
+| `status.922-studio.com` | Caddy → :8010 | HomeCollector (`/status`) |
+| `sweatvalley-bingo.922-studio.com` | :3923 | Sweatvalley Bingo |
+
+> Details: Read `HomeStructure/docs/config/cloudflare.md` and `HomeStructure/docs/services/caddy.md`
+
+## All Services & Ports
+
+### Databases & Caching
+| Service | Port | Bound to | Used by |
+|---------|------|----------|---------|
+| PostgreSQL (HomeAPI) | 5432 | 127.0.0.1 | HomeAPI, Celery |
+| PostgreSQL (Discord) | 5433 | 127.0.0.1 | Discord Bot |
+| PostgreSQL (Collector) | 5434 | 127.0.0.1 | HomeCollector |
+| Redis (HomeAPI) | 6379 | 127.0.0.1 | HomeAPI Celery (DB 0) |
+| Redis (Collector) | 6380 | 127.0.0.1 | HomeCollector Celery (DB 1) |
+
+### Application Services
+| Service | Port | Container |
+|---------|------|-----------|
+| HomeAPI | 8080 | `home_api_api` |
+| HomeAuth | 8100 | HomeAuth api |
+| HomeUI | 8000 | `homeui` |
+| HomeCollector | 8011 | `home_collector_api` |
+| Discord Bot | — | `discord_bot` |
+| Landing Page | 8010 | `landingpage` |
+| Portfolio | 3922 | host process |
+| Sweatvalley Bingo | 3923 | `sweatvalley-bingo` |
+
+### Monitoring & Observability
+| Service | Port | Container |
+|---------|------|-----------|
+| Grafana | 3000 | `grafana` |
+| Prometheus | 9090 | `prometheus` |
+| cAdvisor | 8081 | `cadvisor` |
+| Pushgateway | 9091 | `pushgateway` |
+| Node Exporter | 9100 | `node_exporter` |
+| Allure API | 5050 | `allure-api` |
+| Allure UI | 5051 | `allure-ui` |
+| Portainer | 9443 | `portainer` |
+
+### Documentation Sites
+| Service | Port | Container |
+|---------|------|-----------|
+| HomeLab Docs | 8002 | `homelab-docs` |
+| HomeAPI Docs | 8003 | `home_api_docs` |
+| OpenClaw Docs | 8004 | `openclaw-docs` |
+| Discord Bot Docs | 8005 | `discord_bot_docs` |
+| HomeCollector Docs | 8013 | `home_collector_docs` |
+
+### Background Workers
+| Service | Container | Purpose |
+|---------|-----------|---------|
+| HomeAPI Worker | `home_api_worker` | Celery async tasks |
+| HomeAPI Beat | `home_api_beat` | Celery scheduled tasks |
+| HomeAPI Flower | `home_api_flower` (:5555) | Celery monitoring |
+| HomeCollector Worker | `home_collector_worker` | Uptime polling |
+| HomeCollector Beat | `home_collector_beat` | 60s poll schedule |
+
+### Infrastructure Services
+| Service | Port/Type | Purpose |
+|---------|-----------|---------|
+| Caddy | 80 | Reverse proxy for lab.* subdomains |
+| cloudflared | systemd | Cloudflare Tunnel daemon |
+| OpenClaw | 18789 (systemd) | AI gateway (11 agents) |
+| GitHub Runners | 4x systemd | CI/CD pipeline execution |
+| Syncthing | 22000 (systemd) | P2P file sync (Obsidian vault) |
+| WebDAV | 8088 | File server |
+
+## Docker Networks
+
+| Network | Purpose | Connected services |
+|---------|---------|-------------------|
+| `lab-network` | Caddy routing | Caddy, HomeAuth, HomeAPI, HomeCollector, HomeUI |
+| `homeapi_default` | HomeAPI + Discord cross-network | HomeAPI, Discord Bot |
+| `monitor-net` | Monitoring stack | Prometheus, Grafana, exporters, HomeCollector |
+| `proxy` | Traefik routing | Various services |
+| `infra` | Shared infrastructure | PostgreSQL, Redis, dependent services |
+
+## Key Commands
+
+```bash
+# Access server
+ssh lab
+
+# Service management
+cd ~/HomeStructure && ./scripts/homelab-ctl.sh status
+docker compose -f ~/HomeAPI/docker-compose.yaml logs -f
+docker compose -f ~/HomeUI/docker-compose.yaml restart
+
+# Database
+docker exec -it home_api_db psql -U postgres -d homeapi
+
+# Monitoring
+curl http://localhost:9090/api/v1/targets    # Prometheus targets
+curl http://localhost:8010/status            # HomeCollector public status
+
+# Deployment (per project)
+cd ~/<ProjectName> && ./deploy.sh
+```
+
+## For Agents: Context Loading
+
+When a plan involves the server, agents should read:
+1. This file (`server.md`) for quick reference
+2. `HomeStructure/docs/config/server.md` for server setup details
+3. `HomeStructure/docs/config/networking.md` for network topology
+4. `HomeStructure/docs/config/security.md` for firewall rules
+5. Specific `HomeStructure/docs/services/<name>.md` for service details
+6. `HomeStructure/scripts/homelab-ctl.sh` for available management commands
