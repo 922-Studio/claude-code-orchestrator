@@ -32,15 +32,18 @@
 | Domain | Target | Service |
 |--------|--------|---------|
 | `922-studio.com` | :8010 | Landing Page |
-| `gregor.922-studio.com` | :3922 | Portfolio |
-| `lab.922-studio.com` | Caddy → :8000 | HomeUI |
-| `lab-auth.922-studio.com` | Caddy → :8100 | HomeAuth |
-| `lab-api.922-studio.com` | Caddy → :8080 | HomeAPI (with forward_auth) |
-| `lab-collector.922-studio.com` | Caddy → :8011 | HomeCollector |
-| `status.922-studio.com` | Caddy → :8010 | HomeCollector (`/status`) |
-| `sweatvalley-bingo.922-studio.com` | :3923 | Sweatvalley Bingo |
+| `gregor.922-studio.com` | Traefik :80 | Portfolio |
+| `lab.922-studio.com` | Traefik :80 | HomeUI |
+| `lab-auth.922-studio.com` | Traefik :80 | HomeAuth |
+| `lab-api.922-studio.com` | Traefik :80 | HomeAPI (with forward_auth) |
+| `lab-collector.922-studio.com` | Traefik :80 | HomeCollector |
+| `status.922-studio.com` | Traefik :80 | HomeCollector (`/status`) |
+| `lab-content.922-studio.com` | Traefik :80 | HomeContent (with forward_auth) |
+| `sweatvalley-bingo.922-studio.com` | Traefik :80 | Sweatvalley Bingo |
+| `anime-api.922-studio.com` | Traefik :80 | Anime-API |
+| `anime.922-studio.com` | Traefik :80 | Anime-APP |
 
-> Details: Read `HomeStructure/docs/config/cloudflare.md` and `HomeStructure/docs/services/caddy.md`
+> Details: Read `HomeStructure/docs/config/cloudflare.md` and `HomeStructure/docs/services/traefik.md`
 
 ## All Services & Ports
 
@@ -50,6 +53,7 @@
 | PostgreSQL (HomeAPI) | 5432 | 127.0.0.1 | HomeAPI, Celery |
 | PostgreSQL (Discord) | 5433 | 127.0.0.1 | Discord Bot |
 | PostgreSQL (Collector) | 5434 | 127.0.0.1 | HomeCollector |
+| PostgreSQL (Anime-API) | 5435 | 127.0.0.1 | Anime-API |
 | Redis (HomeAPI) | 6379 | 127.0.0.1 | HomeAPI Celery (DB 0) |
 | Redis (Collector) | 6380 | 127.0.0.1 | HomeCollector Celery (DB 1) |
 
@@ -62,8 +66,11 @@
 | HomeCollector | 8011 | `home_collector_api` |
 | Discord Bot | — | `discord_bot` |
 | Landing Page | 8010 | `landingpage` |
-| Portfolio | 3922 | host process |
-| Sweatvalley Bingo | 3923 | `sweatvalley-bingo` |
+| Portfolio | 3000 (internal) | `portfolio` |
+| HomeContent | 8012 | `homecontent_api` |
+| Anime-API | 8020 | `anime_api` |
+| Anime-APP | 8021 | `anime_app` |
+| Sweatvalley Bingo | 3001 (internal) | `sweatvalley-bingo` |
 
 ### Monitoring & Observability
 | Service | Port | Container |
@@ -94,11 +101,13 @@
 | HomeAPI Flower | `home_api_flower` (:5555) | Celery monitoring |
 | HomeCollector Worker | `home_collector_worker` | Uptime polling |
 | HomeCollector Beat | `home_collector_beat` | 60s poll schedule |
+| HomeContent Worker | `homecontent_worker` | Social media tasks |
+| HomeContent Beat | `homecontent_beat` | Scheduled post checks |
 
 ### Infrastructure Services
 | Service | Port/Type | Purpose |
 |---------|-----------|---------|
-| Caddy | 80 | Reverse proxy for lab.* subdomains |
+| Traefik | 80 | Reverse proxy for all subdomains (Docker provider) |
 | cloudflared | systemd | Cloudflare Tunnel daemon |
 | OpenClaw | 18789 (systemd) | AI gateway (11 agents) |
 | GitHub Runners | 4x systemd | CI/CD pipeline execution |
@@ -109,10 +118,9 @@
 
 | Network | Purpose | Connected services |
 |---------|---------|-------------------|
-| `lab-network` | Caddy routing | Caddy, HomeAuth, HomeAPI, HomeCollector, HomeUI |
+| `proxy` | Traefik routing | Traefik, Portfolio, HomeUI, HomeAuth, HomeAPI, HomeCollector, HomeContent, Sweatvalley Bingo, Anime-API, Anime-APP |
 | `homeapi_default` | HomeAPI + Discord cross-network | HomeAPI, Discord Bot |
 | `monitor-net` | Monitoring stack | Prometheus, Grafana, exporters, HomeCollector |
-| `proxy` | Traefik routing | Various services |
 | `infra` | Shared infrastructure | PostgreSQL, Redis, dependent services |
 
 ## Key Commands
