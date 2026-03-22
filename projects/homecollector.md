@@ -44,7 +44,7 @@
 
 ## Best Practices
 - Strict layering: `routers/ → crud/ → models/` with `schemas/`, `services/`, `helpers/`, `tasks/`
-- Two-layer auth: X-User-ID header (Caddy forward-auth) or Bearer JWT token
+- Two-layer auth: X-User-ID header (Traefik forward-auth) or Bearer JWT token
 - `/status` is auth-exempt (public status page)
 - Async throughout with AsyncSession
 - Celery runs `asyncio.run()` to wrap async code from sync context

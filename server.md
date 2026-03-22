@@ -78,7 +78,6 @@
 | Grafana | 3000 | `grafana` |
 | Prometheus | 9090 | `prometheus` |
 | cAdvisor | 8081 | `cadvisor` |
-| Pushgateway | 9091 | `pushgateway` |
 | Node Exporter | 9100 | `node_exporter` |
 | Allure API | 5050 | `allure-api` |
 | Allure UI | 5051 | `allure-ui` |
