@@ -31,7 +31,7 @@
 
 | Domain | Target | Service |
 |--------|--------|---------|
-| `922-studio.com` | :8010 | Landing Page |
+| `922-studio.com` | Traefik :80 | Redirects → `gregor.922-studio.com` (Portfolio) |
 | `gregor.922-studio.com` | Traefik :80 | Portfolio |
 | `lab.922-studio.com` | Traefik :80 | HomeUI |
 | `lab-auth.922-studio.com` | Traefik :80 | HomeAuth |
@@ -77,6 +77,7 @@
 |---------|------|-----------|
 | Grafana | 3000 | `grafana` |
 | Prometheus | 9090 | `prometheus` |
+| Pushgateway | 9091 | `pushgateway` |
 | cAdvisor | 8081 | `cadvisor` |
 | Node Exporter | 9100 | `node_exporter` |
 | Allure API | 5050 | `allure-api` |
