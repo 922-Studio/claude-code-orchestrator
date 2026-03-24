@@ -16,6 +16,7 @@ Master list of all projects in Gregor's ecosystem.
 | 10 | HomeContent | /Users/gregor/dev/922/HomeContent | fullstack (backend) | active | [mapping](projects/homecontent.md) |
 | 11 | Anime-API | /Users/gregor/dev/922/Anime-API | fullstack (backend) | active | [mapping](projects/anime-api.md) |
 | 12 | Anime-APP | /Users/gregor/dev/922/Anime-APP | fullstack (frontend) | active | [mapping](projects/anime-app.md) |
+| 13 | Studio | /Users/gregor/dev/922/studio | app (website) | active | [mapping](projects/studio.md) |
 
 ## Quick Reference
 
@@ -23,7 +24,7 @@ Master list of all projects in Gregor's ecosystem.
 - **Infrastructure**: HomeStructure (#4), Workflows (#9)
 - **Full-Stack Backend**: HomeAPI (#1), HomeAuth (#2), HomeCollector (#3), HomeContent (#10), Anime-API (#11)
 - **Full-Stack Frontend**: HomeUI (#5), Anime-APP (#12)
-- **App/Website**: Discord Bot (#6), Portfolio (#7), Sweatvalley Bingo (#8)
+- **App/Website**: Discord Bot (#6), Portfolio (#7), Sweatvalley Bingo (#8), Studio (#13)
 
 ### Core Ecosystem (Home Lab Stack)
 ```
@@ -66,6 +67,7 @@ Master list of all projects in Gregor's ecosystem.
 - **HomeContent → Discord**: Webhook notifications for scheduled posts
 - **Portfolio**: Standalone (only depends on HomeStructure for Traefik)
 - **Sweatvalley Bingo**: Standalone (only depends on HomeStructure for Traefik + Cloudflare)
+- **Studio**: Standalone (only depends on HomeStructure for Traefik)
 
 ### Shared Conventions (all projects)
 - No `Co-Authored-By` trailers in git commits

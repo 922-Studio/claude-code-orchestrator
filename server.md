@@ -42,6 +42,7 @@
 | `sweatvalley-bingo.922-studio.com` | Traefik :80 | Sweatvalley Bingo |
 | `anime-api.922-studio.com` | Traefik :80 | Anime-API |
 | `anime.922-studio.com` | Traefik :80 | Anime-APP |
+| `studio.922-studio.com` | Traefik :80 | Studio (Landing Page) |
 
 > Details: Read `HomeStructure/docs/config/cloudflare.md` and `HomeStructure/docs/services/traefik.md`
 
@@ -71,6 +72,7 @@
 | Anime-API | 8020 | `anime_api` |
 | Anime-APP | 8021 | `anime_app` |
 | Sweatvalley Bingo | 3001 (internal) | `sweatvalley-bingo` |
+| Studio | 3000 (internal) | `studio` |
 
 ### Monitoring & Observability
 | Service | Port | Container |
@@ -118,7 +120,7 @@
 
 | Network | Purpose | Connected services |
 |---------|---------|-------------------|
-| `proxy` | Traefik routing | Traefik, Portfolio, HomeUI, HomeAuth, HomeAPI, HomeCollector, HomeContent, Sweatvalley Bingo, Anime-API, Anime-APP |
+| `proxy` | Traefik routing | Traefik, Portfolio, HomeUI, HomeAuth, HomeAPI, HomeCollector, HomeContent, Sweatvalley Bingo, Anime-API, Anime-APP, Studio |
 | `homeapi_default` | HomeAPI + Discord cross-network | HomeAPI, Discord Bot |
 | `monitor-net` | Monitoring stack | Prometheus, Grafana, exporters, HomeCollector |
 | `infra` | Shared infrastructure | PostgreSQL, Redis, dependent services |

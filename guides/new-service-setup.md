@@ -299,21 +299,86 @@ Falls der Service über `new-service.922-studio.com` erreichbar sein soll:
 
 ## Schritt 9: Deployment
 
-### Lokal → Server
+### deploy.sh erstellen (Pflicht)
+
+Jeder Service braucht ein `deploy.sh` im Root-Verzeichnis. **Wichtig: Niemals `docker compose down` verwenden** — das verursacht Downtime während des Builds. Stattdessen: Build-First-Strategie (Image bauen während der alte Container noch Traffic bedient).
 
 ```bash
-# 1. ENVs deployen
+#!/bin/bash
+set -e
+
+echo "Starting deployment..."
+
+# Navigate to project directory
+cd ~/new_service
+
+# Pull latest code from GitHub (skip if SKIP_PULL=true, e.g. when smoke-test already pulled)
+if [ "${SKIP_PULL}" != "true" ]; then
+  echo "Pulling latest code from GitHub..."
+  git pull origin main
+else
+  echo "Skipping git pull (SKIP_PULL=true)"
+fi
+
+# Clean up Docker build cache and unused images BEFORE building
+# This prevents BuildKit cache corruption ("parent snapshot does not exist")
+echo "Cleaning up Docker build cache and unused images..."
+docker builder prune -f
+docker image prune -f
+
+# Build new images WHILE old containers are still running (zero-downtime)
+echo "Building new images (existing services still running)..."
+if ! docker compose build; then
+  echo "Build failed, retrying with --no-cache..."
+  docker builder prune -af
+  docker compose build --no-cache
+fi
+
+# Swap: recreate only changed containers with the new images
+echo "Swapping to new containers..."
+docker compose up -d --wait --wait-timeout 120
+
+# Show container status
+echo "Deployment complete!"
+echo ""
+echo "Container status:"
+docker compose ps
+
+echo ""
+echo "Recent logs:"
+docker compose logs --tail=50
+```
+
+**Pflicht-Elemente:**
+- `SKIP_PULL` Support — Smoke-Tests pullen bereits, vermeidet Race Conditions
+- Pre-Build Cache Cleanup — Verhindert BuildKit "parent snapshot does not exist" Fehler
+- Build Retry mit `--no-cache` — Fallback bei korruptem Cache
+- `--wait --wait-timeout 120` — Wartet auf Healthcheck statt blind zu starten
+- **Kein `docker compose down`** — Alter Container bedient Traffic während des Builds
+
+### Frontend-Services: curl für Healthcheck installieren
+
+Frontend-Services die `nginx:*-alpine` verwenden haben kein zuverlässiges wget. In der Dockerfile `curl` installieren:
+
+```dockerfile
+FROM nginx:1.27-alpine
+RUN apk add --no-cache curl
+```
+
+Healthcheck in `docker-compose.yaml`:
+```yaml
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost:PORT/"]
+  interval: 5s
+  timeout: 3s
+  retries: 5
+  start_period: 10s
+```
+
+### ENVs deployen
+
+```bash
 ~/dev/922/HomeStructure/scripts/deploy-envs.sh
-
-# 2. Code auf Server bringen (git pull oder scp)
-ssh lab "cd ~/new_service && git pull"
-
-# 3. Service starten
-ssh lab "cd ~/new_service && docker compose up -d --build"
-
-# 4. Verifizieren
-ssh lab "docker ps | grep new_service"
-ssh lab "curl -s http://localhost:8XXX/health"
 ```
 
 ### GitHub Actions (empfohlen)
@@ -364,6 +429,62 @@ Falls der Service einen `/metrics`-Endpunkt hat, füge einen Scrape-Job hinzu:
 
 ---
 
+## Schritt 11: Test-Infrastruktur absichern
+
+Neue Services mit Celery + asyncpg haben bekannte CI-Hänger. Diese Fixes gehören in jedes Setup:
+
+### 11a: `tests/conftest.py` — Celery isolieren
+
+Celery-Env-Vars **vor** allen App-Imports setzen, damit kein Worker versucht `shared_redis` zu erreichen:
+
+```python
+import os
+os.environ["CELERY_BROKER_URL"] = "memory://"
+os.environ["CELERY_RESULT_BACKEND"] = "cache+memory://"
+```
+
+### 11b: `tests/conftest.py` — asyncpg NullPool
+
+Die asyncpg Engine im Test durch eine NullPool-Variante ersetzen — verhindert hängende Pool-Connections beim Teardown:
+
+```python
+from sqlalchemy.pool import NullPool
+# Bei Engine-Erstellung: poolclass=NullPool
+```
+
+### 11c: `tests/conftest.py` — grpcio atexit-Hang umgehen
+
+grpcio (z.B. von Sentry/OpenTelemetry) blockiert beim `atexit`-Cleanup. Fix:
+
+```python
+def pytest_sessionfinish(session, exitstatus):
+    os._exit(exitstatus)
+```
+
+### 11d: pytest-timeout als Safety-Net
+
+In `requirements-test.txt` und `pyproject.toml`:
+
+```toml
+[tool.pytest.ini_options]
+timeout = 30
+```
+
+### 11e: Workflow-Timeout
+
+In `python-tests.yml` beim pytest-Step:
+
+```yaml
+- name: Run tests
+  timeout-minutes: 10
+```
+
+### 11f: Allure Project-ID
+
+In `deploy.yml` immer **kebab-case** verwenden (z.B. `home-content`, nicht `homecontent`) — muss mit dem Allure-Server-Projekt übereinstimmen.
+
+---
+
 ## Checkliste
 
 - [ ] DB-User + Database auf `shared_postgres` angelegt
@@ -378,9 +499,16 @@ Falls der Service einen `/metrics`-Endpunkt hat, füge einen Scrape-Job hinzu:
 - [ ] Auth-Middleware aktiviert (falls geschützt): `auth-verify@file`
 - [ ] Cloudflare Tunnel Hostname hinzugefügt (falls extern)
 - [ ] `.env` auf Server deployed via `deploy-envs.sh`
+- [ ] `deploy.sh` folgt Zero-Downtime-Pattern (build-first, kein `docker compose down`)
+- [ ] Healthcheck in `docker-compose.yaml` definiert (für alle Services mit HTTP-Endpoint)
+- [ ] Frontend: `curl` in Dockerfile installiert (für nginx-alpine Healthcheck)
 - [ ] HomeCollector `DEFAULT_MONITORED_SERVICES` aktualisiert + deployed
 - [ ] HomeAPI Versioning-Registry aktualisiert (falls API)
 - [ ] CI/CD Workflow erstellt (optional)
+- [ ] `tests/conftest.py`: Celery auf memory://, asyncpg NullPool, grpcio os._exit
+- [ ] `pytest-timeout` mit 30s Default konfiguriert
+- [ ] Workflow pytest-Step: `timeout-minutes: 10`
+- [ ] Allure Project-ID in kebab-case
 
 ---
 
@@ -396,6 +524,7 @@ Falls der Service einen `/metrics`-Endpunkt hat, füge einen Scrape-Job hinzu:
 | Portfolio      | 3000 | portfolio.922-studio.com        | —         | —        | Nein |
 | SweatValley    | —    | sweatvalley-bingo.922-studio.com| —         | —        | Nein |
 | HomeContent    | 8012 | lab-content.922-studio.com      | homecontent | 3      | Ja   |
+| Studio         | 3000 | studio.922-studio.com           | —         | —        | Nein |
 
 ## Referenz: Management-Tool
 
