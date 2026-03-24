@@ -62,7 +62,7 @@ Aktuelle Belegung:
 | 0     | HomeAPI        | Celery Broker+Backend |
 | 1     | HomeCollector  | Celery Broker+Backend |
 | 2     | (reserviert)   | Shared Cache          |
-| 3     | HomeContent    | Celery Broker+Backend |
+| 3     | (frei)         | —                     |
 | 4-15  | *verfügbar*    | Nächsten freien nehmen |
 
 Wähle die nächste freie Nummer (z.B. DB 3) und trage sie in die Tabelle oben ein.
@@ -481,7 +481,7 @@ In `python-tests.yml` beim pytest-Step:
 
 ### 11f: Allure Project-ID
 
-In `deploy.yml` immer **kebab-case** verwenden (z.B. `home-content`, nicht `homecontent`) — muss mit dem Allure-Server-Projekt übereinstimmen.
+In `deploy.yml` immer **kebab-case** verwenden (z.B. `anime-api`, nicht `animeapi`) — muss mit dem Allure-Server-Projekt übereinstimmen.
 
 ---
 
@@ -523,7 +523,6 @@ In `deploy.yml` immer **kebab-case** verwenden (z.B. `home-content`, nicht `home
 | Discord Bot    | —    | — (kein Web)                    | discord_bot | —      | —    |
 | Portfolio      | 3000 | portfolio.922-studio.com        | —         | —        | Nein |
 | SweatValley    | —    | sweatvalley-bingo.922-studio.com| —         | —        | Nein |
-| HomeContent    | 8012 | lab-content.922-studio.com      | homecontent | 3      | Ja   |
 | Studio         | 3000 | studio.922-studio.com           | —         | —        | Nein |
 
 ## Referenz: Management-Tool

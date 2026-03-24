@@ -13,18 +13,19 @@ Master list of all projects in Gregor's ecosystem.
 | 7 | Portfolio | /Users/gregor/dev/922/portfolio | app (website) | active | [mapping](projects/portfolio.md) |
 | 8 | Sweatvalley Bingo | /Users/gregor/dev/922/sweatvalley_bingo | app | active | [mapping](projects/sweatvalley-bingo.md) |
 | 9 | Workflows | /Users/gregor/dev/922/workflows | infra | active | [mapping](projects/workflows.md) |
-| 10 | HomeContent | /Users/gregor/dev/922/HomeContent | fullstack (backend) | active | [mapping](projects/homecontent.md) |
-| 11 | Anime-API | /Users/gregor/dev/922/Anime-API | fullstack (backend) | active | [mapping](projects/anime-api.md) |
-| 12 | Anime-APP | /Users/gregor/dev/922/Anime-APP | fullstack (frontend) | active | [mapping](projects/anime-app.md) |
-| 13 | Studio | /Users/gregor/dev/922/studio | app (website) | active | [mapping](projects/studio.md) |
+| 10 | Anime-API | /Users/gregor/dev/922/Anime-API | fullstack (backend) | active | [mapping](projects/anime-api.md) |
+| 11 | Anime-APP | /Users/gregor/dev/922/Anime-APP | fullstack (frontend) | active | [mapping](projects/anime-app.md) |
+| 12 | Studio | /Users/gregor/dev/922/studio | app (website) | active | [mapping](projects/studio.md) |
+| 13 | Drafter | /Users/gregor/dev/922/Drafter | fullstack (monorepo) | setup | [mapping](projects/drafter.md) |
 
 ## Quick Reference
 
 ### By Type
 - **Infrastructure**: HomeStructure (#4), Workflows (#9)
-- **Full-Stack Backend**: HomeAPI (#1), HomeAuth (#2), HomeCollector (#3), HomeContent (#10), Anime-API (#11)
-- **Full-Stack Frontend**: HomeUI (#5), Anime-APP (#12)
-- **App/Website**: Discord Bot (#6), Portfolio (#7), Sweatvalley Bingo (#8), Studio (#13)
+- **Full-Stack Backend**: HomeAPI (#1), HomeAuth (#2), HomeCollector (#3), Anime-API (#10)
+- **Full-Stack Frontend**: HomeUI (#5), Anime-APP (#11)
+- **Full-Stack Monorepo**: Drafter (#13)
+- **App/Website**: Discord Bot (#6), Portfolio (#7), Sweatvalley Bingo (#8), Studio (#12)
 
 ### Core Ecosystem (Home Lab Stack)
 ```
@@ -36,16 +37,16 @@ Master list of all projects in Gregor's ecosystem.
                  │  HomeStructure    │  (infra: PostgreSQL, Redis, Traefik, Monitoring)
                  └─────────┬─────────┘
                            │
-         ┌─────────┬───────┼───────┬──────────┬──────────┐
-         │         │       │       │          │          │
-    ┌────┴───┐ ┌───┴────┐ ┌┴────┐ ┌┴────────┐ ┌┴──────┐ ┌┴────────┐
-    │HomeAuth│ │HomeAPI │ │HomeUI│ │Collector│ │Discord│ │HomeContent│
-    └────────┘ └────────┘ └──┬──┘ └────┬────┘ └───────┘ └───────────┘
-         │         │         │         │          │          │
-         └────┬────┘         │         │          │          │
-              │              └────┬────┘          │          │
-         JWT shared         consumes          calls API  role-gated
-                         HomeAPI (domain)    ideas/debts  social mgmt
+         ┌─────────┬───────┼───────┬──────────┐
+         │         │       │       │          │
+    ┌────┴───┐ ┌───┴────┐ ┌┴────┐ ┌┴────────┐ ┌┴──────┐
+    │HomeAuth│ │HomeAPI │ │HomeUI│ │Collector│ │Discord│
+    └────────┘ └────────┘ └──┬──┘ └────┬────┘ └───────┘
+         │         │         │         │          │
+         └────┬────┘         │         │          │
+              │              └────┬────┘          │
+         JWT shared         consumes          calls API
+                         HomeAPI (domain)    ideas/debts
                        + Collector (all monitoring)
 ```
 
@@ -62,12 +63,10 @@ Master list of all projects in Gregor's ecosystem.
 - **HomeCollector → Prometheus**: System and container metrics (PROMETHEUS_URL)
 - **HomeCollector → HomeAPI**: REST call for pending todos count (HOMEAPI_BASE_URL)
 - **Discord → HomeAPI**: Debts, ideas, wellbeing via HTTP
-- **HomeContent → HomeAuth**: Role "social" required, shared JWT_SECRET
-- **HomeContent → HomeUI**: Frontend content feature module consumes API
-- **HomeContent → Discord**: Webhook notifications for scheduled posts
 - **Portfolio**: Standalone (only depends on HomeStructure for Traefik)
 - **Sweatvalley Bingo**: Standalone (only depends on HomeStructure for Traefik + Cloudflare)
 - **Studio**: Standalone (only depends on HomeStructure for Traefik)
+- **Drafter**: Next.js monorepo (content management). Depends on HomeAuth (JWT), HomeStructure (PostgreSQL, Traefik). Collaborative project.
 
 ### Shared Conventions (all projects)
 - No `Co-Authored-By` trailers in git commits

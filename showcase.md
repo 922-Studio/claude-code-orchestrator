@@ -95,19 +95,6 @@ Owns all monitoring and data collection: Docker container uptime via socket, HTT
 
 ---
 
-### HomeContent — Social Media Platform
-**Type:** Backend microservice · **Stack:** Python 3.13, FastAPI, Celery, Gemini API
-**URL:** lab-content.922-studio.com
-
-Content management for Instagram and Facebook: create, schedule, AI-assist, preview. Gemini-powered content generation, media asset management, Discord webhook notifications.
-
-- Role-gated access ("social" role required via Traefik headers)
-- AI generation behind feature flag
-- Celery beat scheduler for timed posting
-- Phase 2 planned: direct Meta API integration
-
----
-
 ### HomeStructure — The Platform Itself
 **Type:** Infrastructure · **Stack:** Docker Compose, Traefik, Prometheus, Grafana, Bash
 
@@ -115,7 +102,7 @@ The infrastructure layer that everything runs on. 20+ containerized services, na
 
 - Zero-inbound-port architecture via Cloudflare Tunnel
 - Tailscale VPN for private access
-- Path-filtered auto-deployment (docs, monitoring, traefik, webdav update independently)
+- Path-filtered auto-deployment (docs, monitoring, traefik update independently)
 - MkDocs documentation sites for all services
 
 ---
@@ -206,7 +193,6 @@ Google Gemini API · GitHub API · Jikan/MyAnimeList API · Discord API · Gmail
 ### March 2026
 - **Studio landing page launched** *(2026-03-24)* — 922-Studio public landing page at studio.922-studio.com. Built with Next.js 16, React 19, Tailwind CSS 4, next-intl, MDX. Vitest unit tests + Playwright E2E, GitHub Actions CI/CD, zero-downtime deployment.
 - **3-server lab expansion** *(2026-03-24, in progress — ships by 2026-03-28)* — Acquired 3 new servers plus full networking hardware (LAN switch, cables, network extender). Major infrastructure overhaul in progress: expanded compute, networking upgrade, multi-server homelab setup.
-- **HomeContent shipped** — Social media management microservice with AI-assisted content generation, Gemini integration, Celery scheduling, role-gated access
 - **HomeCollector became the monitoring hub** — Replaced Uptime Kuma and Pushgateway; now owns all uptime monitoring, GitHub Actions analytics, Allure aggregation, system metrics
 - **Monitoring stack migrated** — Consolidated monitoring responsibilities into HomeCollector; removed external dependencies
 - **Workflows naming convention** — Standardized caller workflow naming convention and E2E dispatch pattern across all repos

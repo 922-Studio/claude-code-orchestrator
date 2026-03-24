@@ -38,7 +38,6 @@
 | `lab-api.922-studio.com` | Traefik :80 | HomeAPI (with forward_auth) |
 | `lab-collector.922-studio.com` | Traefik :80 | HomeCollector |
 | `status.922-studio.com` | Traefik :80 | HomeCollector (`/status`) |
-| `lab-content.922-studio.com` | Traefik :80 | HomeContent (with forward_auth) |
 | `sweatvalley-bingo.922-studio.com` | Traefik :80 | Sweatvalley Bingo |
 | `anime-api.922-studio.com` | Traefik :80 | Anime-API |
 | `anime.922-studio.com` | Traefik :80 | Anime-APP |
@@ -51,8 +50,8 @@
 ### Databases & Caching
 | Service | Port | Bound to | Used by |
 |---------|------|----------|---------|
-| PostgreSQL (shared_postgres) | 5432 | 127.0.0.1 | HomeAPI (home_api), HomeAuth (home_auth), HomeCollector (home_collector), Discord Bot (discord_bot), HomeContent (homesocial), Anime-API (anime_api) |
-| Redis (shared_redis) | 6379 | 127.0.0.1 | HomeAPI Celery (DB 0), HomeCollector Celery (DB 1), HomeContent Celery (DB 3) |
+| PostgreSQL (shared_postgres) | 5432 | 127.0.0.1 | HomeAPI (home_api), HomeAuth (home_auth), HomeCollector (home_collector), Discord Bot (discord_bot), Anime-API (anime_api) |
+| Redis (shared_redis) | 6379 | 127.0.0.1 | HomeAPI Celery (DB 0), HomeCollector Celery (DB 1) |
 
 ### Application Services
 | Service | Port | Container |
@@ -64,7 +63,6 @@
 | Discord Bot | — | `discord_bot` |
 | Landing Page | 8010 | `landingpage` |
 | Portfolio | 3000 (internal) | `portfolio` |
-| HomeContent | 8012 | `homecontent_api` |
 | Anime-API | 8020 | `anime_api` |
 | Anime-APP | 8021 | `anime_app` |
 | Sweatvalley Bingo | 3001 (internal) | `sweatvalley-bingo` |
@@ -99,8 +97,6 @@
 | HomeAPI Flower | `home_api_flower` (:5555) | Celery monitoring |
 | HomeCollector Worker | `home_collector_worker` | Uptime polling |
 | HomeCollector Beat | `home_collector_beat` | 60s poll schedule |
-| HomeContent Worker | `homecontent_worker` | Social media tasks |
-| HomeContent Beat | `homecontent_beat` | Scheduled post checks |
 
 ### Infrastructure Services
 | Service | Port/Type | Purpose |
@@ -110,13 +106,12 @@
 | OpenClaw | 18789 (systemd) | AI gateway (11 agents) |
 | GitHub Runners | 4x systemd | CI/CD pipeline execution |
 | Syncthing | 22000 (systemd) | P2P file sync (Obsidian vault) |
-| WebDAV | 8088 | File server |
 
 ## Docker Networks
 
 | Network | Purpose | Connected services |
 |---------|---------|-------------------|
-| `proxy` | Traefik routing | Traefik, Portfolio, HomeUI, HomeAuth, HomeAPI, HomeCollector, HomeContent, Sweatvalley Bingo, Anime-API, Anime-APP, Studio |
+| `proxy` | Traefik routing | Traefik, Portfolio, HomeUI, HomeAuth, HomeAPI, HomeCollector, Sweatvalley Bingo, Anime-API, Anime-APP, Studio |
 | `homeapi_default` | HomeAPI + Discord cross-network | HomeAPI, Discord Bot |
 | `monitor-net` | Monitoring stack | Prometheus, Grafana, exporters, HomeCollector |
 | `infra` | Shared infrastructure | PostgreSQL, Redis, dependent services |
