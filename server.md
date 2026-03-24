@@ -51,12 +51,8 @@
 ### Databases & Caching
 | Service | Port | Bound to | Used by |
 |---------|------|----------|---------|
-| PostgreSQL (HomeAPI) | 5432 | 127.0.0.1 | HomeAPI, Celery |
-| PostgreSQL (Discord) | 5433 | 127.0.0.1 | Discord Bot |
-| PostgreSQL (Collector) | 5434 | 127.0.0.1 | HomeCollector |
-| PostgreSQL (Anime-API) | 5435 | 127.0.0.1 | Anime-API |
-| Redis (HomeAPI) | 6379 | 127.0.0.1 | HomeAPI Celery (DB 0) |
-| Redis (Collector) | 6380 | 127.0.0.1 | HomeCollector Celery (DB 1) |
+| PostgreSQL (shared_postgres) | 5432 | 127.0.0.1 | HomeAPI (home_api), HomeAuth (home_auth), HomeCollector (home_collector), Discord Bot (discord_bot), HomeContent (homesocial), Anime-API (anime_api) |
+| Redis (shared_redis) | 6379 | 127.0.0.1 | HomeAPI Celery (DB 0), HomeCollector Celery (DB 1), HomeContent Celery (DB 3) |
 
 ### Application Services
 | Service | Port | Container |
