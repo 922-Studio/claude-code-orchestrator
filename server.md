@@ -42,6 +42,9 @@
 | `anime-api.922-studio.com` | Traefik :80 | Anime-API |
 | `anime.922-studio.com` | Traefik :80 | Anime-APP |
 | `studio.922-studio.com` | Traefik :80 | Studio (Landing Page) |
+| `drafter.922-studio.com` | Traefik :80 | Drafter (prod, with forward_auth) |
+| `drafter-dev.922-studio.com` | Traefik :80 | Drafter (dev, with forward_auth) |
+| `registry.922-studio.com` | Traefik :80 | Docker Registry (htpasswd auth) |
 
 > Details: Read `HomeStructure/docs/config/cloudflare.md` and `HomeStructure/docs/services/traefik.md`
 
@@ -50,7 +53,7 @@
 ### Databases & Caching
 | Service | Port | Bound to | Used by |
 |---------|------|----------|---------|
-| PostgreSQL (shared_postgres) | 5432 | 127.0.0.1 | HomeAPI (home_api), HomeAuth (home_auth), HomeCollector (home_collector), Discord Bot (discord_bot), Anime-API (anime_api) |
+| PostgreSQL (shared_postgres) | 5432 | 127.0.0.1 | HomeAPI (home_api), HomeAuth (home_auth), HomeCollector (home_collector), Discord Bot (discord_bot), Anime-API (anime_api), Drafter (drafter) |
 | Redis (shared_redis) | 6379 | 127.0.0.1 | HomeAPI Celery (DB 0), HomeCollector Celery (DB 1) |
 
 ### Application Services
@@ -67,6 +70,8 @@
 | Anime-APP | 8021 | `anime_app` |
 | Sweatvalley Bingo | 3001 (internal) | `sweatvalley-bingo` |
 | Studio | 3000 (internal) | `studio` |
+| Drafter (prod) | 3000 (internal) | `drafter` |
+| Drafter (dev) | 3000 (internal) | `drafter_dev` |
 
 ### Monitoring & Observability
 | Service | Port | Container |
@@ -106,12 +111,13 @@
 | OpenClaw | 18789 (systemd) | AI gateway (11 agents) |
 | GitHub Runners | 4x systemd | CI/CD pipeline execution |
 | Syncthing | 22000 (systemd) | P2P file sync (Obsidian vault) |
+| Docker Registry | 5000 (internal) | Self-hosted container image registry (`docker_registry`) |
 
 ## Docker Networks
 
 | Network | Purpose | Connected services |
 |---------|---------|-------------------|
-| `proxy` | Traefik routing | Traefik, Portfolio, HomeUI, HomeAuth, HomeAPI, HomeCollector, Sweatvalley Bingo, Anime-API, Anime-APP, Studio |
+| `proxy` | Traefik routing | Traefik, Portfolio, HomeUI, HomeAuth, HomeAPI, HomeCollector, Sweatvalley Bingo, Anime-API, Anime-APP, Studio, Drafter, Docker Registry |
 | `homeapi_default` | HomeAPI + Discord cross-network | HomeAPI, Discord Bot |
 | `monitor-net` | Monitoring stack | Prometheus, Grafana, exporters, HomeCollector |
 | `infra` | Shared infrastructure | PostgreSQL, Redis, dependent services |

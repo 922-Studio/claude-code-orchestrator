@@ -16,7 +16,7 @@ Master list of all projects in Gregor's ecosystem.
 | 10 | Anime-API | /Users/gregor/dev/922/Anime-API | fullstack (backend) | active | [mapping](projects/anime-api.md) |
 | 11 | Anime-APP | /Users/gregor/dev/922/Anime-APP | fullstack (frontend) | active | [mapping](projects/anime-app.md) |
 | 12 | Studio | /Users/gregor/dev/922/studio | app (website) | active | [mapping](projects/studio.md) |
-| 13 | Drafter | /Users/gregor/dev/922/Drafter | fullstack (monorepo) | setup | [mapping](projects/drafter.md) |
+| 13 | Drafter | /Users/gregor/dev/922/Drafter | fullstack (monorepo) | active | [mapping](projects/drafter.md) |
 
 ## Quick Reference
 
@@ -51,7 +51,7 @@ Master list of all projects in Gregor's ecosystem.
 ```
 
 ### Dependencies
-- **HomeStructure → all**: PostgreSQL (shared_postgres), Redis (shared_redis), Traefik routing
+- **HomeStructure → all**: PostgreSQL (shared_postgres), Redis (shared_redis), Traefik routing, Docker Registry (registry.922-studio.com)
 - **Workflows → all**: Reusable CI/CD workflows
 - **HomeAuth ↔ HomeAPI**: Shared JWT_SECRET
 - **HomeAuth ↔ HomeCollector**: Shared JWT_SECRET
@@ -66,7 +66,7 @@ Master list of all projects in Gregor's ecosystem.
 - **Portfolio**: Standalone (only depends on HomeStructure for Traefik)
 - **Sweatvalley Bingo**: Standalone (only depends on HomeStructure for Traefik + Cloudflare)
 - **Studio**: Standalone (only depends on HomeStructure for Traefik)
-- **Drafter**: Next.js monorepo (content management). Depends on HomeAuth (JWT), HomeStructure (PostgreSQL, Traefik). Collaborative project.
+- **Drafter**: Next.js monorepo (content management). Depends on HomeAuth (JWT), HomeStructure (PostgreSQL, Traefik), Workflows (CI/CD). Domains: drafter.922-studio.com (prod), drafter-dev.922-studio.com (dev).
 
 ### Shared Conventions (all projects)
 - No `Co-Authored-By` trailers in git commits
