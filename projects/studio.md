@@ -7,8 +7,10 @@
 - **Description**: The public landing page for 922-Studio at studio.922-studio.com. Showcases the studio's identity, projects, and capabilities. Built with Next.js 16 and React 19, supporting internationalization via next-intl and rich content via MDX. Fully public, no authentication required.
 
 ## Tech Stack
-- **Language(s)**: TypeScript, React 19
-- **Framework(s)**: Next.js 16, next-intl (i18n), Tailwind CSS 4, MDX
+- **Language(s)**: TypeScript 5+, React 19.2.3
+- **Framework(s)**: Next.js 16.1.6, next-intl 4.8.3 (i18n), Tailwind CSS 4.2.1, next-mdx-remote 5.0.0, gray-matter 4.0.3
+- **Content**: reading-time 1.5.0, lucide-react 0.575.0
+- **Testing**: Vitest 2.1.9, Playwright 1.58.2
 - **Infrastructure**: Docker, Traefik (proxy network), Cloudflare Tunnel
 - **CI/CD**: GitHub Actions (922-Studio/workflows), self-hosted runner → deploy.sh
 

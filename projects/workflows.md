@@ -79,7 +79,7 @@ See `HomeStructure/docs/actions/workflow-naming.md` for the full pattern.
 - No upstream dependencies
 
 ## Notes
-- 10+ reusable workflows
+- 14 reusable workflows: cancel-previous-runs, versioning, python-lint, python-tests, smoke-test, deploy-docker, frontend-tests, frontend-e2e, docker-build, generate-mcp, create-issue, send-notification, pr-demo (+ local docs: deploy-docker.md, generate-mcp.md, pr-demo.md, send-email.md, smoke-test.md, versioning.md)
 - AI versioning: Gemini 2.5 Flash analyzes commits for semantic versioning
 - Default values: Node 20.x, Python 3.13, Allure at http://home-lab:5050
 - `[ci skip]` in commit message skips versioning

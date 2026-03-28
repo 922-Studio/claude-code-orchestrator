@@ -8,7 +8,7 @@
 
 ## Tech Stack
 - **Language(s)**: Python 3.13
-- **Framework(s)**: FastAPI 0.123.9, SQLAlchemy 2.0.44 (async), Pydantic V2, Celery 5.6.0
+- **Framework(s)**: FastAPI, SQLAlchemy 2.0 (async), Pydantic V2, Celery, asyncpg, Alembic, Redis
 - **Database**: PostgreSQL 16 via `shared_postgres` (database: `home_collector`), Redis via `shared_redis` DB 1
 - **Infrastructure**: Docker, Alembic, aiodocker, Prometheus metrics, Traefik
 - **CI/CD**: GitHub Actions (922-Studio/workflows), ruff + mypy, 70% coverage min
@@ -78,11 +78,11 @@
 - **HomeAPI**: Read-only REST API call for pending todos count (HOME_API_URL)
 
 ## Notes
-- Port 8010 internal / 8011 on host (HomeAPI uses 8080)
+- Port 8010 on host (HomeAPI uses 8080)
 - Shared infrastructure: `shared_postgres` (database `home_collector`) + `shared_redis` DB 1
 - HomeAPI has its own dedicated Postgres; HomeCollector uses the shared instance
 - Configurable retention: `RETENTION_DAYS` (default 90)
 - Configurable polling: `CHECK_INTERVAL` (default 60s)
 - 14+ services monitored via ServiceConfig (auto-seeded on startup from `DEFAULT_MONITORED_SERVICES`)
-- `status.922-studio.com` routes to this service's `/status` endpoint (no auth)
+- `lab-collector.922-studio.com` routes to this service (public `/status` endpoint, no auth)
 - Traefik labels: public routes (/health, /version, /docs, /status), protected routes (/api/*)

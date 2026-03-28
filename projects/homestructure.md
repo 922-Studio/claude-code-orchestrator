@@ -59,8 +59,21 @@
 - **workflows**: Uses reusable CI/CD workflows
 - **HomeAuth**: Forward-auth integration via Traefik
 
+## Docker Compose Stacks
+- **traefik**: Traefik v3.6 (latest)
+- **infra**: postgres:16-alpine, redis:7-alpine, exporters
+- **monitoring**: Prometheus, Grafana, cAdvisor, Node Exporter, Pushgateway
+- **minio**: MinIO object storage
+- **watchtower**: Automatic container updates
+- **syncthing**: File sync
+- **allure**: Allure test reporting server
+- **core**: Portainer
+- **registry**: Private Docker registry
+- **docs-service**: Documentation hosting
+
 ## Notes
-- `homelab-ctl.sh` (473 lines): status, up, down, restart, db:create/list/backup/restore, redis:info, health, deploy-envs, new-service
-- Server lifecycle: systemd services for startup/shutdown with email + Discord notifications
+- `homelab-ctl.sh`: status, up, down, restart, db:create/list/backup/restore, redis:info, health, deploy-envs, new-service
+- Server lifecycle: notify_email.py + systemd service for startup/shutdown with email + Discord notifications
 - All docs sites: HomeStructure (:8002), HomeAPI (:8003), OpenClaw (:8004), Discord (:8005)
 - Self-hosted GitHub Actions runner on the server
+- No CI/CD workflows in this repo — each stack deployed individually

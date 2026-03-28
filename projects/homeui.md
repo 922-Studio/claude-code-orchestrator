@@ -4,14 +4,17 @@
 - **Type**: fullstack (frontend)
 - **Path**: /Users/gregor/dev/922/HomeUI
 - **Status**: active
-- **Description**: React/TypeScript SPA dashboard for the home lab ecosystem. Connects to HomeAPI backend. Provides personal finance/debt tracking (Ledger), system monitoring, uptime tracking, health status, user management, settings, and wellbeing tracking.
+- **Description**: React/TypeScript SPA dashboard for the home lab ecosystem. Connects to HomeAPI backend. Provides Finance/Ledger (debt tracking at `/finance/ledger`), Health/Sleep (wellbeing at `/health/sleep`), system monitoring, uptime tracking, health status, user management, and settings.
 
 ## Tech Stack
-- **Language(s)**: TypeScript 5.9, React 19
-- **Framework(s)**: Vite 6.3, React Router 7.13, TanStack React Query 5.90, Zod 4.3
-- **Styling**: Tailwind CSS 4.1, shadcn/ui, Radix UI, CVA, Lucide icons
-- **HTTP**: Axios 1.13 with auth interceptors
-- **Infrastructure**: Docker (Node build → Nginx 1.27), Docker Compose
+- **Language(s)**: TypeScript ~5.9.3, React 19.2.0
+- **Framework(s)**: Vite 6.3.5, React Router DOM 7.13.0, TanStack Query 5.90.20, Zod 4.3.6
+- **i18n**: Tolgee 6.6.0
+- **Charts**: Recharts 3.7.0
+- **Styling**: Tailwind CSS 4.1.18, Radix UI, CVA, lucide-react 0.563.0
+- **HTTP**: Axios 1.13.4 with auth interceptors
+- **Testing**: Vitest 2.1.9, Testing Library 16.3.2, Playwright 1.58.2, MSW 2.12.13
+- **Infrastructure**: Docker (Node build → Nginx), Docker Compose
 - **CI/CD**: GitHub Actions (922-Studio/workflows), ESLint strict, 70% coverage min
 
 ## Key Files to Read
@@ -56,7 +59,7 @@
 
 ## Pipeline & Deployment
 - **CI trigger**: Push to main
-- **Pipeline**: cancel-previous → version → tests (70%) → e2e → smoke-test → deploy → notify
+- **Pipeline**: cancel-previous → version → unit tests → kick-off-e2e → smoke → deploy → notify
 - **Deploy**: Docker (Node build → Nginx), Docker Compose, `deploy.sh`
 - **Monitor after push**: Check Discord notification, verify http://home-lab:8000 loads
 
@@ -68,6 +71,7 @@
 
 ## Notes
 - Port 8000 behind Traefik (lab.922-studio.com)
+- 30+ components, 12 feature modules: auth, content, dashboard, debts, finance, health, management, modules, organisations, projects, settings, users, wellbeing
 - Design system: JetBrains Mono font, no rounded corners (--radius: 0rem), dark/light mode
 - Colors: Indigo primary, Emerald success, Rose danger, Amber warning
 - Tailwind v4 spacing quirk: use inline styles for spacing, not Tailwind spacing classes

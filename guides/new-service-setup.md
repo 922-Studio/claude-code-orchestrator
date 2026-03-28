@@ -514,16 +514,19 @@ In `deploy.yml` immer **kebab-case** verwenden (z.B. `anime-api`, nicht `animeap
 
 ## Referenz: Bestehende Services
 
-| Service        | Port | Domain                          | DB        | Redis DB | Auth |
-|----------------|------|---------------------------------|-----------|----------|------|
-| HomeUI         | 8000 | lab.922-studio.com              | —         | —        | Nein |
-| HomeAPI        | 8080 | lab-api.922-studio.com          | home_api  | 0        | Ja   |
-| HomeAuth       | 8100 | lab-auth.922-studio.com         | home_auth | —        | Nein |
-| HomeCollector  | 8010 | lab-collector.922-studio.com    | home_collector | 1   | Ja   |
-| Discord Bot    | —    | — (kein Web)                    | discord_bot | —      | —    |
-| Portfolio      | 3000 | portfolio.922-studio.com        | —         | —        | Nein |
-| SweatValley    | —    | sweatvalley-bingo.922-studio.com| —         | —        | Nein |
-| Studio         | 3000 | studio.922-studio.com           | —         | —        | Nein |
+| Service        | Port | Domain                          | DB             | Redis DB | Auth |
+|----------------|------|---------------------------------|----------------|----------|------|
+| HomeUI         | 8000 | lab.922-studio.com              | —              | —        | Nein |
+| HomeAPI        | 8080 | lab-api.922-studio.com          | home_api       | 0        | Ja   |
+| HomeAuth       | 8100 | auth.922-studio.com             | home_auth      | —        | Nein |
+| HomeCollector  | 8010 | lab-collector.922-studio.com    | home_collector | 1        | Ja   |
+| Discord Bot    | —    | — (kein Web)                    | discord_bot    | —        | —    |
+| Anime-API      | 8020 | anime-api.922-studio.com        | anime_api      | —        | Nein |
+| Anime-APP      | 8021 | anime.922-studio.com            | —              | —        | Nein |
+| Drafter        | 3000 | drafter.922-studio.com          | drafter        | —        | Ja (intern) |
+| Portfolio      | 3000 | gregor.922-studio.com           | —              | —        | Nein |
+| SweatValley    | 3923 | sweatvalley-bingo.922-studio.com| —              | —        | Nein |
+| Studio         | 3000 | studio.922-studio.com           | —              | —        | Nein |
 
 ## Referenz: Management-Tool
 

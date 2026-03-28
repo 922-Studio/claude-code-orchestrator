@@ -8,29 +8,32 @@
 
 | Metric | Value |
 |--------|-------|
-| Active projects | 12 |
-| Services in production | 11 public endpoints |
-| Backend microservices | 5 FastAPI services |
-| Frontend apps | 2 React SPAs + 1 Next.js site |
+| Active projects | 13 |
+| Running containers | 52 (38 prod + 14 dev) |
+| Public endpoints | 18 subdomains via Cloudflare Tunnel |
+| Backend microservices | 5 FastAPI + 1 Next.js API |
+| Frontend apps | 2 React SPAs + 3 Next.js sites |
 | Standalone apps | Discord bot, real-time multiplayer game |
 | Test coverage enforced | 70–85% across all services |
-| CI/CD pipelines | Centralized reusable workflow library |
-| Infrastructure | Self-hosted home lab, zero cloud dependency |
+| CI/CD pipelines | 14 reusable workflows, 4 self-hosted runners |
+| Infrastructure | 3-node Docker Swarm cluster, zero cloud dependency |
 
 ---
 
 ## Infrastructure Story
 
-Before the apps, there's the platform. The entire ecosystem runs on a self-hosted home lab server (Ubuntu 24.04 LTS) with zero inbound ports. Every service is containerized, monitored, versioned, and deployed automatically.
+Before the apps, there's the platform. The entire ecosystem runs on a 3-node Docker Swarm cluster (Ubuntu 24.04.4 LTS, Docker 29.3.1) with zero inbound ports. 52 containers in production, every one monitored, versioned, and deployed automatically.
 
 **What this means in practice:**
 - Push to `main` → AI analyzes commits → semantic version bump → tests run → zero-downtime deploy → Discord notification
-- 11 public subdomains, all behind Cloudflare Tunnel — no exposed ports
+- 18 public subdomains, all behind Cloudflare Tunnel — no exposed ports
 - Traefik reverse proxy with forward-auth middleware handles all routing and authentication
+- Full dev/prod environment split with database mirroring
 - Prometheus + Grafana for metrics, Allure for test reporting, Flower for Celery task monitoring
+- Private Docker Registry for container image distribution
 - 4 self-hosted GitHub Actions runners on the lab
 
-**The control plane:** `homelab-ctl.sh` — a 473-line Bash script that manages the entire infrastructure: databases, containers, backups, deployments, health checks.
+**The control plane:** `homelab-ctl.sh` — manages the entire infrastructure: databases, containers, backups, deployments, health checks.
 
 ---
 
@@ -56,7 +59,7 @@ The main interface for the home lab ecosystem. Finance and debt tracking, health
 **Type:** Backend microservice · **Stack:** Python 3.13, FastAPI, SQLAlchemy async, PostgreSQL, Celery
 **URL:** lab-api.922-studio.com
 
-Multipurpose REST backend with 17 database models across 12 domains: finance, ledger, health, sleep, tasks, ideas, worklogs, memory, email/calendar, AI prompts, Discord integration, Google Sheets sync.
+Multipurpose REST backend with 19 database models across 20+ routers: finance, ledger, health, sleep, tasks, ideas, worklogs, memory, email/calendar, AI prompts, Discord integration, Google Sheets sync, scheduled tasks, cron jobs, modules.
 
 - Async SQLAlchemy with connection pooling
 - Celery background workers + beat scheduler
@@ -67,8 +70,8 @@ Multipurpose REST backend with 17 database models across 12 domains: finance, le
 ---
 
 ### HomeAuth — The Security Layer
-**Type:** Backend microservice · **Stack:** Python 3.12+, FastAPI, SQLAlchemy async, Argon2id
-**URL:** lab-auth.922-studio.com
+**Type:** Backend microservice · **Stack:** Python 3.12, FastAPI, SQLAlchemy async, Argon2id
+**URL:** auth.922-studio.com
 
 Self-hosted JWT authentication with forward-auth integration for Traefik. Role-based access control, token rotation with reuse detection, account lockout, CSRF protection.
 
@@ -83,13 +86,13 @@ Self-hosted JWT authentication with forward-auth integration for Traefik. Role-b
 
 ### HomeCollector — Monitoring Hub
 **Type:** Backend microservice · **Stack:** Python 3.13, FastAPI, Celery, aiodocker
-**URL:** status.922-studio.com (public status page)
+**URL:** lab-collector.922-studio.com (public status page)
 
-Owns all monitoring and data collection: Docker container uptime via socket, HTTP health polling, GitHub Actions analytics, Allure test results aggregation, system metrics, disk alerts, sleep reminders.
+Owns all monitoring and data collection: Docker container uptime via socket, HTTP health polling, GitHub Actions analytics, Allure test results aggregation, system metrics, domain monitoring, disk alerts, sleep reminders.
 
-- 14+ services monitored automatically
+- 52+ containers monitored automatically
 - 60-second polling interval with 90-day retention
-- Public status page at status.922-studio.com (no auth)
+- Public status endpoint at lab-collector.922-studio.com/status (no auth)
 - Daily briefing generation via OpenClaw integration
 - Disk alerts and sleep reminders via Discord and email
 
@@ -98,7 +101,7 @@ Owns all monitoring and data collection: Docker container uptime via socket, HTT
 ### HomeStructure — The Platform Itself
 **Type:** Infrastructure · **Stack:** Docker Compose, Traefik, Prometheus, Grafana, Bash
 
-The infrastructure layer that everything runs on. 20+ containerized services, named Docker networks, shared PostgreSQL and Redis, centralized monitoring, automated lifecycle management.
+The infrastructure layer that everything runs on. 52 containerized services across a 3-node Swarm cluster, named Docker networks, shared PostgreSQL 16.11 and Redis 7.4.7, centralized monitoring, automated lifecycle management.
 
 - Zero-inbound-port architecture via Cloudflare Tunnel
 - Tailscale VPN for private access
@@ -153,7 +156,7 @@ Personal portfolio with multi-language support (EN/DE), dark/light theme, projec
 
 ### Sweatvalley Bingo — Real-Time Multiplayer Game
 **Type:** App (game) · **Stack:** Node.js, Express, Socket.io, React, Vitest, Jest
-**URL:** sweatvalley-bingo.922-studio.com · **Version:** 0.6.1
+**URL:** sweatvalley-bingo.922-studio.com · **Version:** 0.7.4
 
 Real-time multiplayer bingo for classroom observation. Teachers create games, students join via code and get randomized 3x3 or 4x4 grids with teacher behavior items. German word set with difficulty classification.
 
@@ -164,19 +167,33 @@ Real-time multiplayer bingo for classroom observation. Teachers create games, st
 
 ---
 
+### Drafter — Content Management Platform
+**Type:** Fullstack monorepo · **Stack:** Next.js 16, React 19, TypeScript, Prisma 7, PostgreSQL, MinIO
+**URL:** drafter.922-studio.com · **Version:** 0.3.2
+
+Social media content scheduling and drafting platform. Multi-platform support (Instagram Photo+Reel, TikTok, LinkedIn, Facebook) with S3-compatible media storage via MinIO.
+
+- Prisma ORM with 2 models (Post, Media) and full CRUD API
+- Internal JWT auth (jose) — independent from HomeAuth
+- S3/MinIO media uploads with pre-signed URLs
+- Dev/prod image distribution via private Docker Registry
+- Watchtower auto-deploys on registry image push
+
+---
+
 ## Technology Overview
 
 ### Languages
-Python 3.13 · TypeScript 5.9 · JavaScript/JSX · YAML · Bash
+Python 3.12–3.13 · TypeScript 5.8–5.9 · JavaScript/JSX · YAML · Bash
 
 ### Backend
 FastAPI · SQLAlchemy (async + sync) · Celery · discord.py · Pydantic V2 · Alembic · Argon2id · slowapi
 
 ### Frontend
-React 19 · Next.js · Vite · TanStack Query · Tailwind CSS 4 · shadcn/ui · React Router 7
+React 18–19 · Next.js 16 · Vite 6–7 · TanStack Query 5 · Tailwind CSS 4 · shadcn/ui · React Router 7 · Prisma 7
 
 ### Infrastructure
-Docker · Docker Compose · Traefik · Prometheus · Grafana · Redis · PostgreSQL 16 · Cloudflare Tunnel · Tailscale
+Docker 29.3.1 · Docker Compose v5.1.1 · Traefik · Prometheus · Grafana · Redis 7.4.7 · PostgreSQL 16.11 · Cloudflare Tunnel · Tailscale · MinIO · Docker Registry · Watchtower
 
 ### Testing
 pytest · pytest-asyncio · Vitest · Playwright · Jest · Testing Library · MSW · Allure
@@ -191,10 +208,14 @@ Google Gemini API · GitHub API · Jikan/MyAnimeList API · Discord API · Gmail
 > Key milestones, reverse chronological. Dates are approximate.
 
 ### March 2026
-- **Studio landing page launched** *(2026-03-24)* — 922-Studio public landing page at studio.922-studio.com. Built with Next.js 16, React 19, Tailwind CSS 4, next-intl, MDX. Vitest unit tests + Playwright E2E, GitHub Actions CI/CD, zero-downtime deployment.
-- **3-server lab expansion** *(2026-03-24, in progress — ships by 2026-03-28)* — Acquired 3 new servers plus full networking hardware (LAN switch, cables, network extender). Major infrastructure overhaul in progress: expanded compute, networking upgrade, multi-server homelab setup.
-- **HomeCollector became the monitoring hub** — Replaced Uptime Kuma and Pushgateway; now owns all uptime monitoring, GitHub Actions analytics, Allure aggregation, system metrics
-- **Monitoring stack migrated** — Consolidated monitoring responsibilities into HomeCollector; removed external dependencies
+- **Drafter MVP launched** *(2026-03-27)* — Social media content management platform at drafter.922-studio.com. Next.js 16, Prisma 7, MinIO for media storage. Dev/prod split with private Docker Registry distribution.
+- **MinIO deployed** *(2026-03-27)* — S3-compatible object storage for media uploads, integrated with Drafter
+- **Private Docker Registry** *(2026-03-25)* — Self-hosted container registry at registry.922-studio.com with htpasswd auth. Used by Drafter, Portfolio, Studio.
+- **Dev/Prod environment split** *(2026-03-24)* — Full environment separation with database mirroring, separate subdomains (lab-dev, lab-api-dev, auth-dev, lab-collector-dev, drafter-dev), 14 dev containers
+- **Studio landing page launched** *(2026-03-24)* — 922-Studio public landing page at studio.922-studio.com. Built with Next.js 16, React 19, Tailwind CSS 4, next-intl, MDX.
+- **3-server lab expansion** *(2026-03-24, in progress)* — Acquired 3 new servers plus full networking hardware. Multi-server cluster setup in progress.
+- **HomeCollector became the monitoring hub** — Replaced Uptime Kuma; now owns all uptime monitoring, GitHub Actions analytics, Allure aggregation, system metrics, domain monitoring
+- **Watchtower auto-deployment** — Automatic container updates from private registry for labeled services
 - **Workflows naming convention** — Standardized caller workflow naming convention and E2E dispatch pattern across all repos
 - **Projects module overhauled** — HomeAPI and HomeUI restructured for cleaner domain grouping
 - **Zero-downtime deployments rolled out** — Ecosystem-wide deployment upgrade across all services
@@ -228,12 +249,12 @@ Google Gemini API · GitHub API · Jikan/MyAnimeList API · Discord API · Gmail
 
 ## Coming Next
 
-- HomeAPI MCP generation — expose HomeAPI as an MCP server for AI tool use
+- Drafter Phase 2 — Meta API integration for direct Instagram/Facebook publishing
+- Multi-server cluster expansion — 3 new servers with full networking hardware
 - Management frontend improvements — admin UI for all services
-- Content module Phase 2 — Meta API integration for direct Instagram/Facebook publishing
 - Role system overhaul — more granular RBAC across all services
 - White/light mode — complete light theme rollout across HomeUI
 
 ---
 
-*Last updated: 2026-03-24 | 922-Studio*
+*Last updated: 2026-03-27 | 922-Studio*

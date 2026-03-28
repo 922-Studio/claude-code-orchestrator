@@ -4,12 +4,13 @@
 - **Type**: fullstack (backend)
 - **Path**: /Users/gregor/dev/922/HomeAPI
 - **Status**: active
-- **Description**: Scalable, multipurpose home-lab REST API backend. Serves as the central backend for the ecosystem supporting debt/finance tracking, task management, idea management, wellbeing metrics, email/calendar integration, AI prompts (Gemini), worklogs, memory/knowledge base, Discord bot integration, and Google Sheets sync. All monitoring and data collection (GitHub, Allure, Prometheus, system checks) has moved to HomeCollector.
+- **Description**: Scalable, multipurpose home-lab REST API backend. Serves as the central backend for the ecosystem supporting finance/ledger tracking, task management, idea management, health/sleep (wellbeing) metrics, email/calendar integration, AI prompts (Gemini), worklogs, memory/knowledge base, Discord bot integration, and Google Sheets sync. All monitoring and data collection (GitHub, Allure, Prometheus, system checks) has moved to HomeCollector.
 
 ## Tech Stack
 - **Language(s)**: Python 3.13
-- **Framework(s)**: FastAPI 0.123.9, SQLAlchemy 2.0.44 (async), Pydantic V2, Celery 5.6.0
-- **Database**: PostgreSQL 16 (asyncpg), Redis 7.1.0
+- **Framework(s)**: FastAPI 0.123.9, SQLAlchemy 2.0.44 (async), Pydantic 2.12.5, Celery 5.6.0, asyncpg 0.31.0, Alembic 1.17.2, uvicorn 0.38.0
+- **AI/Integrations**: google-genai 1.64.0, resend 2.7.0, discord.py 2.4.0, prometheus-fastapi-instrumentator 7.1.0
+- **Database**: PostgreSQL 16 (asyncpg 0.31.0), Redis
 - **Infrastructure**: Docker, Alembic migrations, Prometheus metrics, Traefik
 - **CI/CD**: GitHub Actions (922-Studio/workflows), ruff + mypy linting, 70% coverage min
 
@@ -49,7 +50,7 @@
 
 ## Pipeline & Deployment
 - **CI trigger**: Push to main
-- **Pipeline**: cancel-previous → version → lint → tests → smoke-test → deploy → notify
+- **Pipeline**: cancel-previous → version → lint → smoke → tests (70%) → deploy → generate-mcp → notify
 - **Deploy**: Zero-downtime Docker Compose via `deploy.sh`
 - **Monitor after push**: Check Discord notification, verify `/health/ready`, check Prometheus metrics
 
@@ -60,10 +61,21 @@
 - **HomeCollector**: Shares PostgreSQL and Redis infrastructure
 - **workflows**: Uses reusable CI/CD workflows
 
+## API URL Structure
+
+Domain-grouped routing (reflects HomeUI section structure):
+
+| Domain | URL Prefix | Router File | Old Prefix |
+|--------|-----------|-------------|------------|
+| Health / Sleep (wellbeing) | `/api/health/sleep/` | `app/routers/health/sleep.py` | `/api/wellbeing/` |
+| Finance / Ledger (debts) | `/api/finance/ledger/` | `app/routers/finance/ledger.py` | `/api/debts/` |
+| Other domains | `/api/{domain}/` | `app/routers/{domain}.py` | (unchanged) |
+
 ## Notes
-- 17 database models across 12+ domains
-- 21 router modules (core domain only — no monitoring)
+- 19 database models (activity_log, cron_job, debt_transaction, idea, memory, module, org_module, project, project_note, prompt, quote, scheduled_task, settings, task, wellbeing_metric, wellbeing_metric_entry, wellbeing_metric_todo, worklog + __init__)
+- 20+ router modules (activity_log, calendar, cron_job, finance/ledger, gmail, health/sleep, idea, memory, modules, openclaw, project, project_note, prompt, quote, scheduled_task, settings, sync, task, tasks, worklog)
 - Celery for core background tasks: GSheets sync, DB-driven scheduled tasks and cron jobs
 - Google Gemini 2.5 Flash for AI/NLP features
 - All monitoring endpoints (GitHub, Allure, Prometheus, system metrics) live in HomeCollector
 - `system_check_tasks.py` remains in HomeAPI: used directly by `openclaw.py` router for health checks via `asyncio.to_thread()`
+- Routers grouped by UI domain: `app/routers/health/`, `app/routers/finance/` (sub-packages with `__init__.py`)

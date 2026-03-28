@@ -66,7 +66,8 @@ Master list of all projects in Gregor's ecosystem.
 - **Portfolio**: Standalone (only depends on HomeStructure for Traefik)
 - **Sweatvalley Bingo**: Standalone (only depends on HomeStructure for Traefik + Cloudflare)
 - **Studio**: Standalone (only depends on HomeStructure for Traefik)
-- **Drafter**: Next.js monorepo (content management). Depends on HomeAuth (JWT), HomeStructure (PostgreSQL, Traefik), Workflows (CI/CD). Domains: drafter.922-studio.com (prod), drafter-dev.922-studio.com (dev).
+- **Drafter**: Next.js monorepo (content management). Internal JWT auth (jose, independent of HomeAuth). Depends on HomeStructure (PostgreSQL, Traefik, MinIO), Workflows (CI/CD). Domains: drafter.922-studio.com (prod), drafter-dev.922-studio.com (dev). Uses private Docker Registry for image distribution.
+- **Anime-API → HomeStructure**: Uses shared_postgres for database
 
 ### Shared Conventions (all projects)
 - No `Co-Authored-By` trailers in git commits
