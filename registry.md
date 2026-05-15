@@ -17,6 +17,7 @@ Master list of all projects in Gregor's ecosystem.
 | 11 | Anime-APP | /Users/gregor/dev/922/Anime-APP | fullstack (frontend) | active | [mapping](projects/anime-app.md) |
 | 12 | Studio | /Users/gregor/dev/922/studio | app (website) | active | [mapping](projects/studio.md) |
 | 13 | Drafter | /Users/gregor/dev/922/Drafter | fullstack (monorepo) | active | [mapping](projects/drafter.md) |
+| 14 | Smoking Counter | /Users/gregor/dev/922/smoking-counter | app (website) | planned | [mapping](projects/smoking-counter.md) |
 
 ## Quick Reference
 
@@ -25,7 +26,7 @@ Master list of all projects in Gregor's ecosystem.
 - **Full-Stack Backend**: HomeAPI (#1), HomeAuth (#2), HomeCollector (#3), Anime-API (#10)
 - **Full-Stack Frontend**: HomeUI (#5), Anime-APP (#11)
 - **Full-Stack Monorepo**: Drafter (#13)
-- **App/Website**: Discord Bot (#6), Portfolio (#7), Sweatvalley Bingo (#8), Studio (#12)
+- **App/Website**: Discord Bot (#6), Portfolio (#7), Sweatvalley Bingo (#8), Studio (#12), Smoking Counter (#14)
 
 ### Core Ecosystem (Home Lab Stack)
 ```
