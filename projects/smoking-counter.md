@@ -3,7 +3,7 @@
 ## Overview
 - **Type**: app (website)
 - **Path**: /Users/gregor/dev/922/smoking-counter
-- **Status**: planned (created 2026-05-15)
+- **Status**: active (deployed 2026-05-15)
 - **Description**: Tiny standalone web app to track cigarette counts per user with a global leaderboard. Username-only "login" (no password), one big +1 button, undo last entry. Public at `smoking.922-studio.com`.
 
 ## Tech Stack

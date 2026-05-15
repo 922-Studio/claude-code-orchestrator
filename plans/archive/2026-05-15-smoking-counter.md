@@ -1,5 +1,6 @@
 # Plan: Smoking Counter — Standalone Web App
 
+- **Status**: ✅ Done 2026-05-15 — live at https://smoking.922-studio.com
 - **Date**: 2026-05-15
 - **Project(s)**: Smoking Counter (new), HomeStructure (cloudflared + DNS)
 - **Goal**: Build a small standalone web app where a user signs in once with a username, taps a counter for cigarettes (with undo), and sees a leaderboard. Deploy under `smoking.922-studio.com` on the home lab.

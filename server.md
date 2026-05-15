@@ -65,6 +65,7 @@ Config: `/home/lab/.cloudflared/config.yml`
 | `drafter.922-studio.com` | Traefik :80 | Drafter (prod) |
 | `drafter-dev.922-studio.com` | Traefik :80 | Drafter (dev) |
 | `sweatvalley-bingo.922-studio.com` | Traefik :80 | Sweatvalley Bingo |
+| `smoking.922-studio.com` | Traefik :80 | Smoking Counter |
 | `registry.922-studio.com` | Traefik :80 | Docker Registry (htpasswd auth) |
 | `minio.922-studio.com` | Traefik :80 | MinIO (public read, media serving) |
 | `*` (catch-all) | Traefik :80 | Wildcard (PR previews etc.) |
@@ -99,6 +100,7 @@ Config: `/home/lab/.cloudflared/config.yml`
 | Anime-API | 8020 | `anime_api` | anime-api-api |
 | Anime-APP | 8021 | `anime_app` | anime-app-app |
 | Sweatvalley Bingo | 3923 | `sweatvalley-bingo` | sweatvalley_bingo-bingo |
+| Smoking Counter | 3925 | `smoking-counter` | smoking-counter |
 | Studio | 3000 (internal) | `studio` | studio-studio |
 | Drafter (prod) | 3000 (internal) | `drafter` | registry.922-studio.com/drafter:dev |
 | Drafter (dev) | 3000 (internal) | `drafter_dev` | registry.922-studio.com/drafter:dev |

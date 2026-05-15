@@ -17,7 +17,7 @@ Master list of all projects in Gregor's ecosystem.
 | 11 | Anime-APP | /Users/gregor/dev/922/Anime-APP | fullstack (frontend) | active | [mapping](projects/anime-app.md) |
 | 12 | Studio | /Users/gregor/dev/922/studio | app (website) | active | [mapping](projects/studio.md) |
 | 13 | Drafter | /Users/gregor/dev/922/Drafter | fullstack (monorepo) | active | [mapping](projects/drafter.md) |
-| 14 | Smoking Counter | /Users/gregor/dev/922/smoking-counter | app (website) | planned | [mapping](projects/smoking-counter.md) |
+| 14 | Smoking Counter | /Users/gregor/dev/922/smoking-counter | app (website) | active | [mapping](projects/smoking-counter.md) |
 
 ## Quick Reference
 
