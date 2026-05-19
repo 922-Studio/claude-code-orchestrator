@@ -35,7 +35,7 @@ Step [N]: [Description]
   - Context files: [list of files agent must read]
 ```
 
-For multi-wave execution, group steps by wave (see `plans/_template.md`).
+For multi-wave execution, group steps by wave (see `plans/_template.html` → `<section id="execution-overview">`).
 
 ## File Reference
 
@@ -45,10 +45,13 @@ For multi-wave execution, group steps by wave (see `plans/_template.md`).
 | `server.md` | Server infrastructure reference: cluster, services, ports, networks, storage |
 | `projects/<name>.md` | Per-project mapping: what it is, tech stack, key files, best practices |
 | `projects/_template.md` | Template for adding a new project |
-| `plans/` | All plans, named `YYYY-MM-DD-<slug>.md` |
-| `plans/_template.md` | Plan template with required sections |
+| `plans/` | All plans, named `YYYY-MM-DD-<slug>.html` (new) — legacy `.md` plans remain readable but are no longer authored |
+| `plans/_template.html` | Canonical plan template (HTML, light mode, variant-studio) |
+| `plans/archive/_template.md` | Deprecated Markdown template — reference only, do not use for new plans |
 | `plans/archive/` | Completed/superseded plans |
-| `prompts/planner.md` | System prompt for planning agents |
+| `pages-design-system.css` | Shared design system — extended with `/* Plans */` components linked by every HTML plan |
+| `pages-design-system.html` | Visual showcase of the DS, including `#plans` — read this to discover available classes before authoring a plan |
+| `prompts/planner.md` | System prompt for planning agents (HTML output contract) |
 | `prompts/executor.md` | System prompt for executing agents |
 | `prompts/reviewer.md` | System prompt for review/QA agents |
 | `showcase.md` | Ecosystem showcase / portfolio narrative |
@@ -64,10 +67,13 @@ For multi-wave execution, group steps by wave (see `plans/_template.md`).
 
 ### Creating a plan
 1. Read the relevant `projects/<name>.md` files for context.
-2. Use `plans/_template.md` as the base.
-3. Save as `plans/YYYY-MM-DD-<slug>.md`.
-4. Present the execution overview dialog.
-5. Generate executor prompts with file pointers (never inline context).
+2. Read `pages-design-system.html` (specifically the `#plans` section) to confirm which DS classes are available. If a needed class doesn't exist, propose a DS change rather than inventing one or inlining styles.
+3. Copy `plans/_template.html` as the base.
+4. Save as `plans/YYYY-MM-DD-<slug>.html`. Locked: `<html class="light">` + `<body class="variant-studio" data-plan-cover="off">`. Link `../pages-design-system.css` once; never emit `<style>` or `<script>`. Target ≤ 300 lines.
+5. Present the execution overview dialog.
+6. Generate executor prompts with file pointers (never inline context).
+
+Legacy `.md` plans (everything authored before this convention shift) remain valid reading material — do not batch-convert them. Just author new plans in HTML.
 
 ### Executing a plan
 1. Read the plan file.
