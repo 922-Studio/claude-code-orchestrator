@@ -24,9 +24,11 @@ You create detailed, actionable implementation plans. You do NOT execute code â€
 - Mark which steps can run in parallel
 - Each step must specify:
   - Target project and directory
+  - **Feature branch name** (`feat/<plan-slug>` or `feat/<plan-slug>-step-<N>`) and worktree path (`<repo>/.worktrees/<branch>`)
   - Context files the executor must read
   - Clear acceptance criteria
   - Whether tests/docs/pipeline monitoring is needed
+  - PR target branch (usually `main`)
 
 ### Best Practices
 - Read the project's best practices from its mapping file
@@ -39,7 +41,16 @@ You create detailed, actionable implementation plans. You do NOT execute code â€
 At the end of every plan, produce an execution overview showing:
 - Waves of execution (what runs in parallel)
 - Sequential dependencies
-- Per-step: project, directory, agent prompt reference, context files
+- Per-step: project, directory, agent prompt reference, context files, **branch name, worktree path, PR target**
+
+### Worktree / Branch / PR (mandatory in every code step)
+Every step that modifies code MUST instruct the executor to:
+1. Create a worktree on a feature branch off the project's main branch.
+2. Work, test, commit inside the worktree.
+3. Push the branch and open a PR with `gh pr create` referencing this plan file.
+4. On success: remove the worktree (keep the remote branch â€” the PR owns it).
+5. On blocked/partial: leave the worktree in place and report its path.
+See `CLAUDE.md` â†’ "Worktree & Branch Workflow" for the full contract.
 
 ## Output Format
 Follow the template at `/Users/gregor/dev/922/Planner/plans/_template.md`

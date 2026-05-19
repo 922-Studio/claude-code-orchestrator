@@ -1,0 +1,398 @@
+/* =============================================================
+ * 922-Studio Pages Design System
+ * Mirrors the shared design language of /Studio and /Portfolio.
+ *
+ * Two accent variants:
+ *   - .variant-studio    → emerald (#059669) → cyan (#0891b2)
+ *   - .variant-portfolio → indigo  (#4f46e5) → cyan (#0891b2)
+ *
+ * Theme toggled via class on <html>: .light / .dark
+ * Variant toggled via class on <body>: .variant-studio / .variant-portfolio
+ *
+ * Source files:
+ *   - /Users/gregor/dev/922/Studio/src/app/globals.css
+ *   - /Users/gregor/dev/922/Portfolio/src/app/globals.css
+ *   - both src/app/[locale]/layout.tsx (fonts)
+ * ============================================================= */
+
+/* --------------------------- Fonts --------------------------- */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-heading: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  /* Accent stays cyan as the secondary stop in both variants. */
+  --color-accent-to: #0891b2;
+  --color-accent-to-dark: #06d6d4;
+
+  /* Radii / shadows */
+  --radius-sm: 0.5rem;   /* 8px  — rounded-lg */
+  --radius-md: 0.75rem;  /* 12px — rounded-xl */
+  --radius-full: 9999px; /* rounded-full */
+
+  /* Transitions */
+  --transition-base: 200ms ease;
+}
+
+/* ---------------------- Accent variants ---------------------- */
+
+body.variant-studio {
+  --color-accent-from: #059669;       /* emerald 600 */
+  --color-accent-from-dark: #10b981;  /* emerald 500 */
+  --blob-a: #059669;
+  --blob-a-dark: #10b981;
+  --blob-b: #0891b2;
+  --blob-b-dark: #06d6d4;
+}
+
+body.variant-portfolio {
+  --color-accent-from: #4f46e5;       /* indigo 600 */
+  --color-accent-from-dark: #6366f1;  /* indigo 500 */
+  --blob-a: #4f46e5;
+  --blob-a-dark: #6366f1;
+  --blob-b: #0891b2;
+  --blob-b-dark: #06d6d4;
+}
+
+/* ---------------------- Light / dark ------------------------- */
+
+html.light {
+  --color-background: #f8f8f8;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f0f0f0;
+  --color-text-primary: #171717;
+  --color-text-secondary: #525252;
+  --color-text-muted: #a3a3a3;
+  --color-border: rgba(0, 0, 0, 0.1);
+  --color-dot: rgba(0, 0, 0, 0.08);
+  --color-accent: var(--color-accent-from);
+  --color-blob-a: var(--blob-a);
+  --color-blob-b: var(--blob-b);
+}
+
+html.dark {
+  --color-background: #0a0a0a;
+  --color-surface: #111111;
+  --color-surface-hover: #1a1a1a;
+  --color-text-primary: #f5f5f5;
+  --color-text-secondary: #a3a3a3;
+  --color-text-muted: #525252;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-dot: rgba(255, 255, 255, 0.06);
+  --color-accent: var(--color-accent-from-dark);
+  --color-blob-a: var(--blob-a-dark);
+  --color-blob-b: var(--blob-b-dark);
+}
+
+/* ---------------------------- Reset -------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background-color var(--transition-base), color var(--transition-base);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+p { margin: 0 0 1rem; color: var(--color-text-secondary); line-height: 1.6; }
+
+a { color: var(--color-text-primary); text-decoration: none; }
+a:hover { color: var(--color-accent); }
+
+code, pre {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.875em;
+}
+
+/* ---------------------- Background art ----------------------- */
+
+.bg-pattern {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, var(--color-dot) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.blob {
+  position: fixed;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+  mix-blend-mode: normal;
+}
+
+html.dark .blob { opacity: 0.25; }
+
+.blob-a {
+  top: -10%;
+  left: -10%;
+  width: 480px;
+  height: 480px;
+  background: var(--color-blob-a);
+  animation: blob-drift 25s ease-in-out infinite;
+}
+
+.blob-b {
+  bottom: -10%;
+  right: -10%;
+  width: 560px;
+  height: 560px;
+  background: var(--color-blob-b);
+  animation: blob-drift 30s ease-in-out infinite reverse;
+}
+
+@keyframes blob-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(40px, -30px) scale(1.05); }
+  66%      { transform: translate(-30px, 40px) scale(0.95); }
+}
+
+/* ---------------------- Layout shell ------------------------- */
+
+.shell { position: relative; z-index: 10; max-width: 64rem; margin: 0 auto; padding: 5rem 1.5rem 5rem; }
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--color-background) 80%, transparent);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header-inner {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.brand {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.125rem;
+  background: linear-gradient(135deg, var(--color-accent-from), var(--color-accent-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.controls { display: flex; gap: 0.5rem; align-items: center; }
+
+/* Section divider — identical in both projects */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--color-border), transparent);
+  margin: 4rem 0;
+}
+
+/* ---------------------- Typography demo ---------------------- */
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--color-accent-from), var(--color-accent-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.h-hero { font-size: clamp(2.5rem, 5vw, 4rem); line-height: 1.05; letter-spacing: -0.03em; }
+.h-section { font-size: 2rem; line-height: 1.15; }
+.h-sub { font-size: 1.25rem; color: var(--color-text-secondary); font-weight: 500; }
+
+.lede { font-size: 1.125rem; color: var(--color-text-secondary); max-width: 42rem; }
+.muted { color: var(--color-text-muted); }
+.eyebrow {
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: 0.75rem;
+}
+
+/* ---------------------- Buttons ------------------------------ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  background: transparent;
+  color: inherit;
+}
+
+.btn-primary {
+  background: var(--color-accent-from);
+  color: #fff;
+}
+.btn-primary:hover { opacity: 0.9; color: #fff; }
+
+.btn-secondary {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+.btn-secondary:hover { border-color: color-mix(in srgb, var(--color-accent-from) 40%, transparent); }
+
+.btn-ghost { color: var(--color-text-secondary); }
+.btn-ghost:hover { color: var(--color-text-primary); }
+
+.btn-pill {
+  border-radius: var(--radius-full);
+  padding: 0.375rem 1rem;
+  font-size: 0.875rem;
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+}
+.btn-pill.is-active {
+  background: var(--color-accent-from);
+  color: #fff;
+}
+
+.btn-icon {
+  padding: 0.5rem;
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+}
+.btn-icon:hover { color: var(--color-text-primary); background: var(--color-surface-hover); }
+
+/* ---------------------- Cards -------------------------------- */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  transition: border-color var(--transition-base), transform var(--transition-base);
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--color-accent-from) 40%, transparent);
+}
+
+.card-title { font-family: var(--font-heading); font-size: 1.125rem; margin-bottom: 0.5rem; }
+.card-body { color: var(--color-text-secondary); font-size: 0.9375rem; line-height: 1.55; }
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+}
+
+/* Stack icon card (Portfolio pattern) */
+.stack-icon {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+.stack-icon:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--color-accent-from) 30%, transparent);
+}
+
+/* ---------------------- Badges / tags ------------------------ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  padding: 0.125rem 0.625rem;
+  font-weight: 500;
+}
+
+.badge-accent {
+  background: color-mix(in srgb, var(--color-accent-from) 15%, transparent);
+  color: var(--color-accent-from);
+}
+
+.badge-muted {
+  background: var(--color-surface-hover);
+  color: var(--color-text-muted);
+}
+
+/* ---------------------- Color swatches ----------------------- */
+
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+.swatch {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.swatch-chip { height: 4rem; }
+
+.swatch-label {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--color-text-secondary);
+}
+.swatch-label code { color: var(--color-text-muted); }
+
+/* ---------------------- Utility classes ---------------------- */
+
+.stack-y > * + * { margin-top: 1rem; }
+.stack-y-lg > * + * { margin-top: 2rem; }
+.row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+
+.hero {
+  padding: 3rem 0 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
