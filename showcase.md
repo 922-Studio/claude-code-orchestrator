@@ -93,7 +93,6 @@ Owns all monitoring and data collection: Docker container uptime via socket, HTT
 - 52+ containers monitored automatically
 - 60-second polling interval with 90-day retention
 - Public status endpoint at lab-collector.922-studio.com/status (no auth)
-- Daily briefing generation via OpenClaw integration
 - Disk alerts and sleep reminders via Discord and email
 
 ---
