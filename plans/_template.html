@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: [TITLE]</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div>
+  <div class="blob blob-a" aria-hidden="true"></div>
+  <div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">YYYY-MM-DD · [PROJECT(S)]</span>
+      <h1>[Plan title]</h1>
+      <p class="lede">[One-sentence goal — what this plan achieves.]</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Project</strong><span>[name]</span></div>
+        <div class="scope-item"><strong>Branch</strong><code>feat/[slug]</code></div>
+        <div class="scope-item"><strong>Worktree</strong><code>[repo]/.worktrees/feat-[slug]</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>main</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">projects/&lt;name&gt;.md</code> — project mapping &amp; best practices</li>
+        <li><code class="inline">[additional file]</code> — [why]</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+      <!-- one .plan-step per numbered step -->
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>[Step title]</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>[What to do — terse; link files via <code class="inline">code.inline</code>.]</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>[name]</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>[path]</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">[Acceptance criterion 1]</li>
+            <li class="acceptance__item">[Acceptance criterion 2]</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks —</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Wave 1 · parallel</div><span class="pill pill--accent">01 · [step]</span><span class="pill pill--accent">02 · [step]</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · sequential</div><span class="pill pill--muted">03 · [step]</span></div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">All tests pass (new tests added if behavior changed)</li>
+        <li class="acceptance__item">Documentation updated (if user-visible or contract-visible change)</li>
+        <li class="acceptance__item">CI pipeline green</li>
+        <li class="acceptance__item">PR URL reported back as a clickable link</li>
+        <li class="acceptance__item">Worktree removed; remote branch preserved</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
