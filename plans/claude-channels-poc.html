@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POC Plan: OpenClaw → Claude Code Channels</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #222636;
+      --border: #2e3347;
+      --accent: #7c6aff;
+      --accent2: #4ecdc4;
+      --warn: #f5a623;
+      --danger: #e05c5c;
+      --success: #52c97a;
+      --text: #e2e4ef;
+      --muted: #7a7f9a;
+      --code-bg: #151821;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 14px;
+      line-height: 1.7;
+      padding: 40px 24px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 28px;
+      margin-bottom: 40px;
+    }
+
+    .header .tag {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 4px;
+      margin-bottom: 14px;
+    }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .header .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* Scope bar */
+    .scope-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+
+    .scope-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .scope-item strong {
+      display: block;
+      color: var(--text);
+      margin-bottom: 2px;
+      font-size: 13px;
+    }
+
+    /* Phase blocks */
+    .phase {
+      margin-bottom: 36px;
+    }
+
+    .phase-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .phase-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+      border: 2px solid var(--accent);
+      color: var(--accent);
+    }
+
+    .phase-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .phase-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .phase-body {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+    }
+
+    /* Code blocks */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      margin: 14px 0;
+      font-size: 12.5px;
+      line-height: 1.6;
+    }
+
+    code {
+      font-family: inherit;
+      color: var(--accent2);
+    }
+
+    pre code {
+      color: var(--text);
+    }
+
+    .comment { color: var(--muted); }
+    .keyword { color: var(--accent); }
+    .string { color: var(--accent2); }
+    .number { color: var(--warn); }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 13px;
+    }
+
+    th {
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-sonnet { background: rgba(124,106,255,0.15); color: var(--accent); }
+    .badge-haiku  { background: rgba(78,205,196,0.15);  color: var(--accent2); }
+    .badge-create { background: rgba(82,201,122,0.15);  color: var(--success); }
+    .badge-modify { background: rgba(245,166,35,0.15);  color: var(--warn); }
+    .badge-server { background: rgba(224,92,92,0.15);   color: var(--danger); }
+
+    /* Callout */
+    .callout {
+      border-left: 3px solid var(--warn);
+      background: rgba(245,166,35,0.08);
+      border-radius: 0 6px 6px 0;
+      padding: 12px 16px;
+      margin: 14px 0;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .callout.info {
+      border-color: var(--accent);
+      background: rgba(124,106,255,0.08);
+    }
+
+    .callout.success {
+      border-color: var(--success);
+      background: rgba(82,201,122,0.08);
+    }
+
+    /* Check list */
+    .checklist {
+      list-style: none;
+      margin: 10px 0;
+    }
+
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 5px 0;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .checklist li::before {
+      content: '☐';
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Option cards */
+    .options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 14px 0;
+    }
+
+    .option-card {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+    }
+
+    .option-card.selected {
+      border-color: var(--accent);
+    }
+
+    .option-card .option-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .option-card.selected .option-label {
+      color: var(--accent);
+    }
+
+    .option-card .option-title {
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .option-card .option-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* Out-of-scope */
+    .out-of-scope {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+    }
+
+    .out-of-scope ul {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .out-of-scope li {
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .out-of-scope li::before {
+      content: '—';
+      color: var(--border);
+    }
+
+    h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 18px 0 10px;
+    }
+
+    h3:first-child { margin-top: 0; }
+
+    p {
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p:last-child { margin-bottom: 0; }
+
+    .inline-code {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-size: 12px;
+      color: var(--accent2);
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 40px 0;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="tag">POC Plan</div>
+    <h1>OpenClaw → Claude Code Channels</h1>
+    <div class="subtitle">tracker (#tracking) + sensei (#knowledge) &nbsp;·&nbsp; Discord bot integration &nbsp;·&nbsp; 5-message rolling context</div>
+  </div>
+
+  <!-- Scope bar -->
+  <div class="scope-bar">
+    <div class="scope-item"><strong>Agents</strong>tracker, sensei</div>
+    <div class="scope-item"><strong>MCP</strong>homeapi (tracker only)</div>
+    <div class="scope-item"><strong>Context</strong>5-message rolling window</div>
+    <div class="scope-item"><strong>History</strong>Redis per channel_id</div>
+    <div class="scope-item"><strong>No HomeAPI changes</strong>Celery tasks untouched</div>
+  </div>
+
+  <!-- OpenClaw inventory -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-number">0</div>
+      <div class="phase-title">OpenClaw Agent Inventory</div>
+      <div class="phase-subtitle">reference only</div>
+    </div>
+    <div class="phase-body">
+      <table>
+        <thead>
+          <tr><th>Agent</th><th>Model</th><th>Channel</th><th>POC</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>main</td>
+            <td><span class="badge badge-sonnet">Sonnet 4.6</span></td>
+            <td>Discord DM</td>
+            <td style="color:var(--muted)">later</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#fff">tracker</strong></td>
+            <td><span class="badge badge-haiku">Haiku 4.5</span></td>
+            <td>#tracking</td>
+            <td><span class="badge badge-create">✓ included</span></td>
+          </tr>
+          <tr>
+            <td>usage</td>
+            <td><span class="badge badge-haiku">Haiku 4.5</span></td>
+            <td>#overview</td>
+            <td style="color:var(--muted)">later</td>
+          </tr>
+          <tr>
+            <td>todos</td>
+            <td><span class="badge badge-haiku">Haiku 4.5</span></td>
+            <td>#work</td>
+            <td style="color:var(--muted)">later</td>
+          </tr>
+          <tr>
+            <td>recipes</td>
+            <td><span class="badge badge-haiku">Haiku 4.5</span></td>
+            <td>#cooking</td>
+            <td style="color:var(--muted)">later</td>
+          </tr>
+          <tr>
+            <td>coexec 1/2/3</td>
+            <td><span class="badge badge-sonnet">Sonnet 4.6</span></td>
+            <td>#co-executer-*</td>
+            <td style="color:var(--muted)">later</td>
+          </tr>
+          <tr>
+            <td>eggdev</td>
+            <td><span class="badge badge-sonnet">Sonnet 4.6</span></td>
+            <td>#eggdev</td>
+            <td style="color:var(--muted)">later</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#fff">sensei</strong></td>
+            <td><span class="badge badge-sonnet">Sonnet 4.6</span></td>
+            <td>#knowledge</td>
+            <td><span class="badge badge-create">✓ included</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Scheduled Tasks (unchanged for POC)</h3>
+      <table>
+        <thead><tr><th>Time</th><th>Task</th><th>Target</th></tr></thead>
+        <tbody>
+          <tr><td>05:00</td><td>trigger-daily-health-check</td><td>OpenClaw /hooks/wake → main (keep as-is)</td></tr>
+          <tr><td>06:00</td><td>send-good-morning-email</td><td>Independent, no OpenClaw (keep as-is)</td></tr>
+          <tr><td>08:00</td><td>trigger-daily-usage-overview</td><td>OpenClaw /hooks/agent → usage (keep as-is)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Phase 0 -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-number">1</div>
+      <div class="phase-title">Server Verification</div>
+      <div class="phase-subtitle">SSH — no code changes</div>
+    </div>
+    <div class="phase-body">
+      <p>Run these checks via <span class="inline-code">ssh lab</span> before writing any code. All 5 must pass.</p>
+
+      <pre><code><span class="comment"># 1. claude CLI present and authenticated</span>
+which claude &amp;&amp; claude --version
+claude -p <span class="string">"say hello"</span> --no-cwd
+
+<span class="comment"># 2. homeapi MCP run script exists</span>
+ls -la /home/lab/openclaw/mcp-servers/homeapi/run.sh
+
+<span class="comment"># 3. MCP smoke test (expect JSON-RPC response)</span>
+cd /home/lab/openclaw/mcp-servers/homeapi
+source .venv/bin/activate
+export BACKEND_API_TOKEN=$(cat .api-token)
+echo <span class="string">'{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1"}}}'</span> \
+  | python3 homeapi_mcp_generated.py --transport stdio
+
+<span class="comment"># 4. Redis reachable from discord container</span>
+docker exec discord_bot redis-cli -h redis ping</code></pre>
+
+      <h3>Create MCP Config File (server)</h3>
+      <p>Path: <span class="inline-code">/home/lab/openclaw/mcp-servers/homeapi/claude_mcp_config.json</span></p>
+      <pre><code>{
+  <span class="string">"mcpServers"</span>: {
+    <span class="string">"homeapi"</span>: {
+      <span class="string">"command"</span>: <span class="string">"/home/lab/openclaw/mcp-servers/homeapi/run.sh"</span>,
+      <span class="string">"args"</span>: [],
+      <span class="string">"env"</span>: {
+        <span class="string">"BACKEND_API_TOKEN"</span>: <span class="string">"&lt;contents of .api-token&gt;"</span>
+      }
+    }
+  }
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- Phase 2 -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-number">2</div>
+      <div class="phase-title">Agent Persona Files</div>
+      <div class="phase-subtitle">discord/claude_prompts/</div>
+    </div>
+    <div class="phase-body">
+      <h3>tracker.md</h3>
+      <p>System prompt injected as context prefix for every #tracking message.</p>
+      <pre><code>You are the tracker agent for Gregor's personal Discord server.
+You assist with logging and querying personal tracking data via the homeapi MCP tools.
+
+- Use homeapi MCP tools directly when the intent is clear — do not ask for confirmation before logging
+- Prefer short, direct responses (1–3 sentences)
+- For queries, summarise the data; do not dump raw JSON
+- Follow the user's language (German or English)
+- You have the last 5 messages as context; do not reference older history</code></pre>
+
+      <h3>sensei.md</h3>
+      <pre><code>You are the sensei agent for Gregor's personal Discord server.
+You assist with learning, technical explanations, and knowledge queries.
+
+- No external tools — pure reasoning and explanation
+- Calibrate depth to a senior full-stack developer; skip basics
+- Keep responses concise; offer to elaborate on request
+- Use code examples only when they genuinely clarify
+- Follow the user's language (German or English)</code></pre>
+    </div>
+  </div>
+
+  <!-- Phase 3 -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-number">3</div>
+      <div class="phase-title">New Files in discord/</div>
+      <div class="phase-subtitle">claude_runner + cog + config</div>
+    </div>
+    <div class="phase-body">
+
+      <h3>discord/config/claude_agents.py</h3>
+      <pre><code><span class="keyword">CLAUDE_AGENTS</span> = {
+    <span class="string">"&lt;tracking-channel-id&gt;"</span>: {
+        <span class="string">"name"</span>: <span class="string">"tracker"</span>,
+        <span class="string">"prompt_file"</span>: <span class="string">"claude_prompts/tracker.md"</span>,
+        <span class="string">"mcp_config"</span>: <span class="string">"/home/lab/openclaw/mcp-servers/homeapi/claude_mcp_config.json"</span>,
+    },
+    <span class="string">"&lt;knowledge-channel-id&gt;"</span>: {
+        <span class="string">"name"</span>: <span class="string">"sensei"</span>,
+        <span class="string">"prompt_file"</span>: <span class="string">"claude_prompts/sensei.md"</span>,
+        <span class="string">"mcp_config"</span>: <span class="string">None</span>,
+    },
+}
+
+<span class="comment"># Channel IDs loaded from env at bot startup; replace literals with os.getenv() calls</span></code></pre>
+
+      <h3>discord/services/claude_runner.py — Design</h3>
+      <table>
+        <thead><tr><th>Responsibility</th><th>Implementation</th></tr></thead>
+        <tbody>
+          <tr><td>Accept message + agent config</td><td><span class="inline-code">async def run(channel_id, message, agent_config) → str</span></td></tr>
+          <tr><td>Load rolling history</td><td>Redis key <span class="inline-code">claude_history:{channel_id}</span> — LRANGE 0 9 (5 pairs)</td></tr>
+          <tr><td>Build prompt</td><td>system persona + history text + current message, single string</td></tr>
+          <tr><td>Invoke claude</td><td><span class="inline-code">claude -p "&lt;prompt&gt;" [--mcp-config &lt;path&gt;] --no-cwd</span> via asyncio subprocess</td></tr>
+          <tr><td>Timeout</td><td>60 s hard kill; return <span class="inline-code">"[timeout — no response]"</span> to Discord</td></tr>
+          <tr><td>Update history</td><td>LPUSH user/assistant pair, LTRIM to 10 items</td></tr>
+          <tr><td>Error handling</td><td>Non-zero exit → log stderr, return generic error string (never expose stderr to Discord)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout info">
+        <strong>No persistent subprocess.</strong> Each message is a fresh <span class="inline-code">claude -p</span> call. History is injected as text context, not real conversation turns. Simple, no zombie processes, sufficient for a 5-message window.
+      </div>
+
+      <h3>discord/cogs/claude_ai.py — Design</h3>
+      <ul class="checklist">
+        <li>Auto-discovered by existing <span class="inline-code">bot.py</span> cog loader — no changes to bot.py needed</li>
+        <li><span class="inline-code">on_message</span> listener filtered to channels in <span class="inline-code">CLAUDE_AGENTS</span></li>
+        <li>Ignore messages starting with <span class="inline-code">;</span> — preserves bot command behavior</li>
+        <li>Ignore messages from bots (including self)</li>
+        <li>Show typing indicator (<span class="inline-code">async with channel.typing()</span>) while awaiting runner</li>
+        <li>Post response; on error post short failure notice without exposing details</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Phase 4: Execution model -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-number">4</div>
+      <div class="phase-title">Runner Execution Model</div>
+      <div class="phase-subtitle">how the bot container calls claude on the host</div>
+    </div>
+    <div class="phase-body">
+      <div class="options">
+        <div class="option-card selected">
+          <div class="option-label">✓ POC choice</div>
+          <div class="option-title">Option A — SSH exec</div>
+          <div class="option-desc">Runner calls <span class="inline-code">ssh lab claude -p "..."</span> from inside the container. No new ports or services. Uses the SSH key the container already has for server access.</div>
+        </div>
+        <div class="option-card">
+          <div class="option-label">production upgrade</div>
+          <div class="option-title">Option B — Sidecar HTTP</div>
+          <div class="option-desc">Minimal FastAPI service on the host, port on <span class="inline-code">host.docker.internal</span>. More robust, easier to observe. Switch after POC is proven.</div>
+        </div>
+      </div>
+
+      <div class="callout">
+        Before coding: verify the Discord bot container already has an SSH key configured for <span class="inline-code">lab</span> access. Check <span class="inline-code">discord/docker-compose.yaml</span> for volume mounts or <span class="inline-code">SSH_PRIVATE_KEY</span> env vars.
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 5: Docker + env -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-number">5</div>
+      <div class="phase-title">Docker &amp; Env Changes</div>
+      <div class="phase-subtitle">discord/docker-compose.yaml + .env</div>
+    </div>
+    <div class="phase-body">
+      <h3>docker-compose.yaml additions</h3>
+      <pre><code><span class="comment"># Option A (SSH exec) — mount SSH key</span>
+volumes:
+  - <span class="string">/home/lab/.ssh/id_ed25519:/home/appuser/.ssh/id_ed25519:ro</span>
+
+<span class="comment"># Option B (sidecar) — host resolution</span>
+extra_hosts:
+  - <span class="string">"host.docker.internal:host-gateway"</span></code></pre>
+
+      <h3>.env additions</h3>
+      <pre><code>TRACKING_CHANNEL_ID=&lt;discord channel snowflake&gt;
+KNOWLEDGE_CHANNEL_ID=&lt;discord channel snowflake&gt;
+CLAUDE_AGENTS_ENABLED=true   <span class="comment"># feature flag — set false to disable cog without redeploy</span></code></pre>
+    </div>
+  </div>
+
+  <!-- Phase 6: Testing -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-number">6</div>
+      <div class="phase-title">POC Acceptance Tests</div>
+      <div class="phase-subtitle">manual — no automated tests required for POC</div>
+    </div>
+    <div class="phase-body">
+      <table>
+        <thead><tr><th>#</th><th>Action</th><th>Expected</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Deploy, check <span class="inline-code">docker logs discord_bot --tail 20</span></td>
+            <td>Cog loads, no import errors</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Post <span class="inline-code">log my mood as 7/10</span> in #tracking</td>
+            <td>homeapi MCP tool call fires, short confirmation response</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Post <span class="inline-code">explain the CAP theorem</span> in #knowledge</td>
+            <td>Concise technical explanation, no tool calls</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Post <span class="inline-code">;stats</span> in #tracking</td>
+            <td>No AI response (prefix filter working)</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Post 6+ messages in #tracking</td>
+            <td>Asking "what was the first thing I said?" gets no answer — only 5-message window visible</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Force a slow response (&gt;60s)</td>
+            <td>Timeout error message posted to Discord, no hanging process left behind</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- Files summary -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-number" style="border-color:var(--muted);color:var(--muted)">∑</div>
+      <div class="phase-title">Files Changed / Created</div>
+    </div>
+    <div class="phase-body">
+      <table>
+        <thead><tr><th>Action</th><th>Path</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge badge-create">CREATE</span></td><td>discord/services/claude_runner.py</td></tr>
+          <tr><td><span class="badge badge-create">CREATE</span></td><td>discord/cogs/claude_ai.py</td></tr>
+          <tr><td><span class="badge badge-create">CREATE</span></td><td>discord/config/claude_agents.py</td></tr>
+          <tr><td><span class="badge badge-create">CREATE</span></td><td>discord/claude_prompts/tracker.md</td></tr>
+          <tr><td><span class="badge badge-create">CREATE</span></td><td>discord/claude_prompts/sensei.md</td></tr>
+          <tr><td><span class="badge badge-modify">MODIFY</span></td><td>discord/docker-compose.yaml (SSH mount or extra_hosts)</td></tr>
+          <tr><td><span class="badge badge-modify">MODIFY</span></td><td>discord/.env (channel IDs + feature flag)</td></tr>
+          <tr><td><span class="badge badge-server">SERVER</span></td><td>/home/lab/openclaw/mcp-servers/homeapi/claude_mcp_config.json</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout success" style="margin-top:16px">
+        No changes to HomeAPI, HomeStructure, Celery tasks, or any other project. OpenClaw continues running unchanged until the POC is validated.
+      </div>
+    </div>
+  </div>
+
+  <!-- Out of scope -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-number" style="border-color:var(--muted);color:var(--muted)">✗</div>
+      <div class="phase-title">Out of Scope for POC</div>
+    </div>
+    <div class="out-of-scope">
+      <ul>
+        <li>main DM agent</li>
+        <li>usage agent (#overview)</li>
+        <li>todos agent (#work)</li>
+        <li>recipes agent (#cooking)</li>
+        <li>coexec 1/2/3 agents</li>
+        <li>eggdev agent (#eggdev)</li>
+        <li>Celery scheduled task replacement</li>
+        <li>HomeAPI openclaw router removal</li>
+        <li>openclaw-gateway service shutdown</li>
+        <li>ufw rule cleanup</li>
+        <li>HomeStructure docs update</li>
+        <li>Option B sidecar service</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

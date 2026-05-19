@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>922-Studio Pages — Design System</title>
+  <meta name="description" content="Shared design language for /Studio (studio.922-studio.com) and /Portfolio (gregor.922-studio.com)." />
+  <link rel="stylesheet" href="pages-design-system.css" />
+</head>
+<body class="variant-studio">
+  <div class="bg-pattern" aria-hidden="true"></div>
+  <div class="blob blob-a" aria-hidden="true"></div>
+  <div class="blob blob-b" aria-hidden="true"></div>
+
+  <header class="header">
+    <div class="header-inner">
+      <span class="brand">922-Studio · Design System</span>
+      <div class="controls">
+        <button class="btn btn-pill" data-variant="studio">Studio</button>
+        <button class="btn btn-pill" data-variant="portfolio">Portfolio</button>
+        <button class="btn btn-icon" id="theme-toggle" aria-label="Toggle theme">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+
+    <!-- ============================== HERO ============================== -->
+    <section class="hero">
+      <span class="eyebrow">Reference page</span>
+      <h1 class="h-hero"><span class="text-gradient">One system, two voices.</span></h1>
+      <p class="lede">
+        This page mirrors the visual language used by <code>studio.922-studio.com</code> and
+        <code>gregor.922-studio.com</code>. Both sites share typography, layout, the
+        dot-grid + drifting-blob background, dark/light theming, and component styling.
+        They differ only in their primary accent color — <strong>emerald</strong> for Studio,
+        <strong>indigo</strong> for Portfolio — and the blobs that ride on it.
+      </p>
+      <div class="row">
+        <button class="btn btn-primary">Primary CTA</button>
+        <button class="btn btn-secondary">Secondary</button>
+        <button class="btn btn-ghost">Ghost link →</button>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ============================== TYPOGRAPHY ============================== -->
+    <section>
+      <span class="eyebrow">Typography</span>
+      <h2 class="h-section">Space Grotesk · Inter</h2>
+      <p class="lede">Headings in Space Grotesk (loaded via <code>next/font</code>), body copy in Inter. Same scale across both projects.</p>
+
+      <div class="grid-2 stack-y-lg" style="margin-top: 2rem;">
+        <div class="card">
+          <p class="muted" style="margin:0 0 0.5rem;font-size:0.75rem;">--font-heading</p>
+          <p style="font-family:var(--font-heading);font-size:2rem;line-height:1.1;margin:0;">Space Grotesk 600</p>
+          <p style="font-family:var(--font-heading);font-weight:500;font-size:1.125rem;margin:0.5rem 0 0;">Display, headings, brand.</p>
+        </div>
+        <div class="card">
+          <p class="muted" style="margin:0 0 0.5rem;font-size:0.75rem;">--font-body</p>
+          <p style="font-family:var(--font-body);font-size:1rem;line-height:1.6;margin:0;">
+            Inter 400 / 500 / 600 — paragraphs, UI labels, body copy. Antialiased everywhere.
+          </p>
+        </div>
+      </div>
+
+      <div class="stack-y" style="margin-top: 2rem;">
+        <h1 class="h-hero">Hero · clamp(2.5rem, 5vw, 4rem)</h1>
+        <h2 class="h-section">Section · 2rem</h2>
+        <h3 class="h-sub">Sub · 1.25rem · text-secondary</h3>
+        <p class="lede">Lede paragraph — 1.125rem, secondary color, max width ~42rem.</p>
+        <p>Body paragraph — 1rem, secondary, 1.6 line-height.</p>
+        <p class="muted">Muted helper text — text-muted token.</p>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ============================== COLOR ============================== -->
+    <section>
+      <span class="eyebrow">Color tokens</span>
+      <h2 class="h-section">Surfaces, text & accent</h2>
+      <p class="lede">All colors are CSS custom properties. The neutral scale is identical between Studio and Portfolio; only the accent differs.</p>
+
+      <h3 class="h-sub" style="margin-top:2rem;">Neutrals (current theme)</h3>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="swatch-chip" style="background:var(--color-background);border-bottom:1px solid var(--color-border);"></div><div class="swatch-label"><span>background</span><code>--color-background</code></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:var(--color-surface);border-bottom:1px solid var(--color-border);"></div><div class="swatch-label"><span>surface</span><code>--color-surface</code></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:var(--color-surface-hover);"></div><div class="swatch-label"><span>surface-hover</span><code>--color-surface-hover</code></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:var(--color-text-primary);"></div><div class="swatch-label"><span>text-primary</span><code>--color-text-primary</code></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:var(--color-text-secondary);"></div><div class="swatch-label"><span>text-secondary</span><code>--color-text-secondary</code></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:var(--color-text-muted);"></div><div class="swatch-label"><span>text-muted</span><code>--color-text-muted</code></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:var(--color-border);"></div><div class="swatch-label"><span>border</span><code>--color-border</code></div></div>
+      </div>
+
+      <h3 class="h-sub" style="margin-top:2rem;">Accent (current variant)</h3>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="swatch-chip" style="background:var(--color-accent-from);"></div><div class="swatch-label"><span>accent-from</span><code>--color-accent-from</code></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:var(--color-accent-to);"></div><div class="swatch-label"><span>accent-to</span><code>--color-accent-to</code></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:linear-gradient(135deg,var(--color-accent-from),var(--color-accent-to));"></div><div class="swatch-label"><span>gradient</span><code>from → to</code></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:color-mix(in srgb, var(--color-accent-from) 15%, transparent);"></div><div class="swatch-label"><span>accent/15</span><code>badge bg</code></div></div>
+      </div>
+
+      <h3 class="h-sub" style="margin-top:2rem;">Variant comparison</h3>
+      <div class="grid-2">
+        <div class="card">
+          <p class="muted" style="margin:0 0 0.5rem;font-size:0.75rem;">.variant-studio</p>
+          <div class="swatch-chip" style="background:linear-gradient(135deg,#059669,#0891b2);border-radius:var(--radius-sm);"></div>
+          <p style="margin:0.75rem 0 0;font-size:0.875rem;"><code>#059669</code> emerald → <code>#0891b2</code> cyan</p>
+        </div>
+        <div class="card">
+          <p class="muted" style="margin:0 0 0.5rem;font-size:0.75rem;">.variant-portfolio</p>
+          <div class="swatch-chip" style="background:linear-gradient(135deg,#4f46e5,#0891b2);border-radius:var(--radius-sm);"></div>
+          <p style="margin:0.75rem 0 0;font-size:0.875rem;"><code>#4f46e5</code> indigo → <code>#0891b2</code> cyan</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ============================== BUTTONS ============================== -->
+    <section>
+      <span class="eyebrow">Buttons</span>
+      <h2 class="h-section">Calls to action</h2>
+      <p class="lede">Four button shapes cover the entire surface: primary, secondary (bordered), ghost (link-like), and pill (filter chips).</p>
+
+      <div class="row" style="margin-top:1.5rem;">
+        <button class="btn btn-primary">Primary</button>
+        <button class="btn btn-secondary">Secondary</button>
+        <button class="btn btn-ghost">Ghost →</button>
+      </div>
+
+      <div class="row" style="margin-top:1rem;">
+        <button class="btn btn-pill is-active">All</button>
+        <button class="btn btn-pill">Frontend</button>
+        <button class="btn btn-pill">Backend</button>
+        <button class="btn btn-pill">Infra</button>
+      </div>
+
+      <div class="row" style="margin-top:1rem;">
+        <button class="btn-icon" aria-label="Theme">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/></svg>
+        </button>
+        <button class="btn-icon" aria-label="Github">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ============================== CARDS ============================== -->
+    <section>
+      <span class="eyebrow">Cards & badges</span>
+      <h2 class="h-section">Project / content tiles</h2>
+      <p class="lede">Cards use the surface token with a 1px border; on hover the border picks up a tinted accent. Badges come in two flavors.</p>
+
+      <div class="card-grid" style="margin-top:1.5rem;">
+        <article class="card">
+          <h3 class="card-title">HomeUI</h3>
+          <p class="card-body">Locale-first Next.js frontend consuming HomeAPI and HomeCollector. Tailwind 4 utility classes, no custom CSS.</p>
+          <div class="row" style="margin-top:0.75rem;">
+            <span class="badge badge-accent">Next.js 16</span>
+            <span class="badge badge-muted">TypeScript</span>
+            <span class="badge badge-muted">Tailwind 4</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <h3 class="card-title">HomeAPI</h3>
+          <p class="card-body">FastAPI core domain — debts, ideas, tasks, wellbeing. JWT-secured via HomeAuth.</p>
+          <div class="row" style="margin-top:0.75rem;">
+            <span class="badge badge-accent">FastAPI</span>
+            <span class="badge badge-muted">Postgres</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <h3 class="card-title">Portfolio</h3>
+          <p class="card-body">Single-page personal site with hero, stack, projects carousel, testimonials, contact.</p>
+          <div class="row" style="margin-top:0.75rem;">
+            <span class="badge badge-accent">Live</span>
+            <span class="badge badge-muted">EN / DE</span>
+          </div>
+        </article>
+      </div>
+
+      <h3 class="h-sub" style="margin-top:2rem;">Stack icons (Portfolio pattern)</h3>
+      <div class="row" style="margin-top:0.75rem;">
+        <div class="stack-icon" title="Next.js">▲</div>
+        <div class="stack-icon" title="React">⚛</div>
+        <div class="stack-icon" title="Tailwind">≋</div>
+        <div class="stack-icon" title="Docker">⛴</div>
+        <div class="stack-icon" title="Python">🐍</div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ============================== BACKGROUND ============================== -->
+    <section>
+      <span class="eyebrow">Background</span>
+      <h2 class="h-section">Dot grid + drifting blobs</h2>
+      <p class="lede">
+        Two soft blobs (the accent-from + accent-to colors) drift in a <code>blob-drift</code>
+        25–30s loop, layered behind a 24px dot grid. Always <code>z-index: 0</code>; content
+        sits on <code>z-index: 10</code>.
+      </p>
+      <div class="card" style="margin-top:1.5rem;">
+        <pre style="margin:0;white-space:pre-wrap;color:var(--color-text-secondary);">
+.bg-pattern { background-image: radial-gradient(circle, var(--color-dot) 1px, transparent 1px); background-size: 24px 24px; }
+.blob-a     { filter: blur(80px); animation: blob-drift 25s ease-in-out infinite; }
+.blob-b     { filter: blur(80px); animation: blob-drift 30s ease-in-out infinite reverse; }
+        </pre>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ============================== TOKENS REFERENCE ============================== -->
+    <section>
+      <span class="eyebrow">Token reference</span>
+      <h2 class="h-section">All variables, both modes</h2>
+      <p class="lede">Drop-in copy of the Tailwind 4 <code>@theme</code> tokens used in both <code>globals.css</code> files.</p>
+
+      <div class="grid-2" style="margin-top:1.5rem;">
+        <div class="card">
+          <h3 class="card-title">Light</h3>
+          <pre style="margin:0;white-space:pre-wrap;font-size:0.8rem;color:var(--color-text-secondary);">
+--color-background: #f8f8f8;
+--color-surface: #ffffff;
+--color-surface-hover: #f0f0f0;
+--color-text-primary: #171717;
+--color-text-secondary: #525252;
+--color-text-muted: #a3a3a3;
+--color-border: rgba(0,0,0,0.1);
+          </pre>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Dark</h3>
+          <pre style="margin:0;white-space:pre-wrap;font-size:0.8rem;color:var(--color-text-secondary);">
+--color-background: #0a0a0a;
+--color-surface: #111111;
+--color-surface-hover: #1a1a1a;
+--color-text-primary: #f5f5f5;
+--color-text-secondary: #a3a3a3;
+--color-text-muted: #525252;
+--color-border: rgba(255,255,255,0.1);
+          </pre>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ============================== USAGE ============================== -->
+    <section>
+      <span class="eyebrow">How to use</span>
+      <h2 class="h-section">Mirror this on either site</h2>
+      <ol style="color:var(--color-text-secondary);line-height:1.7;">
+        <li>Apply <code>.variant-studio</code> or <code>.variant-portfolio</code> on <code>body</code> to lock the accent.</li>
+        <li>Apply <code>.light</code> or <code>.dark</code> on <code>html</code> to switch theme.</li>
+        <li>Use only the documented tokens — never hard-code a color outside <code>--color-accent-*</code>.</li>
+        <li>Sections separate with <code>.section-divider</code>. Cards always sit on <code>--color-surface</code> with <code>--color-border</code>.</li>
+        <li>For Tailwind 4 projects, the same names work as utility classes (<code>bg-surface</code>, <code>text-text-muted</code>, <code>border-border</code>, <code>bg-accent-from/15</code>).</li>
+      </ol>
+    </section>
+
+    <footer style="margin-top:5rem;padding-top:2rem;border-top:1px solid var(--color-border);color:var(--color-text-muted);font-size:0.875rem;">
+      Reference for <code>/Users/gregor/dev/922/Studio</code> and <code>/Users/gregor/dev/922/Portfolio</code>.
+      Source: <code>Studio/src/app/globals.css</code>, <code>Portfolio/src/app/globals.css</code>, both <code>layout.tsx</code>.
+    </footer>
+  </main>
+
+  <script>
+    // Theme toggle
+    const themeBtn = document.getElementById('theme-toggle');
+    themeBtn.addEventListener('click', () => {
+      const html = document.documentElement;
+      html.classList.toggle('dark');
+      html.classList.toggle('light');
+    });
+
+    // Variant toggle
+    document.querySelectorAll('[data-variant]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const variant = btn.dataset.variant;
+        document.body.classList.remove('variant-studio', 'variant-portfolio');
+        document.body.classList.add('variant-' + variant);
+        document.querySelectorAll('[data-variant]').forEach(b => b.classList.toggle('is-active', b === btn));
+      });
+    });
+    // initial active state
+    document.querySelector('[data-variant="studio"]').classList.add('is-active');
+  </script>
+</body>
+</html>
