@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: HomeAPI — Register OpenClaw Router</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-05-19 · HomeAPI</span>
+      <h1>Fix CI failure: register OpenClaw router in <code>app/main.py</code></h1>
+      <p class="lede">Register the fully-implemented OpenClaw router so all 13 failing integration tests pass and CI goes green.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Project</strong><span>HomeAPI</span></div>
+        <div class="scope-item"><strong>Branch</strong><code>feat/fix-openclaw-router-registration</code></div>
+        <div class="scope-item"><strong>Worktree</strong><code>HomeAPI/.worktrees/feat/fix-openclaw-router-registration</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>dev</span></div>
+        <div class="scope-item"><strong>Issue</strong><span><a href="https://github.com/922-Studio/HomeAPI/issues/41">#41</a> — 13 tests fail on CI #390</span></div>
+      </div>
+    </header>
+
+    <section id="root-cause">
+      <span class="eyebrow">Root cause</span>
+      <p>All 13 tests return HTTP 404 because <code class="inline">app/routers/openclaw.py</code> was never registered in <code class="inline">app/main.py</code>. The router, schemas, services, and tests were committed to <code class="inline">dev</code> but the wiring was omitted.</p>
+      <table class="dataframe">
+        <thead><tr><th>Missing</th><th>Required by</th></tr></thead>
+        <tbody>
+          <tr><td><code>import httpx</code></td><td>lifespan — creates <code>AsyncClient</code></td></tr>
+          <tr><td><code>from app.routers import openclaw</code></td><td><code>app.include_router(...)</code></td></tr>
+          <tr><td><code>from config import OPENCLAW_BASE_URL, OPENCLAW_WEBHOOK_TOKEN</code></td><td><code>AsyncClient</code> constructor</td></tr>
+          <tr><td>Lifespan: create/close <code>app.state.openclaw_client</code></td><td><code>openclaw_status</code>, <code>trigger_agent_endpoint</code></td></tr>
+          <tr><td><code>app.include_router(openclaw.router, ...)</code></td><td>routes exist at runtime</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">app/main.py</code> — where all changes land</li>
+        <li><code class="inline">app/routers/openclaw.py</code> — endpoints; read <code class="inline">request.app.state.openclaw_client</code></li>
+        <li><code class="inline">app/services/openclaw_client.py</code> — <code class="inline">trigger_agent()</code>, <code class="inline">wake()</code> consume the async <code class="inline">httpx.AsyncClient</code></li>
+        <li><code class="inline">config.py</code> — <code class="inline">OPENCLAW_BASE_URL</code>, <code class="inline">OPENCLAW_WEBHOOK_TOKEN</code> (lines 87–88)</li>
+        <li><code class="inline">tests/conftest.py</code> — <code class="inline">client</code> fixture uses <code class="inline">with TestClient(app) as c:</code> which triggers lifespan</li>
+        <li><code class="inline">tests/integration/routers/test_openclaw.py</code> — 13 integration tests; all service calls mocked at router namespace</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="design-decisions">
+      <span class="eyebrow">Design decisions</span>
+      <p><strong>httpx.AsyncClient lifecycle in lifespan.</strong> The <code class="inline">openclaw_client</code> service functions (<code class="inline">wake</code>, <code class="inline">trigger_agent</code>) accept a pre-built client rather than creating one per call. Created once in the FastAPI lifespan and stored in <code class="inline">app.state</code> — canonical pattern for shared async resources. <code class="inline">TestClient</code> context manager triggers the lifespan.</p>
+      <p><strong>No conftest changes needed.</strong> All 13 failing tests mock <code class="inline">wake</code>, <code class="inline">trigger_agent</code>, and <code class="inline">_get_sync_redis</code> at the <code class="inline">app.routers.openclaw.*</code> namespace — the real <code class="inline">httpx.AsyncClient</code> in <code class="inline">app.state</code> is never called, it only needs to exist.</p>
+      <p><strong>No new env vars.</strong> <code class="inline">OPENCLAW_BASE_URL</code> and <code class="inline">OPENCLAW_WEBHOOK_TOKEN</code> are already defined in <code class="inline">config.py</code> and present in <code class="inline">.env.example</code>.</p>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>Register OpenClaw router in <code class="inline">app/main.py</code></h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Five surgical edits to a single file. No conftest, no env, no migrations.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>/Users/gregor/dev/922/HomeAPI</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+            <div class="meta-row"><strong>Files changed</strong><code>app/main.py</code></div>
+          </div>
+
+          <p><strong>1.</strong> Add <code class="inline">import httpx</code> after stdlib/third-party imports, before fastapi imports.</p>
+
+          <p><strong>2.</strong> Add <code class="inline">openclaw</code> to the existing routers import block:</p>
+          <pre class="code"><span class="tok-keyword">from</span> app.routers <span class="tok-keyword">import</span> (
+    activity_log,
+    calendar,
+    cron_job,
+    gmail,
+    idea,
+    memory,
+    modules,
+    openclaw,          <span class="tok-comment"># ← add</span>
+    project,
+    ...
+)</pre>
+
+          <p><strong>3.</strong> Extend the existing config import:</p>
+          <pre class="code"><span class="tok-keyword">from</span> config <span class="tok-keyword">import</span> CORS_ORIGINS, OPENCLAW_BASE_URL, OPENCLAW_WEBHOOK_TOKEN</pre>
+
+          <p><strong>4.</strong> Replace the existing <code class="inline">lifespan</code> body:</p>
+          <pre class="code">@asynccontextmanager
+<span class="tok-keyword">async def</span> <span class="tok-fn">lifespan</span>(app: FastAPI):
+    <span class="tok-string">"""Manage async resources: OpenClaw HTTP client lifecycle."""</span>
+    app.state.openclaw_client = httpx.<span class="tok-fn">AsyncClient</span>(
+        base_url=OPENCLAW_BASE_URL,
+        headers={<span class="tok-string">"Authorization"</span>: <span class="tok-string">f"Bearer {OPENCLAW_WEBHOOK_TOKEN}"</span>},
+        timeout=<span class="tok-string">10.0</span>,
+    )
+    <span class="tok-keyword">yield</span>
+    <span class="tok-keyword">await</span> app.state.openclaw_client.<span class="tok-fn">aclose</span>()
+    <span class="tok-keyword">await</span> engine.<span class="tok-fn">dispose</span>()</pre>
+
+          <p><strong>5.</strong> Add router registration after <code class="inline">ledger</code> and <code class="inline">invoices</code>:</p>
+          <pre class="code">app.<span class="tok-fn">include_router</span>(openclaw.router, prefix=<span class="tok-string">"/api"</span>, tags=[<span class="tok-string">"openclaw"</span>])</pre>
+
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">import httpx</code> present in <code class="inline">main.py</code></li>
+            <li class="acceptance__item"><code class="inline">openclaw</code> imported from <code class="inline">app.routers</code></li>
+            <li class="acceptance__item"><code class="inline">OPENCLAW_BASE_URL</code>, <code class="inline">OPENCLAW_WEBHOOK_TOKEN</code> imported from <code class="inline">config</code></li>
+            <li class="acceptance__item"><code class="inline">lifespan</code> creates <code class="inline">app.state.openclaw_client</code> on startup and closes it on teardown</li>
+            <li class="acceptance__item"><code class="inline">app.include_router(openclaw.router, prefix="/api", tags=["openclaw"])</code> added</li>
+            <li class="acceptance__item">All 13 tests in <code class="inline">tests/integration/routers/test_openclaw.py</code> pass locally</li>
+            <li class="acceptance__item">Full test suite passes (excluding any pre-existing unrelated failures)</li>
+            <li class="acceptance__item"><code class="inline">ruff check app/main.py</code> exits 0</li>
+            <li class="acceptance__item"><code class="inline">mypy app/ --ignore-missing-imports</code> exits 0</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks closing #41</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave">
+        <div class="wave__label">Single wave · one file, one commit</div>
+        <span class="pill pill--accent">01 · patch app/main.py</span>
+      </div>
+      <div class="meta-grid" style="margin-top:0.75rem;">
+        <div class="meta-row"><strong>Verify</strong><code>PYTHONPATH=. pytest tests/integration/routers/test_openclaw.py -v</code></div>
+        <div class="meta-row"><strong>Full suite</strong><code>PYTHONPATH=. pytest tests/ -x -q</code></div>
+        <div class="meta-row"><strong>Lint</strong><code>ruff check app/main.py &amp;&amp; mypy app/ --ignore-missing-imports</code></div>
+        <div class="meta-row"><strong>PR</strong><span>against <code>dev</code>, references issue #41</span></div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item"><code class="inline">GET /api/openclaw/status</code> reachable in OpenAPI <code class="inline">/docs</code> under tag <code class="inline">openclaw</code></li>
+        <li class="acceptance__item">All 13 <code class="inline">test_openclaw.py</code> tests pass locally</li>
+        <li class="acceptance__item">Full CI suite green on PR branch</li>
+        <li class="acceptance__item">PR opened against <code class="inline">dev</code>, body references issue #41</li>
+        <li class="acceptance__item">Worktree removed after PR URL captured</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
