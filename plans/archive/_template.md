@@ -1,3 +1,10 @@
+# [DEPRECATED] Plan template — Markdown
+
+> **Superseded by `plans/_template.html`** (2026-05-19, see `plans/2026-05-19-orchestrator-html-plans-rollout.md`).
+> Kept in `plans/archive/` for reference only — do not author new plans in Markdown.
+
+---
+
 # Plan: [TITLE]
 
 - **Date**: YYYY-MM-DD
