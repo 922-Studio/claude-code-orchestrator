@@ -45,10 +45,21 @@
       </div>
     </section>
 
+    <nav class="ds-toc" aria-label="Showcase sections">
+      <a href="#typography">Typography</a>
+      <a href="#color">Color</a>
+      <a href="#buttons">Buttons</a>
+      <a href="#cards">Cards & badges</a>
+      <a href="#background">Background</a>
+      <a href="#tokens">Tokens</a>
+      <a href="#usage">Usage</a>
+      <a href="#plans">Plans</a>
+    </nav>
+
     <div class="section-divider"></div>
 
     <!-- ============================== TYPOGRAPHY ============================== -->
-    <section>
+    <section id="typography">
       <span class="eyebrow">Typography</span>
       <h2 class="h-section">Space Grotesk · Inter</h2>
       <p class="lede">Headings in Space Grotesk (loaded via <code>next/font</code>), body copy in Inter. Same scale across both projects.</p>
@@ -80,7 +91,7 @@
     <div class="section-divider"></div>
 
     <!-- ============================== COLOR ============================== -->
-    <section>
+    <section id="color">
       <span class="eyebrow">Color tokens</span>
       <h2 class="h-section">Surfaces, text & accent</h2>
       <p class="lede">All colors are CSS custom properties. The neutral scale is identical between Studio and Portfolio; only the accent differs.</p>
@@ -122,7 +133,7 @@
     <div class="section-divider"></div>
 
     <!-- ============================== BUTTONS ============================== -->
-    <section>
+    <section id="buttons">
       <span class="eyebrow">Buttons</span>
       <h2 class="h-section">Calls to action</h2>
       <p class="lede">Four button shapes cover the entire surface: primary, secondary (bordered), ghost (link-like), and pill (filter chips).</p>
@@ -153,7 +164,7 @@
     <div class="section-divider"></div>
 
     <!-- ============================== CARDS ============================== -->
-    <section>
+    <section id="cards">
       <span class="eyebrow">Cards & badges</span>
       <h2 class="h-section">Project / content tiles</h2>
       <p class="lede">Cards use the surface token with a 1px border; on hover the border picks up a tinted accent. Badges come in two flavors.</p>
@@ -201,7 +212,7 @@
     <div class="section-divider"></div>
 
     <!-- ============================== BACKGROUND ============================== -->
-    <section>
+    <section id="background">
       <span class="eyebrow">Background</span>
       <h2 class="h-section">Dot grid + drifting blobs</h2>
       <p class="lede">
@@ -221,7 +232,7 @@
     <div class="section-divider"></div>
 
     <!-- ============================== TOKENS REFERENCE ============================== -->
-    <section>
+    <section id="tokens">
       <span class="eyebrow">Token reference</span>
       <h2 class="h-section">All variables, both modes</h2>
       <p class="lede">Drop-in copy of the Tailwind 4 <code>@theme</code> tokens used in both <code>globals.css</code> files.</p>
@@ -257,7 +268,7 @@
     <div class="section-divider"></div>
 
     <!-- ============================== USAGE ============================== -->
-    <section>
+    <section id="usage">
       <span class="eyebrow">How to use</span>
       <h2 class="h-section">Mirror this on either site</h2>
       <ol style="color:var(--color-text-secondary);line-height:1.7;">
@@ -268,6 +279,182 @@
         <li>For Tailwind 4 projects, the same names work as utility classes (<code>bg-surface</code>, <code>text-text-muted</code>, <code>border-border</code>, <code>bg-accent-from/15</code>).</li>
       </ol>
     </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ============================== PLANS ============================== -->
+    <section id="plans">
+      <span class="eyebrow">Plans</span>
+      <h2 class="h-section">HTML plan components</h2>
+      <p class="lede">Used by orchestrator plans authored in HTML (see <code>plans/_template.html</code>). Each demo below renders the live component on top and the raw markup underneath.</p>
+
+      <h3 class="h-sub" style="margin-top:2rem;">Status pills</h3>
+      <p>Status chips for done / blocked / parallel / pending / wave-N. Pair the base <code>.pill</code> with one modifier, optionally with a leading <code>.pill__dot</code>.</p>
+      <div class="ds-demo">
+        <div class="ds-demo__live">
+          <div class="row">
+            <span class="pill pill--success"><span class="pill__dot"></span>done</span>
+            <span class="pill pill--error"><span class="pill__dot"></span>blocked</span>
+            <span class="pill pill--warning"><span class="pill__dot"></span>at risk</span>
+            <span class="pill pill--info"><span class="pill__dot"></span>parallel</span>
+            <span class="pill pill--muted">pending</span>
+            <span class="pill pill--accent">wave 1</span>
+          </div>
+        </div>
+        <pre class="code ds-demo__code">&lt;span class="pill pill--success"&gt;&lt;span class="pill__dot"&gt;&lt;/span&gt;done&lt;/span&gt;
+&lt;span class="pill pill--error"&gt;&lt;span class="pill__dot"&gt;&lt;/span&gt;blocked&lt;/span&gt;
+&lt;span class="pill pill--info"&gt;&lt;span class="pill__dot"&gt;&lt;/span&gt;parallel&lt;/span&gt;
+&lt;span class="pill pill--muted"&gt;pending&lt;/span&gt;
+&lt;span class="pill pill--accent"&gt;wave 1&lt;/span&gt;</pre>
+      </div>
+
+      <h3 class="h-sub" style="margin-top:2rem;">Scope bar</h3>
+      <p>Horizontal quick-facts strip — drops below the plan hero.</p>
+      <div class="ds-demo">
+        <div class="ds-demo__live">
+          <div class="scope-bar">
+            <div class="scope-item"><strong>Project</strong><span>orchestrator</span></div>
+            <div class="scope-item"><strong>Branch</strong><code>feat/example</code></div>
+            <div class="scope-item"><strong>Worktree</strong><code>.worktrees/feat-example</code></div>
+            <div class="scope-item"><strong>PR target</strong><span>main</span></div>
+            <div class="scope-item"><strong>Status</strong><span class="pill pill--info"><span class="pill__dot"></span>in flight</span></div>
+          </div>
+        </div>
+        <pre class="code ds-demo__code">&lt;div class="scope-bar"&gt;
+  &lt;div class="scope-item"&gt;&lt;strong&gt;Project&lt;/strong&gt;&lt;span&gt;orchestrator&lt;/span&gt;&lt;/div&gt;
+  &lt;div class="scope-item"&gt;&lt;strong&gt;Branch&lt;/strong&gt;&lt;code&gt;feat/example&lt;/code&gt;&lt;/div&gt;
+  ...
+&lt;/div&gt;</pre>
+      </div>
+
+      <h3 class="h-sub" style="margin-top:2rem;">Plan step (full card)</h3>
+      <p>One <code>.plan-step</code> per numbered step: big mono number, head with title + status pill, body prose, optional <code>.meta-grid</code> + <code>pre.code</code> + <code>.acceptance</code> list, and a foot for dependencies.</p>
+      <div class="ds-demo">
+        <div class="ds-demo__live">
+          <article class="plan-step">
+            <div class="plan-step__num">03</div>
+            <header class="plan-step__head">
+              <h3>Wire route into HomeAPI</h3>
+              <span class="pill pill--info"><span class="pill__dot"></span>parallel with 02</span>
+            </header>
+            <div class="plan-step__body">
+              <p>Register the new <code class="inline">openclaw</code> router and add the <code class="inline">/health</code> probe used by Traefik.</p>
+              <div class="meta-grid">
+                <div class="meta-row"><strong>Project</strong><span>HomeAPI</span></div>
+                <div class="meta-row"><strong>Directory</strong><code>/Users/gregor/dev/922/HomeAPI</code></div>
+                <div class="meta-row"><strong>Branch</strong><code>feat/openclaw-router</code></div>
+              </div>
+              <pre class="code"><span class="tok-comment"># app/main.py</span>
+<span class="tok-keyword">from</span> openclaw <span class="tok-keyword">import</span> router <span class="tok-keyword">as</span> openclaw_router
+app.<span class="tok-fn">include_router</span>(openclaw_router, prefix=<span class="tok-string">"/openclaw"</span>)</pre>
+              <ul class="acceptance">
+                <li class="acceptance__item" data-state="done">Router mounted at <code class="inline">/openclaw</code></li>
+                <li class="acceptance__item">Health probe returns 200 under load</li>
+                <li class="acceptance__item" data-state="blocked">Smoke test green in CI (blocked: Traefik label missing)</li>
+              </ul>
+            </div>
+            <footer class="plan-step__foot">depends on Step 1 · unblocks Step 4</footer>
+          </article>
+        </div>
+        <pre class="code ds-demo__code">&lt;article class="plan-step"&gt;
+  &lt;div class="plan-step__num"&gt;03&lt;/div&gt;
+  &lt;header class="plan-step__head"&gt;
+    &lt;h3&gt;Wire route into HomeAPI&lt;/h3&gt;
+    &lt;span class="pill pill--info"&gt;...&lt;/span&gt;
+  &lt;/header&gt;
+  &lt;div class="plan-step__body"&gt;
+    &lt;p&gt;...&lt;/p&gt;
+    &lt;div class="meta-grid"&gt;...&lt;/div&gt;
+    &lt;pre class="code"&gt;...&lt;/pre&gt;
+    &lt;ul class="acceptance"&gt;...&lt;/ul&gt;
+  &lt;/div&gt;
+  &lt;footer class="plan-step__foot"&gt;depends on Step 1&lt;/footer&gt;
+&lt;/article&gt;</pre>
+      </div>
+
+      <h3 class="h-sub" style="margin-top:2rem;">Wave groups (execution overview)</h3>
+      <p>Group steps into waves — parallel inside a wave, sequential between waves.</p>
+      <div class="ds-demo">
+        <div class="ds-demo__live">
+          <div class="wave">
+            <div class="wave__label">Wave 1 · parallel</div>
+            <span class="pill pill--accent">01 · worktree</span>
+            <span class="pill pill--accent">02 · DS extension</span>
+          </div>
+          <div class="wave">
+            <div class="wave__label">Wave 2 · sequential</div>
+            <span class="pill pill--muted">03 · planner prompt</span>
+            <span class="pill pill--muted">04 · CLAUDE.md</span>
+            <span class="pill pill--muted">05 · smoke test</span>
+          </div>
+        </div>
+        <pre class="code ds-demo__code">&lt;div class="wave"&gt;
+  &lt;div class="wave__label"&gt;Wave 1 · parallel&lt;/div&gt;
+  &lt;span class="pill pill--accent"&gt;01 · worktree&lt;/span&gt;
+  &lt;span class="pill pill--accent"&gt;02 · DS extension&lt;/span&gt;
+&lt;/div&gt;</pre>
+      </div>
+
+      <h3 class="h-sub" style="margin-top:2rem;">Code block + inline + syntax tints</h3>
+      <p>Use <code class="inline">pre.code</code> for blocks and <code class="inline">code.inline</code> for inline. Wrap tokens in <code class="inline">.tok-comment</code>, <code class="inline">.tok-string</code>, <code class="inline">.tok-keyword</code>, <code class="inline">.tok-fn</code> for light syntax tint.</p>
+      <div class="ds-demo">
+        <div class="ds-demo__live">
+          <pre class="code"><span class="tok-comment">// scripts/seed.ts</span>
+<span class="tok-keyword">import</span> { db } <span class="tok-keyword">from</span> <span class="tok-string">"./db"</span>;
+<span class="tok-keyword">async function</span> <span class="tok-fn">seed</span>() {
+  <span class="tok-keyword">await</span> db.users.<span class="tok-fn">createMany</span>({ data: <span class="tok-string">"./fixtures.json"</span> });
+}</pre>
+        </div>
+        <pre class="code ds-demo__code">&lt;pre class="code"&gt;
+  &lt;span class="tok-comment"&gt;// scripts/seed.ts&lt;/span&gt;
+  &lt;span class="tok-keyword"&gt;import&lt;/span&gt; { db } &lt;span class="tok-keyword"&gt;from&lt;/span&gt; &lt;span class="tok-string"&gt;"./db"&lt;/span&gt;;
+  ...
+&lt;/pre&gt;</pre>
+      </div>
+
+      <h3 class="h-sub" style="margin-top:2rem;">Dataframe (file list)</h3>
+      <p>Lightweight table for file lists, scope tables, criteria.</p>
+      <div class="ds-demo">
+        <div class="ds-demo__live">
+          <table class="dataframe">
+            <thead><tr><th>Path</th><th>Lines</th><th>Role</th></tr></thead>
+            <tbody>
+              <tr><td><code>plans/_template.html</code></td><td>78</td><td>canonical template</td></tr>
+              <tr><td><code>pages-design-system.css</code></td><td>566</td><td>design system</td></tr>
+              <tr><td><code>prompts/planner.md</code></td><td>56</td><td>planner contract</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <pre class="code ds-demo__code">&lt;table class="dataframe"&gt;
+  &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Path&lt;/th&gt;&lt;th&gt;Lines&lt;/th&gt;&lt;th&gt;Role&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;&lt;td&gt;&lt;code&gt;plans/_template.html&lt;/code&gt;&lt;/td&gt;...&lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</pre>
+      </div>
+
+      <h3 class="h-sub" style="margin-top:2rem;">Acceptance list (three states)</h3>
+      <p>Pure-CSS markers via <code class="inline">data-state="done|blocked"</code> (default = todo).</p>
+      <div class="ds-demo">
+        <div class="ds-demo__live">
+          <ul class="acceptance">
+            <li class="acceptance__item" data-state="done">Worktree created and clean</li>
+            <li class="acceptance__item">CSS additions under 250 lines</li>
+            <li class="acceptance__item" data-state="blocked">PR opened (blocked: no git remote configured)</li>
+          </ul>
+        </div>
+        <pre class="code ds-demo__code">&lt;ul class="acceptance"&gt;
+  &lt;li class="acceptance__item" data-state="done"&gt;...&lt;/li&gt;
+  &lt;li class="acceptance__item"&gt;...&lt;/li&gt;
+  &lt;li class="acceptance__item" data-state="blocked"&gt;...&lt;/li&gt;
+&lt;/ul&gt;</pre>
+      </div>
+
+      <h3 class="h-sub" style="margin-top:2rem;">Cover chrome (plan hero only)</h3>
+      <p>Plans use <code class="inline">&lt;header class="plan-cover"&gt;</code> with brand chrome (blobs + dot grid) visible, then a sibling JS-free trick: setting <code class="inline">body[data-plan-cover="off"]</code> after the cover hides chrome for the rest of the page. (In real plans, add the attribute statically on <code class="inline">&lt;body&gt;</code> — they don't need a runtime toggle.)</p>
+    </section>
+
+    <div class="section-divider"></div>
 
     <footer style="margin-top:5rem;padding-top:2rem;border-top:1px solid var(--color-border);color:var(--color-text-muted);font-size:0.875rem;">
       Reference for <code>/Users/gregor/dev/922/Studio</code> and <code>/Users/gregor/dev/922/Portfolio</code>.
