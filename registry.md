@@ -10,12 +10,12 @@ Master list of all projects in Gregor's ecosystem.
 | 4 | HomeStructure | /Users/gregor/dev/922/HomeStructure | infra | active | [mapping](projects/homestructure.md) |
 | 5 | HomeUI | /Users/gregor/dev/922/HomeUI | fullstack (frontend) | active | [mapping](projects/homeui.md) |
 | 6 | Discord Bot | /Users/gregor/dev/922/discord | app | active | [mapping](projects/discord.md) |
-| 7 | Portfolio | /Users/gregor/dev/922/portfolio | app (website) | active | [mapping](projects/portfolio.md) |
+| 7 | Portfolio | /Users/gregor/dev/922/Portfolio | app (website) | active | [mapping](projects/portfolio.md) |
 | 8 | Sweatvalley Bingo | /Users/gregor/dev/922/sweatvalley_bingo | app | active | [mapping](projects/sweatvalley-bingo.md) |
 | 9 | Workflows | /Users/gregor/dev/922/workflows | infra | active | [mapping](projects/workflows.md) |
 | 10 | Anime-API | /Users/gregor/dev/922/Anime-API | fullstack (backend) | active | [mapping](projects/anime-api.md) |
 | 11 | Anime-APP | /Users/gregor/dev/922/Anime-APP | fullstack (frontend) | active | [mapping](projects/anime-app.md) |
-| 12 | Studio | /Users/gregor/dev/922/studio | app (website) | active | [mapping](projects/studio.md) |
+| 12 | Studio | /Users/gregor/dev/922/Studio | app (website) | active | [mapping](projects/studio.md) |
 | 13 | Drafter | /Users/gregor/dev/922/Drafter | fullstack (monorepo) | active | [mapping](projects/drafter.md) |
 | 14 | Smoking Counter | /Users/gregor/dev/922/smoking-counter | app (website) | active | [mapping](projects/smoking-counter.md) |
 

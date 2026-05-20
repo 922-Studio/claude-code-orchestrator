@@ -2,7 +2,7 @@
 
 ## Overview
 - **Type**: app (website)
-- **Path**: /Users/gregor/dev/922/portfolio
+- **Path**: /Users/gregor/dev/922/Portfolio
 - **Status**: active
 - **Description**: Gregor Krykon's personal portfolio website. Showcases Automation Engineer and Full-Stack Developer profile with projects, tech stack, testimonials, CV downloads. Multi-language (EN/DE), responsive, dark/light theme. Live at https://gregor.922-studio.com.
 

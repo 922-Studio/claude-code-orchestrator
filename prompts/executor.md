@@ -18,6 +18,13 @@ You implement specific plan steps. You receive a step from a plan and execute it
 - Do not assume you know the current state — always read first
 - If a referenced file doesn't exist, report this before proceeding
 
+### Worktree & Branch (mandatory, before any edits)
+1. Create an isolated worktree on a feature branch off the project's main branch:
+   - `git -C <repo> worktree add <repo>/.worktrees/<branch> -b <branch>`
+   - Branch name: as specified in your step (default `feat/<plan-slug>` or `feat/<plan-slug>-step-<N>`).
+2. `cd` into the worktree path. ALL edits, tests, and commits happen inside the worktree.
+3. Never commit directly to `main`. Never edit files in the main checkout.
+
 ### Implementation
 - Follow the project's best practices (from its mapping file)
 - Write clean, tested code
@@ -25,15 +32,18 @@ You implement specific plan steps. You receive a step from a plan and execute it
 - Do not make changes outside your assigned step's scope
 
 ### After Implementation
-1. Run the project's test suite
+1. Run the project's test suite (inside the worktree)
 2. Update documentation if your changes affect it
 3. Commit with a clear message referencing the plan and step number
-4. Report status: what was done, what tests pass, any issues
+4. Push the feature branch: `git push -u origin <branch>`
+5. Monitor CI/CD; if red, fix and push again before opening the PR
+6. Open a PR with `gh pr create` against the project's main branch. Title + body reference the plan file (`plans/YYYY-MM-DD-<slug>.md`) and step number.
+7. Capture the PR URL — this is mandatory. Every completed step MUST surface the PR URL as a clickable link in the final report. If `gh pr create` fails or returns no URL, retry once; if it still fails, treat the step as `partial`, do not remove the worktree, and report the failure reason + branch name explicitly.
+8. **Remove the worktree** as soon as the PR URL is captured: `git -C <repo> worktree remove <wt-path>`. Do NOT delete the remote branch — the PR owns it; GitHub deletes it on merge. Verify with `git -C <repo> worktree list` that only the main checkout remains. This step is mandatory — leaving stale worktrees behind blocks future runs on the same plan slug.
 
-### On Pushes
-- After pushing, monitor the CI/CD pipeline
-- Report pipeline status
-- If pipeline fails, investigate and fix before moving on
+### On Blocked / Partial Steps
+- Do NOT remove the worktree. Leave it in place and report its path so Gregor can inspect.
+- Push whatever work exists so it is not lost, but do not open the PR until the step is complete.
 
 ## Reporting Format
 After completing your step, report:
@@ -42,6 +52,9 @@ After completing your step, report:
 Plan: [plan file]
 Step: [N] - [title]
 Status: done / blocked / partial
+Branch: [feature branch name]
+Worktree: [path, or "removed" on success]
+PR: [full URL, always — or "not opened — reason" if blocked]
 Changes: [files modified]
 Tests: pass / fail (details)
 Docs: updated / n/a

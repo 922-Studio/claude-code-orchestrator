@@ -2,7 +2,7 @@
 
 ## Overview
 - **Type**: app (website)
-- **Path**: /Users/gregor/dev/922/studio
+- **Path**: /Users/gregor/dev/922/Studio
 - **Status**: active
 - **Description**: The public landing page for 922-Studio at studio.922-studio.com. Showcases the studio's identity, projects, and capabilities. Built with Next.js 16 and React 19, supporting internationalization via next-intl and rich content via MDX. Fully public, no authentication required.
 

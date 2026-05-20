@@ -140,7 +140,7 @@ Read these files before proceeding:
 ### Step 5: Studio — Create README
 
 - **Project**: Studio
-- **Directory**: `/Users/gregor/dev/922/studio`
+- **Directory**: `/Users/gregor/dev/922/Studio`
 - **Parallel with**: Steps 1–4
 - **Description**: Create README (currently missing — only bare CLAUDE.md).
   1. **`README.md`**: Project overview (922-Studio landing page), tech stack (Next.js 16, React 19, TypeScript, next-intl, next-mdx-remote, gray-matter, Tailwind CSS 4), content management (MDX), Docker setup, development instructions
@@ -167,7 +167,7 @@ Read these files before proceeding:
 ### Step 6: Portfolio — Replace Template README
 
 - **Project**: Portfolio
-- **Directory**: `/Users/gregor/dev/922/portfolio`
+- **Directory**: `/Users/gregor/dev/922/Portfolio`
 - **Parallel with**: Steps 7–8
 - **Depends on**: Steps 1–5 (lower priority batch)
 - **Description**: Replace generic Next.js README with project-specific one.
@@ -272,10 +272,10 @@ Wave 1 (parallel — highest priority, creating docs from nothing):
   Step 2: Anime-APP — replace README + add CLAUDE.md  → /Users/gregor/dev/922/Anime-APP
   Step 3: HomeUI — replace template README             → /Users/gregor/dev/922/HomeUI
   Step 4: Drafter — create README                      → /Users/gregor/dev/922/Drafter
-  Step 5: Studio — create README + expand CLAUDE.md    → /Users/gregor/dev/922/studio
+  Step 5: Studio — create README + expand CLAUDE.md    → /Users/gregor/dev/922/Studio
 
 Wave 2 (parallel — refresh existing docs):
-  Step 6: Portfolio — replace template README          → /Users/gregor/dev/922/portfolio
+  Step 6: Portfolio — replace template README          → /Users/gregor/dev/922/Portfolio
   Step 7: Sweatvalley Bingo — version/tech refresh     → /Users/gregor/dev/922/sweatvalley_bingo
   Step 8: HomeAPI/Auth/Collector/Discord/Workflows     → 5 repos (targeted updates)
 

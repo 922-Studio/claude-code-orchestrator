@@ -155,7 +155,7 @@ Services are grouped by complexity and dependency. Each wave completes before th
 ### Step 1: Portfolio — Registry Migration (prod only)
 
 - **Project**: Portfolio
-- **Directory**: `/Users/gregor/dev/922/portfolio`
+- **Directory**: `/Users/gregor/dev/922/Portfolio`
 - **Parallel with**: Step 2 (Studio)
 - **Context files to read**:
   - `projects/portfolio.md` — project mapping
@@ -187,7 +187,7 @@ Services are grouped by complexity and dependency. Each wave completes before th
 ### Step 2: Studio — Registry Migration (prod only)
 
 - **Project**: Studio
-- **Directory**: `/Users/gregor/dev/922/studio`
+- **Directory**: `/Users/gregor/dev/922/Studio`
 - **Parallel with**: Step 1 (Portfolio)
 - **Context files to read**:
   - `projects/studio.md` — project mapping
@@ -815,8 +815,8 @@ Services are grouped by complexity and dependency. Each wave completes before th
 === EXECUTION OVERVIEW ===
 
 Wave 1 — Static Sites (parallel):
-  Step 1: Portfolio registry migration     → Portfolio @ /Users/gregor/dev/922/portfolio
-  Step 2: Studio registry migration        → Studio @ /Users/gregor/dev/922/studio
+  Step 1: Portfolio registry migration     → Portfolio @ /Users/gregor/dev/922/Portfolio
+  Step 2: Studio registry migration        → Studio @ /Users/gregor/dev/922/Studio
 
 Wave 2 — Server Deploy + Verify Wave 1:
   Step 3: Deploy Portfolio + Studio        → Server via ssh lab
