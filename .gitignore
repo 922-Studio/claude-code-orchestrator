@@ -2,3 +2,6 @@
 studio/
 execution/*.log
 execution/*.txt
+
+# Worktrees created by the universal worktree workflow
+.worktrees/
