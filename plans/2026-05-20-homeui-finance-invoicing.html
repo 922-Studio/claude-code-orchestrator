@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: HomeUI — Finance Invoicing UI</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-05-20 · HomeUI</span>
+      <h1>HomeUI — Finance Invoicing UI</h1>
+      <p class="lede">Add an Invoices section to the finance tab with a person/date-range form and PDF, XML, and HTML preview download actions backed by the existing HomeAPI <code class="inline">/api/finance/invoices/*</code> endpoints.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Project</strong><span>HomeUI</span></div>
+        <div class="scope-item"><strong>Branch</strong><code>feat/homeui-finance-invoicing</code></div>
+        <div class="scope-item"><strong>Worktree</strong><code>HomeUI/.worktrees/feat-homeui-finance-invoicing</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>main</span></div>
+        <div class="scope-item"><strong>Backend</strong><span>HomeAPI invoicing endpoints already shipped</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Context — endpoints &amp; current state</span>
+      <p>The HomeAPI backend (plan <code class="inline">2026-05-19-homeapi-finance-invoicing.md</code>) is fully implemented. The three endpoints exist:</p>
+      <table class="dataframe">
+        <thead><tr><th>Endpoint</th><th>Response</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/finance/invoices/preview</code></td><td><code>text/html</code> — rendered invoice</td></tr>
+          <tr><td><code>GET /api/finance/invoices/pdf</code></td><td><code>application/pdf</code> blob download</td></tr>
+          <tr><td><code>GET /api/finance/invoices/xml</code></td><td><code>application/xml</code> blob download</td></tr>
+        </tbody>
+      </table>
+      <p>All three accept: <code class="inline">persons[]</code> (required, repeatable), <code class="inline">from_date</code> (optional <code class="inline">YYYY-MM-DD</code>), <code class="inline">to_date</code> (optional <code class="inline">YYYY-MM-DD</code>).</p>
+      <p>The HomeUI finance feature currently has two nav entries (Overview, Ledger) and no invoice section. The current finance directory structure is:</p>
+      <pre class="code">src/features/finance/
+├── components/
+│   ├── FinanceLayout.tsx
+│   └── FinanceNav.tsx
+└── pages/
+    ├── FinanceOverviewPage.tsx
+    └── FinanceOverviewPage.test.tsx</pre>
+      <p>Read these files before proceeding:</p>
+      <ul>
+        <li><code class="inline">orchestrator/projects/homeui.md</code> — tech stack, best practices, component patterns</li>
+        <li><code class="inline">HomeUI/CLAUDE.md</code> — naming conventions, new-feature checklist</li>
+        <li><code class="inline">HomeUI/src/features/finance/components/FinanceNav.tsx</code> — existing nav shape to extend</li>
+        <li><code class="inline">HomeUI/src/features/finance/components/FinanceLayout.tsx</code> — layout wrapper pattern</li>
+        <li><code class="inline">HomeUI/src/features/finance/pages/FinanceOverviewPage.tsx</code> — inline-style + useSuspenseQuery patterns to follow</li>
+        <li><code class="inline">HomeUI/src/api/debts.ts</code> — queryOptions factory pattern</li>
+        <li><code class="inline">HomeUI/src/types/api/debts.ts</code> — Zod schema + inferred type pattern</li>
+        <li><code class="inline">HomeUI/src/lib/http.ts</code> — Axios client (needed for blob responseType)</li>
+        <li><code class="inline">HomeUI/src/App.tsx</code> — route registration + lazy() pattern</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="design-decisions">
+      <span class="eyebrow">Design decisions</span>
+      <article class="plan-step">
+        <div class="plan-step__num">A</div>
+        <header class="plan-step__head"><h3>No JSON response schemas needed</h3><span class="pill pill--muted">decision</span></header>
+        <div class="plan-step__body">
+          <p>All three invoice endpoints return non-JSON payloads (HTML string, PDF binary, XML string). There is nothing to parse with Zod. <code class="inline">src/types/api/invoice.ts</code> holds only the request params type used by the API module and the form.</p>
+        </div>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">B</div>
+        <header class="plan-step__head"><h3>Download via Axios (not direct links)</h3><span class="pill pill--muted">decision</span></header>
+        <div class="plan-step__body">
+          <p>HomeAPI requires auth headers on every request. Constructing raw <code class="inline">&lt;a href&gt;</code> links would bypass the Axios auth interceptor. Instead:</p>
+          <ul>
+            <li>PDF and XML: <code class="inline">http.get(..., { responseType: 'blob' })</code> → create an object URL → trigger programmatic <code class="inline">&lt;a&gt;</code> click → <code class="inline">URL.revokeObjectURL</code>.</li>
+            <li>HTML preview: <code class="inline">http.get(..., { responseType: 'text' })</code> → render inside <code class="inline">&lt;iframe srcDoc={html}&gt;</code> on the same page (sandboxed, no XSS risk via <code class="inline">sandbox</code> attribute).</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">C</div>
+        <header class="plan-step__head"><h3>Person list populated from existing summary query</h3><span class="pill pill--muted">decision</span></header>
+        <div class="plan-step__body">
+          <p><code class="inline">debtsQueryOptions.summary()</code> already returns all known persons with balances. The multi-select is populated from this data — no new endpoint needed. The <code class="inline">useSuspenseQuery</code> call is already present if the page is inside <code class="inline">FinanceLayout</code> which wraps with Suspense.</p>
+        </div>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">D</div>
+        <header class="plan-step__head"><h3>Inline preview, not a new tab</h3><span class="pill pill--muted">decision</span></header>
+        <div class="plan-step__body">
+          <p>The HTML preview renders in a collapsible <code class="inline">&lt;iframe srcDoc&gt;</code> section below the form. This keeps the user in-context, avoids popup blockers, and lets them switch between Preview / PDF / XML without leaving the page.</p>
+        </div>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">E</div>
+        <header class="plan-step__head"><h3>Loading state per action</h3><span class="pill pill--muted">decision</span></header>
+        <div class="plan-step__body">
+          <p>Each of the three actions (preview, PDF, XML) has its own <code class="inline">isLoading</code> boolean in local state. Buttons show a spinner and are disabled while the corresponding request is in flight. Actions are independent — previewing doesn't block downloading.</p>
+        </div>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>Request params type</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Create <code class="inline">src/types/api/invoice.ts</code>. No Zod schemas needed (no JSON response to parse). Export only the request params type and a helper to serialise it as Axios params.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>/Users/gregor/dev/922/HomeUI</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <p><strong>Contents:</strong></p>
+          <pre class="code"><span class="tok-keyword">export interface</span> <span class="tok-fn">InvoiceQueryParams</span> {
+  persons: <span class="tok-keyword">string</span>[]
+  from_date?: <span class="tok-keyword">string</span>   <span class="tok-comment">// YYYY-MM-DD</span>
+  to_date?: <span class="tok-keyword">string</span>     <span class="tok-comment">// YYYY-MM-DD</span>
+}</pre>
+          <p><strong>Context files to read:</strong></p>
+          <ul>
+            <li><code class="inline">HomeUI/src/types/api/debts.ts</code> — file structure to mirror</li>
+          </ul>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">src/types/api/invoice.ts</code> created and exports <code class="inline">InvoiceQueryParams</code></li>
+            <li class="acceptance__item"><code class="inline">npx tsc --noEmit</code> exits 0</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">unblocks 02</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">02</div>
+        <header class="plan-step__head"><h3>Invoice API module</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Create <code class="inline">src/api/invoices.ts</code>. Three functions — one per endpoint. PDF and XML use <code class="inline">responseType: 'blob'</code> and trigger a programmatic download. The preview function returns the raw HTML string.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>/Users/gregor/dev/922/HomeUI</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>— (depends on Step 1)</span></div>
+          </div>
+          <p><strong>Functions to implement:</strong></p>
+          <pre class="code"><span class="tok-keyword">import type</span> { InvoiceQueryParams } <span class="tok-keyword">from</span> <span class="tok-string">'@/types/api/invoice'</span>
+<span class="tok-keyword">import</span> { http } <span class="tok-keyword">from</span> <span class="tok-string">'@/lib/http'</span>
+
+<span class="tok-comment">// Returns raw HTML string for &lt;iframe srcDoc&gt;</span>
+<span class="tok-keyword">export async function</span> <span class="tok-fn">fetchInvoicePreview</span>(params: InvoiceQueryParams): Promise&lt;<span class="tok-keyword">string</span>&gt;
+
+<span class="tok-comment">// Fetches PDF blob and triggers browser download</span>
+<span class="tok-keyword">export async function</span> <span class="tok-fn">downloadInvoicePdf</span>(params: InvoiceQueryParams): Promise&lt;<span class="tok-keyword">void</span>&gt;
+
+<span class="tok-comment">// Fetches XML blob and triggers browser download</span>
+<span class="tok-keyword">export async function</span> <span class="tok-fn">downloadInvoiceXml</span>(params: InvoiceQueryParams): Promise&lt;<span class="tok-keyword">void</span>&gt;</pre>
+          <p><strong>Download helper pattern</strong> (shared between PDF and XML):</p>
+          <pre class="code"><span class="tok-keyword">const</span> { data } = <span class="tok-keyword">await</span> http.<span class="tok-fn">get</span>&lt;Blob&gt;(<span class="tok-string">'/api/finance/invoices/pdf'</span>, {
+  params: { persons: params.persons, from_date: params.from_date, to_date: params.to_date },
+  responseType: <span class="tok-string">'blob'</span>,
+})
+<span class="tok-keyword">const</span> url = URL.<span class="tok-fn">createObjectURL</span>(data)
+<span class="tok-keyword">const</span> a = document.<span class="tok-fn">createElement</span>(<span class="tok-string">'a'</span>)
+a.href = url
+a.download = <span class="tok-string">`invoice-${<span class="tok-keyword">new</span> Date().<span class="tok-fn">toISOString</span>().<span class="tok-fn">slice</span>(0, 10)}.pdf`</span>
+a.<span class="tok-fn">click</span>()
+URL.<span class="tok-fn">revokeObjectURL</span>(url)</pre>
+          <p>Note: Axios serialises repeated query params as <code class="inline">persons[]=Alice&amp;persons[]=Bob</code> by default. Verify against HomeAPI — if HomeAPI expects <code class="inline">persons=Alice&amp;persons=Bob</code> (no brackets), use <code class="inline">paramsSerializer</code> from <code class="inline">qs</code> or a custom serialiser. Check existing usage in <code class="inline">debts.ts</code> for the project convention.</p>
+          <p><strong>Context files to read:</strong></p>
+          <ul>
+            <li><code class="inline">HomeUI/src/lib/http.ts</code> — Axios instance</li>
+            <li><code class="inline">HomeUI/src/api/debts.ts</code> — queryOptions pattern + params usage</li>
+            <li><code class="inline">HomeUI/src/types/api/invoice.ts</code> — InvoiceQueryParams (from Step 1)</li>
+          </ul>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">src/api/invoices.ts</code> created with all three exported functions</li>
+            <li class="acceptance__item">Blob download tested manually (or unit tested with mocked Axios) for PDF</li>
+            <li class="acceptance__item"><code class="inline">npx tsc --noEmit</code> exits 0</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks 03</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">03</div>
+        <header class="plan-step__head"><h3>InvoicePage component + tests</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Create <code class="inline">src/features/finance/pages/InvoicePage.tsx</code> and colocated <code class="inline">InvoicePage.test.tsx</code>.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>/Users/gregor/dev/922/HomeUI</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>— (depends on Step 2)</span></div>
+          </div>
+          <p><strong>Component behaviour:</strong></p>
+          <ol>
+            <li><strong>Person multi-select</strong> — populated from <code class="inline">useSuspenseQuery(debtsQueryOptions.summary())</code>. Renders a list of checkboxes (or a multi-select) with each known <code class="inline">person_name</code>. At least one must be checked before actions are enabled.</li>
+            <li><strong>Date range inputs</strong> — two <code class="inline">&lt;input type="date"&gt;</code> fields for <code class="inline">from_date</code> and <code class="inline">to_date</code>. Both optional.</li>
+            <li><strong>Action bar</strong> — three buttons: <code class="inline">Preview</code>, <code class="inline">Download PDF</code>, <code class="inline">Download XML</code>. Each disabled when <code class="inline">persons</code> is empty or when that action's request is in-flight.</li>
+            <li><strong>Preview panel</strong> — conditionally rendered <code class="inline">&lt;iframe&gt;</code> with <code class="inline">srcDoc={previewHtml}</code> and <code class="inline">sandbox="allow-same-origin"</code>. Hidden until Preview is triggered. Show a loading skeleton while fetching.</li>
+            <li><strong>Error handling</strong> — if any action throws, display a brief inline error message below the form (no toast library needed — plain text).</li>
+          </ol>
+          <p><strong>Styling</strong> — follow the inline-style pattern from <code class="inline">FinanceOverviewPage.tsx</code>:</p>
+          <ul>
+            <li>CSS Grid / Flexbox via inline <code class="inline">style</code> props</li>
+            <li><code class="inline">var(--card)</code>, <code class="inline">var(--border)</code>, <code class="inline">var(--muted-foreground)</code> CSS vars</li>
+            <li>JetBrains Mono for monospace values</li>
+            <li>No Tailwind spacing classes — use inline <code class="inline">gap</code>, <code class="inline">padding</code> etc.</li>
+            <li>The preview <code class="inline">&lt;iframe&gt;</code> should be full-width, min-height 600px, with a <code class="inline">var(--border)</code> border</li>
+          </ul>
+          <p><strong>Test cases</strong> (<code class="inline">InvoicePage.test.tsx</code>):</p>
+          <ul>
+            <li>Renders with person checkboxes populated from mocked summary</li>
+            <li>Action buttons disabled when no person selected</li>
+            <li>Buttons enabled after selecting a person</li>
+            <li>Clicking "Preview" calls <code class="inline">fetchInvoicePreview</code> and renders iframe when resolved</li>
+            <li>Clicking "Download PDF" calls <code class="inline">downloadInvoicePdf</code></li>
+            <li>Clicking "Download XML" calls <code class="inline">downloadInvoiceXml</code></li>
+            <li>Inline error shown when <code class="inline">fetchInvoicePreview</code> rejects</li>
+            <li>Empty state when summary returns no persons</li>
+          </ul>
+          <p>Mock pattern:</p>
+          <pre class="code">vi.<span class="tok-fn">mock</span>(<span class="tok-string">'@/api/invoices'</span>)
+vi.<span class="tok-fn">mock</span>(<span class="tok-string">'@/api/debts'</span>)  <span class="tok-comment">// or mock useSuspenseQuery directly</span></pre>
+          <p><strong>Context files to read:</strong></p>
+          <ul>
+            <li><code class="inline">HomeUI/src/features/finance/pages/FinanceOverviewPage.tsx</code> — inline-style + useSuspenseQuery patterns</li>
+            <li><code class="inline">HomeUI/src/features/finance/pages/FinanceOverviewPage.test.tsx</code> — test patterns to mirror</li>
+            <li><code class="inline">HomeUI/src/api/invoices.ts</code> — functions to call (from Step 2)</li>
+            <li><code class="inline">HomeUI/.claude/HOW-TO-UNIT-TEST.md</code> — test patterns, renderWithProviders</li>
+          </ul>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">src/features/finance/pages/InvoicePage.tsx</code> created</li>
+            <li class="acceptance__item"><code class="inline">src/features/finance/pages/InvoicePage.test.tsx</code> created, all cases above covered</li>
+            <li class="acceptance__item"><code class="inline">npm run test:ci</code> passes (new tests green, no regressions)</li>
+            <li class="acceptance__item"><code class="inline">npx tsc --noEmit</code> exits 0</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 02 · unblocks 04</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">04</div>
+        <header class="plan-step__head"><h3>Wire up route and nav</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Register the new page as a route in <code class="inline">App.tsx</code> and add a nav entry to <code class="inline">FinanceNav.tsx</code>.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>/Users/gregor/dev/922/HomeUI</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>— (depends on Step 3)</span></div>
+          </div>
+          <p><strong><code class="inline">App.tsx</code> change</strong> — add lazy import and nested route under the existing <code class="inline">/finance</code> layout:</p>
+          <pre class="code"><span class="tok-keyword">const</span> InvoicePage = <span class="tok-fn">lazy</span>(() =&gt;
+  <span class="tok-fn">import</span>(<span class="tok-string">'./features/finance/pages/InvoicePage'</span>).<span class="tok-fn">then</span>(m =&gt; ({ <span class="tok-keyword">default</span>: m.InvoicePage }))
+)
+
+<span class="tok-comment">// Inside the /finance nested routes:</span>
+&lt;Route path=<span class="tok-string">"invoices"</span> element={&lt;InvoicePage /&gt;} /&gt;</pre>
+          <p><strong><code class="inline">FinanceNav.tsx</code> change</strong> — add entry after Ledger:</p>
+          <pre class="code">{ title: <span class="tok-string">'Invoices'</span>, path: <span class="tok-string">'/finance/invoices'</span>, icon: FileText }</pre>
+          <p>(<code class="inline">FileText</code> from <code class="inline">lucide-react</code> — already available.)</p>
+          <p><strong>Context files to read:</strong></p>
+          <ul>
+            <li><code class="inline">HomeUI/src/App.tsx</code> — existing lazy import and route nesting pattern</li>
+            <li><code class="inline">HomeUI/src/features/finance/components/FinanceNav.tsx</code> — nav item structure</li>
+          </ul>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">/finance/invoices</code> route renders <code class="inline">InvoicePage</code> without errors</li>
+            <li class="acceptance__item">"Invoices" nav item appears in the finance section sidebar and highlights when active</li>
+            <li class="acceptance__item">Navigating to <code class="inline">/finance/invoices</code> directly works (no 404)</li>
+            <li class="acceptance__item"><code class="inline">npm run type-check</code> exits 0</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 03 · unblocks 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>Quality gates</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Full suite pass, lint, type-check.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>/Users/gregor/dev/922/HomeUI</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>— (depends on Step 4)</span></div>
+          </div>
+          <p><strong>Commands:</strong></p>
+          <pre class="code">npx tsc --noEmit
+npm run lint
+npm run test:ci</pre>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">tsc --noEmit</code> exits 0</li>
+            <li class="acceptance__item"><code class="inline">npm run lint</code> exits 0 (no new ESLint errors)</li>
+            <li class="acceptance__item"><code class="inline">npm run test:ci</code> exits 0 (all tests pass, coverage ≥ 70%)</li>
+            <li class="acceptance__item">No regressions in existing finance tests</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 04 · gates PR</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Wave 1 · sequential</div><span class="pill pill--accent">01 · request params type</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · sequential</div><span class="pill pill--accent">02 · invoice API module</span></div>
+      <div class="wave"><div class="wave__label">Wave 3 · sequential</div><span class="pill pill--accent">03 · InvoicePage component + tests</span></div>
+      <div class="wave"><div class="wave__label">Wave 4 · sequential</div><span class="pill pill--muted">04 · route + nav wiring</span></div>
+      <div class="wave"><div class="wave__label">Wave 5 · sequential</div><span class="pill pill--muted">05 · quality gates</span></div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item"><code class="inline">/finance/invoices</code> is reachable and shows the person-select form</li>
+        <li class="acceptance__item">All known persons from the debt summary appear as selectable options</li>
+        <li class="acceptance__item">Selecting one or more persons enables the three action buttons</li>
+        <li class="acceptance__item">"Preview" fetches HTML and renders it in an inline iframe</li>
+        <li class="acceptance__item">"Download PDF" triggers a <code class="inline">.pdf</code> file download through the browser</li>
+        <li class="acceptance__item">"Download XML" triggers a <code class="inline">.xml</code> file download through the browser</li>
+        <li class="acceptance__item">Date range filters are passed correctly to the API (verified in Network tab)</li>
+        <li class="acceptance__item">Selecting no persons keeps action buttons disabled</li>
+        <li class="acceptance__item">API error surfaces as an inline error message (not a silent failure)</li>
+        <li class="acceptance__item">"Invoices" nav item appears in the finance sidebar and highlights when active</li>
+        <li class="acceptance__item"><code class="inline">npm run test:ci</code> green, coverage ≥ 70%</li>
+        <li class="acceptance__item"><code class="inline">npx tsc --noEmit</code> exits 0</li>
+        <li class="acceptance__item">PR opened against <code class="inline">main</code> referencing this plan</li>
+        <li class="acceptance__item">CI pipeline green</li>
+        <li class="acceptance__item">Worktree removed; remote branch preserved</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
