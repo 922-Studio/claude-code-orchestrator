@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: HomeUI Design System Overhaul</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-05-21 · HomeUI · completed 2026-05-21</span>
+      <h1>HomeUI Design System Overhaul — Home Lab DS</h1>
+      <p class="lede">Replace the legacy Indigo/cream Tailwind theme with the mono-first, teal-accent <code class="inline">home-lab</code> design system. Single PR: foundation + every feature page, dark default + light variant, JetBrains Mono + Inter, semantic colors only.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Project</strong><span>HomeUI</span></div>
+        <div class="scope-item"><strong>Branch</strong><code>feat/homeui-design-system-overhaul</code></div>
+        <div class="scope-item"><strong>Worktree</strong><code>HomeUI/.worktrees/feat-homeui-design-system-overhaul</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>main</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">orchestrator/projects/homeui.md</code> — HomeUI project mapping, tech stack, best practices, testing rules</li>
+        <li><code class="inline">HomeUI/CLAUDE.md</code> — architecture, naming, feature checklist, no-Co-Authored-By rule</li>
+        <li><code class="inline">HomeUI/.claude/BEST-PRACTICES.md</code> — scalability checklist</li>
+        <li><code class="inline">HomeUI/tech_docs/project_structure.md</code> — current layouts, theme, color usage (must be updated when done)</li>
+        <li><code class="inline">HomeUI/src/index.css</code> — current Tailwind v4 <code class="inline">@theme</code> block + Indigo/cream tokens; this is what gets replaced</li>
+        <li><code class="inline">HomeUI/src/components/</code> — shared atoms (StatusBadge, PriorityBadge, ProjectCard, SectionHeader, ProgressBar, EmptyState, TaskRow, ActivityLogEntry, NoteCard, Panel) — all must inherit the new chrome</li>
+        <li><code class="inline">HomeUI/src/components/layout/</code> — global app shell, sidebar, sub-nav (target of Wave 2)</li>
+        <li><code class="inline">HomeUI/src/features/</code> — 15 feature modules to migrate (auth, content, dashboard, debts, finance, health, management, modules, openclaw, organisations, projects, settings, users, wellbeing)</li>
+        <li><strong>Design source bundle</strong> — extracted at <code class="inline">/tmp/design-bundle/test2/project/home-lab/</code>:
+          <ul>
+            <li><code class="inline">design-system.css</code> — single source of truth, ~800 lines of tokens + components (copy verbatim into HomeUI, then add light-variant overrides)</li>
+            <li><code class="inline">design-system.html</code> — showcase document (ported to a <code class="inline">/design-system</code> dev route)</li>
+            <li><code class="inline">overview.html</code>, <code class="inline">monitoring.html</code>, <code class="inline">projects.html</code>, <code class="inline">finance.html</code> — reference target visuals for the four flagship pages</li>
+          </ul>
+        </li>
+        <li><code class="inline">/tmp/design-bundle/test2/chats/chat1.md</code> — design intent transcript (drop serif, single teal accent, mono-first, unified card chrome, 6px radius, semantic colors reserved for meaning)</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="decisions">
+      <span class="eyebrow">Locked decisions</span>
+      <div class="meta-grid">
+        <div class="meta-row"><strong>Theme scope</strong><span>Dark default + light variant on the same <code class="inline">--hl-*</code> tokens (override block under <code class="inline">.light</code> root). Keep <code class="inline">theme-toggle</code>.</span></div>
+        <div class="meta-row"><strong>DS location</strong><span><code class="inline">src/styles/design-system.css</code>, imported once in <code class="inline">src/main.tsx</code> alongside <code class="inline">index.css</code>.</span></div>
+        <div class="meta-row"><strong>PR scope</strong><span>One mega-PR: foundation + AppShell + every feature page migrated. No half-ships.</span></div>
+        <div class="meta-row"><strong>Tailwind</strong><span>Keep Tailwind for layout/utility; bridge <code class="inline">@theme inline</code> vars to the new <code class="inline">--hl-*</code> palette so existing utility classes (<code class="inline">bg-card</code>, <code class="inline">text-muted-foreground</code> …) point at the new tokens. No bulk class rewrite where mapping is enough.</span></div>
+        <div class="meta-row"><strong>Component classes</strong><span>New <code class="inline">.hl-*</code> classes are first-class. Where a shared component (Button, Badge, Card) already exists, refactor its internals to emit <code class="inline">.hl-*</code> chrome; do not introduce a parallel system.</span></div>
+        <div class="meta-row"><strong>Radius</strong><span>Switch from the current <code class="inline">--radius: 0rem</code> sharp-edge to the DS's <code class="inline">6px</code> default + <code class="inline">4px / 10px</code> variants.</span></div>
+        <div class="meta-row"><strong>Tests</strong><span>Unit + E2E must stay green. Snapshot/visual-only tests get regenerated; behavior tests must not be relaxed to pass.</span></div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>Install foundation: tokens, fonts, base CSS</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>Copy <code class="inline">design-system.css</code> verbatim into <code class="inline">src/styles/design-system.css</code>. Import once at the top of <code class="inline">src/main.tsx</code>, before <code class="inline">index.css</code>. Add a <code class="inline">.light</code> override block at the end of the file that re-defines every surface, text, border and accent-soft token for light mode (page → warm off-white, fg → near-black, accent stays teal but with adjusted lightness for AA contrast on white). Verify Google Fonts import resolves (or self-host into <code class="inline">public/fonts/</code> and rewrite the <code class="inline">@import</code>).</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/.worktrees/feat-homeui-design-system-overhaul/src/styles/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">src/styles/design-system.css</code> exists and is imported in <code class="inline">main.tsx</code></li>
+            <li class="acceptance__item">Body renders in JetBrains Mono (technical) / Inter (prose) — no serif, no system-sans fallback in production build</li>
+            <li class="acceptance__item">Light-mode override block defined for every <code class="inline">--hl-*</code> surface and text token; toggling <code class="inline">.light</code> on <code class="inline">html</code> switches palette without layout shift</li>
+            <li class="acceptance__item">All semantic colors (success / error / warning / info) pass 4.5:1 contrast against both <code class="inline">--hl-bg</code> and the light variant page bg</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 02, 03, 04, 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">02</div>
+        <header class="plan-step__head"><h3>Bridge Tailwind theme → new tokens</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>Rewrite the <code class="inline">@theme inline</code> block in <code class="inline">src/index.css</code> so every existing semantic Tailwind var (<code class="inline">--background</code>, <code class="inline">--foreground</code>, <code class="inline">--card</code>, <code class="inline">--card-foreground</code>, <code class="inline">--primary</code>, <code class="inline">--border</code>, <code class="inline">--muted-foreground</code>, sidebar.*, section-nav.*, chart.* …) resolves to the matching <code class="inline">--hl-*</code> token. Remove the Indigo / Emerald / Rose palette declarations and the cream <code class="inline">#F2F1EF</code> light values — those are gone. Switch <code class="inline">--radius</code> from <code class="inline">0rem</code> to <code class="inline">6px</code>; remove the all-zeros radius overrides. Drop the <code class="inline">--font-heading</code> mono override where prose should be Inter (cards' description text).</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/src/index.css</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">No reference to Indigo / cream / <code class="inline">#F2F1EF</code> / <code class="inline">--radius: 0</code> remains in <code class="inline">index.css</code></li>
+            <li class="acceptance__item">Tailwind utilities like <code class="inline">bg-card</code>, <code class="inline">text-muted-foreground</code>, <code class="inline">border-border</code> resolve to <code class="inline">--hl-bg-1</code>, <code class="inline">--hl-fg-muted</code>, <code class="inline">--hl-border</code> respectively</li>
+            <li class="acceptance__item">Default radius across Radix / shadcn primitives is 6px; no sharp-corner regressions on Dialog, Popover, Select, Tooltip</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks 03–07</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">03</div>
+        <header class="plan-step__head"><h3>Refactor shared atoms to emit <code class="inline">.hl-*</code> chrome</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>Touch each file in <code class="inline">src/components/</code> + <code class="inline">src/components/ui/</code> and align its rendered output with the DS:</p>
+          <ul>
+            <li><code class="inline">StatusBadge.tsx</code>, <code class="inline">PriorityBadge.tsx</code> → emit <code class="inline">.hl-pill</code> + variant (<code class="inline">--accent / --success / --error / --warning / --info / --muted</code>). Drop bespoke colored backgrounds.</li>
+            <li><code class="inline">ui/button</code> → <code class="inline">.hl-btn</code> + <code class="inline">--primary / --ghost / --sm</code> CVA variants.</li>
+            <li><code class="inline">ui/input</code>, <code class="inline">ui/select</code> → <code class="inline">.hl-input</code> + <code class="inline">.hl-select</code>; <code class="inline">DateRangeFilter.tsx</code> uses <code class="inline">.hl-field</code>.</li>
+            <li><code class="inline">SectionHeader.tsx</code> → <code class="inline">.hl-section</code> with the <code class="inline">// NN</code> mono tag prefix; no more colored left bars.</li>
+            <li><code class="inline">Panel.tsx</code>, <code class="inline">NoteCard.tsx</code>, <code class="inline">ProjectCard.tsx</code> → <code class="inline">.hl-card</code> chrome (+ <code class="inline">--interactive / --inert</code> where applicable).</li>
+            <li><code class="inline">EmptyState.tsx</code>, <code class="inline">NetworkErrorPage.tsx</code> → muted card chrome + mono eyebrow + Inter body.</li>
+            <li><code class="inline">ProgressBar.tsx</code> → switch to the DS's accent-soft track + accent fill; no Indigo.</li>
+            <li><code class="inline">TaskRow.tsx</code>, <code class="inline">ActivityLogEntry.tsx</code> → mono row, dashed faint divider, semantic pills.</li>
+            <li><code class="inline">AddButton.tsx</code> → <code class="inline">.hl-btn--primary</code>.</li>
+          </ul>
+          <p>Update existing unit tests to assert on accessible queries (role / name), not on color classes. Add new tests only where chrome maps to behavior (interactive vs. inert card hit-target).</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/src/components/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>04, 05</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Every shared component reads exclusively from <code class="inline">--hl-*</code> tokens or the Tailwind utilities that bridge to them</li>
+            <li class="acceptance__item">No component ships hard-coded hex / oklch values</li>
+            <li class="acceptance__item">All existing unit tests pass; tests that asserted on Indigo / Rose / Emerald classnames are rewritten to assert on semantics</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 02 · unblocks 06–10</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">04</div>
+        <header class="plan-step__head"><h3>Rebuild AppShell · Sidebar · Sub-nav</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>Re-implement <code class="inline">src/components/layout/</code> so the rendered DOM matches the DS markup (<code class="inline">.hl-app</code> / <code class="inline">.hl-app--with-subnav</code>, <code class="inline">.hl-sidebar</code>, <code class="inline">.hl-sidebar__brand</code> with the <code class="inline">&gt;_</code> teal prompt, <code class="inline">.hl-nav-item</code>, <code class="inline">.hl-subnav</code>, <code class="inline">.hl-subnav__header</code>, <code class="inline">.hl-subnav-item</code>). Active-state is a 2px left teal bar + accent-soft tint — no boxed cyan border. Sub-nav is rendered when a route declares one via route metadata; ports the existing section-nav contract.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/src/components/layout/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>03, 05</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Sidebar renders mono brand with teal <code class="inline">&gt;_</code> prompt</li>
+            <li class="acceptance__item">Active nav-item has the 2px left teal accent + accent-soft background</li>
+            <li class="acceptance__item">Sub-nav appears only on routes that opt in via metadata; matches DS markup</li>
+            <li class="acceptance__item">Mobile (&lt; 720px) collapses to single column per the DS media query</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 02 · unblocks 06–10</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>Add the <code class="inline">/design-system</code> showcase route</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>Port the showcase from <code class="inline">/tmp/design-bundle/test2/project/home-lab/design-system.html</code> into a React page at <code class="inline">src/pages/DesignSystem.tsx</code>, mounted at <code class="inline">/design-system</code> (lazy-loaded, only registered when <code class="inline">import.meta.env.DEV</code> or behind a hidden link in settings). Keeps Gregor a single source-of-truth surface to QA the system in-app.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/src/pages/</code> + <code class="inline">App.tsx</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>03, 04</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">/design-system</code> renders every token swatch, type row, spacing bar, nav/card/pill/tag/button/input/table/runner/person example from the source HTML</li>
+            <li class="acceptance__item">Dark/light toggle visibly switches the showcase palette</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01, 02 · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">06</div>
+        <header class="plan-step__head"><h3>Migrate flagship pages (4)</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>Apply the system to the four pages explicitly designed in the bundle. Use the reference HTML files as pixel targets, but match by <em>output</em>, not internal markup (per README). One sub-step per page, all parallel:</p>
+          <ul>
+            <li><strong>Dashboard / Overview</strong> (<code class="inline">src/features/dashboard/</code>) — module grid with <code class="inline">.hl-card--interactive</code>, eyebrow date, hero <code class="inline">.hl-h1</code> "Hi, Admin". Reference: <code class="inline">overview.html</code>.</li>
+            <li><strong>Monitoring</strong> (<code class="inline">src/features/modules/</code> uptime + GitHub Actions views) — KPI strip with <code class="inline">.hl-stat</code>, bar chart on dark bg, <code class="inline">.hl-runner-grid</code>, runs <code class="inline">.hl-table</code>. Reference: <code class="inline">monitoring.html</code>.</li>
+            <li><strong>Projects</strong> (<code class="inline">src/features/projects/</code>) — KPI strip, <code class="inline">.hl-project</code> cards with <code class="inline">.hl-tag</code> chips, sub-nav tree. Reference: <code class="inline">projects.html</code>.</li>
+            <li><strong>Finance / Ledger</strong> (<code class="inline">src/features/finance/</code> + <code class="inline">src/features/debts/</code>) — balance chart with <code class="inline">.hl-segment</code> range, <code class="inline">.hl-person</code> rows with +/- amounts, transactions <code class="inline">.hl-table</code>. Reference: <code class="inline">finance.html</code>.</li>
+          </ul>
+          <p>Recharts components get a thin wrapper that reads <code class="inline">--hl-accent</code> / <code class="inline">--hl-success</code> / <code class="inline">--hl-error</code> / <code class="inline">--hl-border-faint</code> via CSS-var reads so charts re-tint on theme toggle.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Parallel with</strong><span>each other; depends on 03 + 04</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Each of the 4 pages visually matches the reference HTML (manual QA against <code class="inline">/tmp/design-bundle/.../*.html</code>)</li>
+            <li class="acceptance__item">All E2E flows still pass; selectors that depended on legacy class names get updated to role/text queries</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 03, 04 · unblocks 07</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">07</div>
+        <header class="plan-step__head"><h3>Migrate remaining feature modules</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>Apply the DS to every feature not covered in step 06. Each becomes a sub-task; they can run in parallel under one Sonnet executor each:</p>
+          <ul>
+            <li><code class="inline">features/auth/</code> — login, register: centered card on <code class="inline">--hl-bg</code>, <code class="inline">.hl-input</code> fields, <code class="inline">.hl-btn--primary</code> submit, teal <code class="inline">&gt;_</code> brand.</li>
+            <li><code class="inline">features/content/</code> — notes/ideas: <code class="inline">.hl-card</code> grid, <code class="inline">.hl-tag</code> for labels, Inter for note body.</li>
+            <li><code class="inline">features/health/</code> + <code class="inline">features/wellbeing/</code> — sleep, mood: <code class="inline">.hl-stat</code> KPIs, chart wrapper, <code class="inline">.hl-segment</code> range.</li>
+            <li><code class="inline">features/management/</code> — coming-soon → <code class="inline">.hl-card--inert</code> with lock icon footer.</li>
+            <li><code class="inline">features/openclaw/</code> — same chrome as Monitoring.</li>
+            <li><code class="inline">features/organisations/</code> — list view with <code class="inline">.hl-card</code> + tag chips.</li>
+            <li><code class="inline">features/users/</code> — table chrome via <code class="inline">.hl-table</code>, <code class="inline">.hl-avatar</code> for cell.</li>
+            <li><code class="inline">features/settings/</code> — sub-nav tree, form rows using <code class="inline">.hl-field</code> + <code class="inline">.hl-input</code>; theme toggle is exposed here.</li>
+            <li><code class="inline">features/modules/</code> — any remaining sub-views (uptime detail, health checks).</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Parallel with</strong><span>each sub-task parallel; depends on 06</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">No feature page still references Indigo / Emerald / Rose Tailwind utility classes or the cream background</li>
+            <li class="acceptance__item">Grep for <code class="inline">indigo-</code>, <code class="inline">rose-</code>, <code class="inline">emerald-</code>, <code class="inline">#F2F1EF</code>, <code class="inline">#F7F6F4</code>, <code class="inline">--radius: 0</code> returns zero matches across <code class="inline">src/</code></li>
+            <li class="acceptance__item">Each feature's unit + E2E suite green</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 06 · unblocks 08, 09</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">08</div>
+        <header class="plan-step__head"><h3>Purge legacy theme &amp; dead utilities</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>Remove unused Tailwind palette declarations (Emerald, Rose) from <code class="inline">index.css</code>. Delete any now-dead variants in <code class="inline">tailwind.config.js</code>. Audit <code class="inline">components.json</code> (shadcn) for stale color refs. Verify Vite build still tree-shakes; bundle size should not grow.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">npm run build</code> succeeds; bundle size delta within ±5%</li>
+            <li class="acceptance__item">ESLint + TypeScript strict pass with no new warnings</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 07 · unblocks 09</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">09</div>
+        <header class="plan-step__head"><h3>Docs: tech_docs + CLAUDE.md + project mapping</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>Update HomeUI docs so future agents follow the new system:</p>
+          <ul>
+            <li><code class="inline">HomeUI/tech_docs/project_structure.md</code> — rewrite the "Theme &amp; colors" section: JetBrains Mono + Inter, teal accent, semantic-only colors, 6px radius, <code class="inline">--hl-*</code> tokens, <code class="inline">/design-system</code> route.</li>
+            <li><code class="inline">HomeUI/CLAUDE.md</code> — "new feature checklist" gets a "uses <code class="inline">.hl-*</code> chrome, no bespoke colors" item.</li>
+            <li><code class="inline">orchestrator/projects/homeui.md</code> — update the Notes block (drop "Indigo primary / Emerald success / Rose danger / Amber warning", drop "no rounded corners", drop "Tailwind v4 spacing quirk: use inline styles" if no longer relevant), add "Home Lab DS at <code class="inline">src/styles/design-system.css</code>; showcase at <code class="inline">/design-system</code>".</li>
+          </ul>
+          <ul class="acceptance">
+            <li class="acceptance__item">Docs accurately describe the new system; no stale Indigo references</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 08 · unblocks 10</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">10</div>
+        <header class="plan-step__head"><h3>QA, PR, monitor pipeline</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>Run the full quality gate. Push, open PR against <code class="inline">main</code>, monitor deploy notification on Discord, smoke-test <code class="inline">http://home-lab:8000</code> (and lab.922-studio.com). Report PR URL. Remove the worktree.</p>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">npm run test:ci</code> green, coverage ≥ 70%</li>
+            <li class="acceptance__item"><code class="inline">npm run test:e2e</code> green (Allure project <code class="inline">homeui-e2e</code>)</li>
+            <li class="acceptance__item">Lighthouse / axe: no new accessibility regressions on the four flagship pages</li>
+            <li class="acceptance__item">Dark and light themes verified by toggling on <code class="inline">/design-system</code> and on Dashboard</li>
+            <li class="acceptance__item">PR opened, URL reported back to Gregor as a clickable link</li>
+            <li class="acceptance__item">Worktree removed; remote branch left intact for GitHub to delete on merge</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 09 · unblocks —</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Wave 1 · foundation (sequential)</div><span class="pill pill--accent">01 · DS file + fonts + light variant</span><span class="pill pill--accent">02 · Tailwind bridge</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · primitives (parallel)</div><span class="pill pill--accent">03 · shared atoms</span><span class="pill pill--accent">04 · AppShell / sidebar / sub-nav</span><span class="pill pill--accent">05 · /design-system route</span></div>
+      <div class="wave"><div class="wave__label">Wave 3 · flagship pages (parallel sub-tasks)</div><span class="pill pill--accent">06a · Dashboard</span><span class="pill pill--accent">06b · Monitoring</span><span class="pill pill--accent">06c · Projects</span><span class="pill pill--accent">06d · Finance/Ledger</span></div>
+      <div class="wave"><div class="wave__label">Wave 4 · remaining features (parallel sub-tasks)</div><span class="pill pill--accent">07a · auth</span><span class="pill pill--accent">07b · content</span><span class="pill pill--accent">07c · health/wellbeing</span><span class="pill pill--accent">07d · management</span><span class="pill pill--accent">07e · openclaw</span><span class="pill pill--accent">07f · organisations</span><span class="pill pill--accent">07g · users</span><span class="pill pill--accent">07h · settings</span><span class="pill pill--accent">07i · modules</span></div>
+      <div class="wave"><div class="wave__label">Wave 5 · finalize (sequential)</div><span class="pill pill--accent">08 · purge</span><span class="pill pill--accent">09 · docs</span><span class="pill pill--accent">10 · QA + PR</span></div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="agent-prompts">
+      <span class="eyebrow">Agent prompts</span>
+      <p>All sub-task executors are Sonnet, per <code class="inline">feedback_subagent_model</code>. Every executor reads <code class="inline">prompts/executor.md</code> + the context list under <code class="inline">#context</code> + the design source files at <code class="inline">/tmp/design-bundle/test2/project/home-lab/</code>. Standard worktree workflow applies; sub-tasks operating on disjoint files commit to the shared <code class="inline">feat/homeui-design-system-overhaul</code> branch sequentially after their parallel work lands.</p>
+      <ul class="acceptance">
+        <li class="acceptance__item">Executor prompt per step references the plan path <code class="inline">orchestrator/plans/2026-05-21-homeui-design-system-overhaul.html</code> and the specific step number</li>
+        <li class="acceptance__item">Reviewer prompt (<code class="inline">prompts/reviewer.md</code>) gates the final PR before merge</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">All unit + E2E tests pass; coverage ≥ 70%</li>
+        <li class="acceptance__item">tech_docs + CLAUDE.md + <code class="inline">orchestrator/projects/homeui.md</code> updated to reflect the new system</li>
+        <li class="acceptance__item">CI pipeline green; deploy notification verified on Discord</li>
+        <li class="acceptance__item">PR URL reported back as a clickable link</li>
+        <li class="acceptance__item">Worktree removed; remote branch preserved</li>
+        <li class="acceptance__item">Plan file marked done with completion date in commit message</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
