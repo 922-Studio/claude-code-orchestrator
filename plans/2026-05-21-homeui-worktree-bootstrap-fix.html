@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: HomeUI · Worktree Bootstrap &amp; Dev-Login Hardening</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-05-21 · HomeUI · completed 2026-05-21</span>
+      <h1>Worktree Bootstrap &amp; Dev-Login Hardening</h1>
+      <p class="lede">Permanently fix three recurring symptoms when running HomeUI from a fresh git worktree: blank page / "only overview", Management card visible to non-admins, and broken dev auto-login.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Project</strong><span>HomeUI</span></div>
+        <div class="scope-item"><strong>Branch</strong><code>fix/worktree-bootstrap</code></div>
+        <div class="scope-item"><strong>Worktree</strong><code>HomeUI/.worktrees/fix-worktree-bootstrap</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>main</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">orchestrator/projects/homeui.md</code> — HomeUI project mapping &amp; conventions</li>
+        <li><code class="inline">HomeUI/CLAUDE.md</code> — new-feature checklist, naming, testing rules</li>
+        <li><code class="inline">HomeUI/README.md</code> — Quick Start (currently misses dev-auth setup)</li>
+        <li><code class="inline">HomeUI/.gitignore</code> — confirms <code class="inline">.env.local</code> and <code class="inline">*.local</code> are ignored (line 14, 28)</li>
+        <li><code class="inline">HomeUI/.env</code>, <code class="inline">.env.local</code>, <code class="inline">.env.dev</code>, <code class="inline">.env.prod</code> — current env layout</li>
+        <li><code class="inline">HomeUI/src/features/auth/AuthContext.tsx</code> — <code class="inline">getDevConfig()</code> (l.37–49), <code class="inline">devLogin()</code> (l.110–149), <code class="inline">applyDevFallback()</code> (l.72–83)</li>
+        <li><code class="inline">HomeUI/src/pages.tsx</code> — <code class="inline">MANAGEMENT_CARD</code> (l.56–63) always appended; <code class="inline">visibleModules</code> (l.189)</li>
+        <li><code class="inline">HomeUI/src/App.tsx</code> — <code class="inline">/management</code> route guard chain (l.267, l.288 <code class="inline">OrgManagerGuard</code>)</li>
+        <li><code class="inline">HomeUI/src/components/layout/AppSidebar.tsx</code> — sidebar entry for Management (l.131)</li>
+        <li><code class="inline">HomeUI/src/lib/http.ts</code> — Axios baseURL + auth interceptor</li>
+        <li><code class="inline">orchestrator/guides/agent-setup/README.md</code> — worktree workflow reference</li>
+      </ul>
+    </section>
+
+    <section id="findings">
+      <span class="eyebrow">Root-cause findings</span>
+      <ul class="acceptance">
+        <li class="acceptance__item"><strong>No <code class="inline">.env.local</code> in fresh worktrees.</strong> <code class="inline">.env.local</code> is gitignored. New worktrees lack it → <code class="inline">VITE_DEV_AUTH</code> is undefined → <code class="inline">getDevConfig().bypass</code> is false → no auto-login → user sees the login screen or, if a stale token exists, the dev-fallback user with <code class="inline">roles: []</code> and <code class="inline">orgPermissions: []</code>.</li>
+        <li class="acceptance__item"><strong>"Only overview" symptom.</strong> <code class="inline">HomePage</code> renders <code class="inline">visibleModules = [...dynamicModules, MANAGEMENT_CARD]</code>. When <code class="inline">/api/modules</code> returns empty (because the user has no roles or no org), <code class="inline">dynamicModules = []</code> and the page shows only the Management coming-soon card.</li>
+        <li class="acceptance__item"><strong>Management visible to non-admins.</strong> <code class="inline">MANAGEMENT_CARD</code> is unconditionally pushed into <code class="inline">visibleModules</code>. The same is true of the sidebar entry. Only the nested <code class="inline">/management/organisations</code> route is guarded via <code class="inline">OrgManagerGuard</code>. The parent <code class="inline">/management</code> route has no guard. Card &amp; sidebar entry must check <code class="inline">isOrgManager</code>.</li>
+        <li class="acceptance__item"><strong>Silent fallback hides the real failure.</strong> <code class="inline">applyDevFallback()</code> sets a fake <code class="inline">'dev-bypass'</code> token and <code class="inline">isAuthenticated=true</code> with <code class="inline">roles:[]</code> when the auto-login API call fails. The UI loads but every API returns 401, masking the real problem (missing env, wrong backend URL, backend down). In dev this should fail loud.</li>
+        <li class="acceptance__item"><strong>No documented worktree-bootstrap step.</strong> <code class="inline">README.md</code> Quick Start ends at <code class="inline">npm ci &amp;&amp; npm run dev</code>. <code class="inline">CLAUDE.md</code> doesn't mention env-file copying. There is no <code class="inline">bin/setup-worktree.sh</code> or postinstall hook.</li>
+      </ul>
+    </section>
+
+    <section id="strategy">
+      <span class="eyebrow">Strategy — separate "what's in git" from "what's per-machine"</span>
+      <p>The root cause is mixing two concerns in one ignored file. Split them:</p>
+      <ul>
+        <li><strong>Tracked, safe defaults</strong> → ship as <code class="inline">.env.development</code> (Vite's standard, auto-loaded by <code class="inline">npm run dev</code>) with non-secret dev-mode defaults: <code class="inline">VITE_API_BASE_URL=https://lab-api-dev.922-studio.com</code>, <code class="inline">VITE_DEV_AUTH=admin</code>. No credentials.</li>
+        <li><strong>Per-developer secrets</strong> → stay in gitignored <code class="inline">.env.local</code>: only <code class="inline">VITE_DEV_AUTH_EMAIL</code> + <code class="inline">VITE_DEV_AUTH_PASSWORD</code>. Provide a tracked <code class="inline">.env.local.example</code> template.</li>
+        <li><strong>Cross-worktree sharing</strong> → an idempotent <code class="inline">bin/setup-worktree.sh</code> that symlinks <code class="inline">.env.local</code> from the primary checkout if found, falls back to copying the example. Runs on demand and from <code class="inline">postinstall</code>.</li>
+        <li><strong>Loud failure</strong> → in dev mode, <code class="inline">applyDevFallback()</code> must throw a visible banner (not a silent fake token) when auto-login fails, so the missing env file is immediately diagnosable.</li>
+        <li><strong>Role gating</strong> → fix <code class="inline">MANAGEMENT_CARD</code>, sidebar entry, and the parent <code class="inline">/management</code> route to all check <code class="inline">isOrgManager</code>.</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>Split env layout: tracked defaults + local secrets</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>Make dev-mode auto-login work out of the box without leaking secrets. Vite auto-loads <code class="inline">.env.development</code> when <code class="inline">npm run dev</code> runs; <code class="inline">.env.local</code> is loaded last and overrides.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/</code> (repo root) and <code class="inline">.gitignore</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>02, 03</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Create tracked <code class="inline">.env.development</code> with non-secret dev defaults: <code class="inline">VITE_API_BASE_URL=https://lab-api-dev.922-studio.com</code>, <code class="inline">VITE_DEV_AUTH=admin</code>. No credentials.</li>
+            <li class="acceptance__item">Create tracked <code class="inline">.env.local.example</code> with placeholders for <code class="inline">VITE_DEV_AUTH_EMAIL</code> + <code class="inline">VITE_DEV_AUTH_PASSWORD</code> and a comment explaining the file is per-developer.</li>
+            <li class="acceptance__item">Keep <code class="inline">.env.local</code> gitignored. Delete the redundant tracked <code class="inline">.env.dev</code> (Vite's <code class="inline">.env.development</code> replaces it) — or rename for clarity; document which.</li>
+            <li class="acceptance__item">Update <code class="inline">.gitignore</code> comment block explaining the convention.</li>
+            <li class="acceptance__item">Verify in a clean clone: <code class="inline">npm ci &amp;&amp; npm run dev</code> picks up <code class="inline">.env.development</code> automatically and the dev-auth pathway activates (login still fails without <code class="inline">.env.local</code> but the banner from step 04 makes that visible).</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 02, 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">02</div>
+        <header class="plan-step__head"><h3>Add <code class="inline">bin/setup-worktree.sh</code> + npm postinstall</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>One script makes any worktree usable. Symlink-first, copy-fallback. Idempotent so it can run on every <code class="inline">npm install</code>.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/bin/setup-worktree.sh</code>, <code class="inline">package.json</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>01, 03</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Script detects whether <code class="inline">$PWD</code> is a worktree (<code class="inline">git rev-parse --git-common-dir</code> differs from <code class="inline">--git-dir</code>) and, if so, resolves the primary checkout's working tree (<code class="inline">git --git-dir=$common worktree list --porcelain</code>, take the entry without a <code class="inline">branch</code>-skip filter; the bare main worktree is the one whose path is the parent of <code class="inline">.git</code>).</li>
+            <li class="acceptance__item">For each of <code class="inline">.env.local</code> (and any other gitignored bootstrap file declared in an array at the top of the script), if missing in the current worktree and present in the primary checkout, create a relative symlink. Skip if already a symlink or regular file.</li>
+            <li class="acceptance__item">If no primary file exists, copy <code class="inline">.env.local.example</code> → <code class="inline">.env.local</code> and print a one-line warning telling the dev to fill in credentials.</li>
+            <li class="acceptance__item">Script is safe to run from a non-worktree (e.g. CI, fresh clone): in that case it only handles the <code class="inline">.env.local.example</code> fallback and exits 0.</li>
+            <li class="acceptance__item">Wire it into <code class="inline">package.json</code>: <code class="inline">"postinstall": "node ./bin/setup-worktree.mjs"</code> (use Node to avoid bash portability issues on Windows; same logic).</li>
+            <li class="acceptance__item">Add <code class="inline">"setup": "node ./bin/setup-worktree.mjs"</code> as a manual escape hatch.</li>
+            <li class="acceptance__item">Unit test the resolver logic with a small Vitest spec that stubs the filesystem.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">03</div>
+        <header class="plan-step__head"><h3>Gate Management card, sidebar entry, and parent route</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>Stop showing Management to users without <code class="inline">org-management</code>. Bonus: redirect <code class="inline">/management</code> → <code class="inline">/management/organisations</code> with the same guard for consistency.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/src/pages.tsx</code>, <code class="inline">src/components/layout/AppSidebar.tsx</code>, <code class="inline">src/App.tsx</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>01, 02</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">pages.tsx</code>: build <code class="inline">visibleModules</code> conditionally — only append <code class="inline">MANAGEMENT_CARD</code> when <code class="inline">isOrgManager</code> from <code class="inline">useAuth()</code>.</li>
+            <li class="acceptance__item"><code class="inline">AppSidebar.tsx</code>: same conditional render for the sidebar entry (l.131).</li>
+            <li class="acceptance__item"><code class="inline">App.tsx</code>: wrap the parent <code class="inline">/management</code> route in <code class="inline">OrgManagerGuard</code> (currently only nested routes are guarded). The unauthenticated/non-manager case should redirect to <code class="inline">/</code>, not 404.</li>
+            <li class="acceptance__item">Unit tests assert: card hidden when <code class="inline">isOrgManager=false</code>, visible when true; sidebar entry behaves the same; routing test asserts the guard fires.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">04</div>
+        <header class="plan-step__head"><h3>Make dev-auto-login fail loudly</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>Replace the silent fallback with a visible diagnostic so a missing/incorrect env never again presents as a generic white screen.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/src/features/auth/AuthContext.tsx</code>, new <code class="inline">DevAuthBanner.tsx</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>03</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">When <code class="inline">import.meta.env.DEV</code> is true and <code class="inline">VITE_DEV_AUTH</code> is set but the login attempt throws or returns 401, render a top-of-page <code class="inline">DevAuthBanner</code> with the exact failure reason (HTTP status, target URL, missing env var name) and a "Retry" button — instead of setting a fake token.</li>
+            <li class="acceptance__item">Keep the existing prod behavior unchanged: prod builds never auto-login and never show the banner.</li>
+            <li class="acceptance__item">Console-log the failure with a clear prefix (<code class="inline">[dev-auth]</code>) so it's greppable.</li>
+            <li class="acceptance__item">Unit tests cover: success, 401 from backend (banner shown), network error (banner shown), prod build (no banner code path).</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>Document &amp; codify worktree workflow</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>So the next worktree (yours, mine, or an agent's) doesn't trip over the same wire.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI + orchestrator</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/README.md</code>, <code class="inline">HomeUI/CLAUDE.md</code>, <code class="inline">orchestrator/guides/agent-setup/README.md</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">README.md</code> Quick Start gains a "First-time setup" subsection covering <code class="inline">cp .env.local.example .env.local</code> and what to fill in, with a note that <code class="inline">npm install</code> runs the setup script automatically.</li>
+            <li class="acceptance__item"><code class="inline">HomeUI/CLAUDE.md</code> adds a "Worktree bootstrap" section stating that <code class="inline">npm install</code> handles env-file linking and what to check if dev-auth fails.</li>
+            <li class="acceptance__item"><code class="inline">orchestrator/guides/agent-setup/README.md</code> gets a paragraph: "For HomeUI worktrees, <code class="inline">npm install</code> handles env-file linking automatically — no manual <code class="inline">.env.local</code> copy needed."</li>
+            <li class="acceptance__item">Update <code class="inline">orchestrator/projects/homeui.md</code> "Key Files to Read" table with <code class="inline">bin/setup-worktree.mjs</code>.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01, 02 · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">06</div>
+        <header class="plan-step__head"><h3>Verify end-to-end in a throwaway worktree</h3><span class="pill pill--accent">done</span></header>
+        <div class="plan-step__body">
+          <p>Final acceptance test before opening the PR.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/.worktrees/verify-bootstrap</code> (throwaway)</div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Create a fresh worktree off the fix branch, run <code class="inline">npm install</code>, then <code class="inline">npm run dev</code>. Confirm: auto-login succeeds, all modules render, Management card hidden for the test user (or visible only when the user has <code class="inline">org-management</code>).</li>
+            <li class="acceptance__item">Repeat with <code class="inline">.env.local</code> deleted from the primary checkout: verify the banner appears and the failure message points to the missing creds, not a white screen.</li>
+            <li class="acceptance__item">Remove the throwaway worktree.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01–05 · unblocks PR</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Wave 1 · parallel</div><span class="pill pill--accent">01 · env split</span><span class="pill pill--accent">03 · Management gating</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · parallel</div><span class="pill pill--accent">02 · setup-worktree script</span><span class="pill pill--accent">04 · loud dev-auth failure</span></div>
+      <div class="wave"><div class="wave__label">Wave 3 · sequential</div><span class="pill pill--accent">05 · docs</span></div>
+      <div class="wave"><div class="wave__label">Wave 4 · sequential</div><span class="pill pill--accent">06 · verify + PR</span></div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="decisions">
+      <span class="eyebrow">Decisions to confirm before execution</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">Setup script in Node (<code class="inline">.mjs</code>) vs Bash. Recommendation: Node — already a project dep, runs everywhere, easier to unit-test.</li>
+        <li class="acceptance__item">Keep tracked <code class="inline">.env.dev</code> / <code class="inline">.env.prod</code> as-is for legacy build scripts, or migrate fully to Vite's <code class="inline">.env.development</code> / <code class="inline">.env.production</code> naming? Recommendation: migrate; one convention, less confusion.</li>
+        <li class="acceptance__item">Should the postinstall script run in CI? Recommendation: yes — it's a no-op when no primary checkout is found, and ensures the example file is always seeded.</li>
+        <li class="acceptance__item">Apply the same pattern preemptively to HomeAPI / HomeAuth worktrees, or wait until they hit the same problem? Recommendation: scope this PR to HomeUI; capture the pattern in <code class="inline">orchestrator/guides/agent-setup</code> so it can be ported later.</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">All tests pass (unit + E2E); coverage ≥ 70%</li>
+        <li class="acceptance__item">Fresh worktree boots into the app with all modules visible and no Management card for non-managers</li>
+        <li class="acceptance__item">Missing-env case shows the diagnostic banner, not a white screen</li>
+        <li class="acceptance__item">README, CLAUDE.md, and orchestrator guide updated</li>
+        <li class="acceptance__item">CI pipeline green</li>
+        <li class="acceptance__item">PR URL reported back as a clickable link</li>
+        <li class="acceptance__item">Worktree removed; remote branch preserved</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

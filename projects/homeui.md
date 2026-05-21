@@ -36,6 +36,7 @@
 | `src/index.css` | Thin Tailwind/shadcn bridge onto `--hl-*` tokens | When touching design |
 | `vite.config.ts` | Build settings, alias, chunks, test config | When touching build |
 | `.github/workflows/deploy.yml` | CI/CD pipeline | When pushing changes |
+| `bin/setup-worktree.mjs` | Worktree bootstrap: symlinks `.env.local` from primary checkout | Creating a new worktree |
 
 ## Best Practices
 - Feature-scoped modules: `src/features/{name}/{pages,components,hooks}/`

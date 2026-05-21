@@ -79,9 +79,23 @@ If a step is blocked or only partially done:
 - Do NOT open the PR yet.
 - Report the worktree path so Gregor can inspect or continue.
 
+## Project-Specific Bootstrap Notes
+
+### HomeUI worktrees
+
+For HomeUI worktrees, `npm install` handles env-file linking automatically — no manual `.env.local` copy needed.
+
+The `postinstall` script (`bin/setup-worktree.mjs`) symlinks `.env.local` from the primary checkout into the new worktree. If no primary `.env.local` exists, it seeds one from `.env.local.example` with a prompt to fill in credentials.
+
+If dev-auth fails after setup, a purple diagnostic banner appears in the browser. Check:
+- `.env.local` exists and is a valid symlink.
+- `VITE_DEV_AUTH_EMAIL` and `VITE_DEV_AUTH_PASSWORD` are set correctly.
+- The dev auth server (`VITE_AUTH_URL`) is reachable.
+
 ## Quick Reference
 
 ```
-create worktree → edit inside worktree → push branch → CI green → gh pr create → get URL → remove worktree
-                                                                                             (success only)
+create worktree → npm install → edit inside worktree → push branch → CI green → gh pr create → get URL → remove worktree
+                  (auto-links                                                                               (success only)
+                   .env.local)
 ```
