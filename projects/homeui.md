@@ -32,7 +32,8 @@
 | `src/App.tsx` | Route definitions, lazy loading, loaders | When adding pages |
 | `src/lib/http.ts` | Axios client, auth interceptor, 401 handling | When touching API |
 | `src/lib/queryClient.ts` | React Query defaults | When touching caching |
-| `src/index.css` | Full CSS variable theme (Indigo primary, dark mode) | When touching design |
+| `src/styles/design-system.css` | Home Lab DS — `--hl-*` tokens, `.hl-*` chrome, dark default + `.light` variant | When touching design |
+| `src/index.css` | Thin Tailwind/shadcn bridge onto `--hl-*` tokens | When touching design |
 | `vite.config.ts` | Build settings, alias, chunks, test config | When touching build |
 | `.github/workflows/deploy.yml` | CI/CD pipeline | When pushing changes |
 
@@ -72,7 +73,5 @@
 ## Notes
 - Port 8000 behind Traefik (lab.922-studio.com)
 - 30+ components, 12 feature modules: auth, content, dashboard, debts, finance, health, management, modules, organisations, projects, settings, users, wellbeing
-- Design system: JetBrains Mono font, no rounded corners (--radius: 0rem), dark/light mode
-- Colors: Indigo primary, Emerald success, Rose danger, Amber warning
-- Tailwind v4 spacing quirk: use inline styles for spacing, not Tailwind spacing classes
+- Home Lab DS at `src/styles/design-system.css`; showcase at `/design-system` (DEV-only). JetBrains Mono (technical/headings) + Inter (prose), teal `--hl-accent`, semantic-only colors (`--hl-success` / `--hl-error` / `--hl-warning` / `--hl-info`), 6px default radius (`--hl-radius`), dark default + light variant via `.light` on `<html>`.
 - Auth tokens stored in localStorage as `homeui.auth.token`
