@@ -6,15 +6,15 @@
 
 | Node | Hostname | Role | SSH | Tailscale IP | Status | Engine |
 |------|----------|------|-----|-------------|--------|--------|
-| **home-lab** | `home-lab` | Swarm Manager (Leader) | `ssh lab` | `100.112.171.16` | Active | 29.3.1 |
-| **exec-0** | `home-lab-exec-0` | Swarm Worker | `ssh lab-exec-0` | `100.94.122.119` | Active | 29.3.1 |
-| **exec-1** | `home-lab-exec-1` | Swarm Worker | `ssh lab-exec-1` | `100.100.214.75` | Down | 29.3.1 |
+| **astro-antares** | `astro-antares` | Swarm Manager (Leader) | `ssh lab` | `100.112.171.16` | Active | 29.3.1 |
+| **exec-0** | `astro-polaris` | Swarm Worker | `ssh lab-exec-0` | `100.94.122.119` | Active | 29.3.1 |
+| **exec-1** | `astro-upsilon` | Swarm Worker | `ssh lab-exec-1` | `100.100.214.75` | Down | 29.3.1 |
 
 All access is key-based with passwordless sudo. All inter-node traffic goes over Tailscale.
 
 **OS**: Ubuntu 24.04.4 LTS (Noble Numbat), kernel 6.8.0-106-generic
 **Docker**: 29.3.1, Compose v5.1.1
-**Domain**: `*.922-studio.com` (via Cloudflare Tunnel → home-lab)
+**Domain**: `*.922-studio.com` (via Cloudflare Tunnel → astro-antares)
 
 > Full documentation: Read `/Users/gregor/dev/922/HomeStructure/docs/` (MkDocs site)
 > Cluster docs: Read `HomeStructure/docs/config/cluster.md`
@@ -150,7 +150,7 @@ Config: `/home/lab/.cloudflared/config.yml`
 | Traefik | 80 (public), 8082 (dashboard, localhost) | Reverse proxy for all subdomains (Docker provider + file provider) |
 | cloudflared | systemd | Cloudflare Tunnel daemon (config at `~/.cloudflared/config.yml`) |
 | OpenClaw | 18789 (public), 18791/18792 (localhost) | AI gateway (systemd process) |
-| GitHub Runners | 4x systemd | `home-lab`, `home-lab-2`, `home-lab-3`, `home-lab-4` (home-lab-4 has `e2e` label) |
+| GitHub Runners | 4x systemd | `astro-antares`, `home-lab-2`, `home-lab-3`, `home-lab-4` (home-lab-4 has `e2e` label) |
 | Syncthing | 8384 (Tailscale only), 22000 (sync) | P2P file sync (Obsidian vault) |
 | Docker Registry | 5000 (internal) | Self-hosted container image registry (`docker_registry`) |
 | MinIO | 9000 (API, internal), 9001 (console, localhost only) | Object storage for media uploads (`minio`) |

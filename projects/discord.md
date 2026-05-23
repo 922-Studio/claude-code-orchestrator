@@ -44,11 +44,11 @@
 - **Unit tests**: `tests/unit/test_*.py` — `pytest tests/unit/`
 - **Framework**: pytest + pytest-asyncio (asyncio_mode=auto)
 - **DB mocking**: In-memory SQLite via aiosqlite
-- **Reporting**: Allure at `http://home-lab:5050` (project: discord-bot)
+- **Reporting**: Allure at `http://astro-antares:5050` (project: discord-bot)
 - **Coverage**: >=70% enforced on `game` package in CI
 
 ## Documentation
-- **Where**: `docs/` (MkDocs at http://home-lab:8005)
+- **Where**: `docs/` (MkDocs at http://astro-antares:8005)
 - **Key sections**: game-design/, services/, ops/
 - **Update rule**: Update AI_CONTEXT.md when structure, commands, or tech stack changes
 

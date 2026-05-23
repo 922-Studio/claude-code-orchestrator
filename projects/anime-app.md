@@ -35,7 +35,7 @@
 ## Testing Strategy
 - **Unit tests**: `src/**/*.test.jsx` — `npm run test:coverage`
 - **Coverage**: 0% minimum initially (to be raised in a separate plan)
-- **Reporting**: Allure at `http://home-lab:5050` (project: `anime-app`)
+- **Reporting**: Allure at `http://astro-antares:5050` (project: `anime-app`)
 - **No E2E tests** — to be added in a separate plan
 
 ## Documentation
