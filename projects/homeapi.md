@@ -4,7 +4,7 @@
 - **Type**: fullstack (backend)
 - **Path**: /Users/gregor/dev/922/HomeAPI
 - **Status**: active
-- **Description**: Scalable, multipurpose home-lab REST API backend. Serves as the central backend for the ecosystem supporting finance/ledger tracking, task management, idea management, health/sleep (wellbeing) metrics, email/calendar integration, AI prompts (Gemini), worklogs, memory/knowledge base, Discord bot integration, and Google Sheets sync. All monitoring and data collection (GitHub, Allure, Prometheus, system checks) has moved to HomeCollector.
+- **Description**: Scalable, multipurpose astro-antares REST API backend. Serves as the central backend for the ecosystem supporting finance/ledger tracking, task management, idea management, health/sleep (wellbeing) metrics, email/calendar integration, AI prompts (Gemini), worklogs, memory/knowledge base, Discord bot integration, and Google Sheets sync. All monitoring and data collection (GitHub, Allure, Prometheus, system checks) has moved to HomeCollector.
 
 ## Tech Stack
 - **Language(s)**: Python 3.13
@@ -42,7 +42,7 @@
 - **Unit tests**: `tests/unit/{models,schemas,crud,services,tasks,helpers}/test_*.py` — `PYTHONPATH=. pytest tests/ -x -q`
 - **Integration tests**: `tests/integration/routers/test_*.py`
 - **Coverage**: 70% minimum enforced in CI
-- **Reporting**: Allure at `http://home-lab:5050`
+- **Reporting**: Allure at `http://astro-antares:5050`
 
 ## Documentation
 - **Where**: `docs/` (MkDocs), `README.md`, `SETUP_GUIDE.md`, `QUICK_REFERENCE.md`

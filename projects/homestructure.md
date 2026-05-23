@@ -44,7 +44,7 @@
 - **Downstream testing**: Frontend (Vitest/Playwright), Python (pytest) — results to Allure server
 
 ## Documentation
-- **Where**: `docs/` (MkDocs at http://home-lab:8002)
+- **Where**: `docs/` (MkDocs at http://astro-antares:8002)
 - **Categories**: config/, services/, actions/, ops/
 - **Update rule**: Commands-first approach, no prerequisites, no lengthy descriptions
 

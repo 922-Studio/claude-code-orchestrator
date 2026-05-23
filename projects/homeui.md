@@ -53,7 +53,7 @@
 - **E2E tests**: `e2e/**/*.spec.ts` with Playwright — `npm run test:e2e`
 - **Coverage**: 70% minimum, Vitest + @vitest/coverage-v8
 - **MSW**: Mock Service Worker for API mocking
-- **Reporting**: Allure at `http://home-lab:5050` (projects: homeui-unit, homeui-e2e)
+- **Reporting**: Allure at `http://astro-antares:5050` (projects: homeui-unit, homeui-e2e)
 
 ## Documentation
 - **Where**: `tech_docs/`, `CLAUDE.md`, `.claude/`
@@ -63,7 +63,7 @@
 - **CI trigger**: Push to main
 - **Pipeline**: cancel-previous → version → unit tests → kick-off-e2e → smoke → deploy → notify
 - **Deploy**: Docker (Node build → Nginx), Docker Compose, `deploy.sh`
-- **Monitor after push**: Check Discord notification, verify http://home-lab:8000 loads
+- **Monitor after push**: Check Discord notification, verify http://astro-antares:8000 loads
 
 ## Dependencies on Other Projects
 - **HomeAPI**: Backend for core domain data (debts, tasks, ideas, wellbeing, memory, worklogs, etc.)
