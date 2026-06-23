@@ -15,8 +15,6 @@ Access is key-based with passwordless sudo; all inter-node traffic goes over Tai
 | `astro-polaris` | `ssh ap` | 100.94.122.119 | 8 GB | 98 GB SSD | Active | CI/CD — GitHub Actions runners |
 | `astro-upsilon` | `ssh au` | 100.100.214.75 | 8 GB | 98 GB SSD | Active | Spare worker + monitoring agents |
 
-> A 4th box (`astro-mebsuta`) is reserved by name but **not yet provisioned** — same hardware class.
-
 ## Purpose per node
 
 ### `astro-antares` — the center
