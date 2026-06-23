@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: Project Lifecycle Skill</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-06-23 · orchestrator</span>
+      <h1>Project Lifecycle Skill</h1>
+      <p class="lede">An archetype-driven skill that bootstraps or decommissions a whole project end-to-end — GitHub repo, server infra, local setup, monitoring, and orchestrator docs — by following a proven existing project as the pattern.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Project</strong><span>orchestrator</span></div>
+        <div class="scope-item"><strong>Branch</strong><code>feat/project-lifecycle-skill</code></div>
+        <div class="scope-item"><strong>Worktree</strong><code>orchestrator/.worktrees/feat-project-lifecycle-skill</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>dev (repo default)</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">registry.md</code> — master table, type groups, ecosystem graph, dependency notes (edited on every add/remove)</li>
+        <li><code class="inline">projects/_template.md</code> + existing <code class="inline">projects/*.md</code> — mapping shape + the archetypes to clone</li>
+        <li><code class="inline">guides/new-service-setup.md</code> — the canonical 11-step server/infra procedure the ADD playbook drives</li>
+        <li><code class="inline">~/.claude/commands/orchestrator-cleanup.md</code> + <code class="inline">scripts/orchestrator-audit.sh</code> — the proven command+helper pattern to mirror</li>
+        <li><code class="inline">server.md</code> — Application Services / Ports / Public Routes / Networks sections to update</li>
+        <li>Ecosystem facts: org <code class="inline">922-Studio</code>, default branch <code class="inline">dev</code>, monitoring in HomeCollector <code class="inline">DEFAULT_MONITORED_SERVICES</code>, versioning in HomeAPI registry</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>Archetype catalog</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Author <code class="inline">skills/project-lifecycle/ARCHETYPES.md</code>: distil the proven patterns by reading existing projects. One entry per archetype, each naming a reference project and the files that define its shape.</p>
+          <ul class="acceptance">
+            <li class="acceptance__item"><strong>python-fastapi-backend</strong> → ref Anime-API/HomeCollector (shared_postgres, optional Celery/Redis, Alembic, /health+/version, ruff+mypy, pytest, Traefik auth)</li>
+            <li class="acceptance__item"><strong>frontend-spa</strong> → ref HomeUI/Anime-APP (nginx-alpine, curl healthcheck, ESLint+TS, consumes APIs)</li>
+            <li class="acceptance__item"><strong>nextjs-app</strong> → ref Studio/Portfolio/Drafter (node, port 3000)</li>
+            <li class="acceptance__item"><strong>standalone-worker</strong> → ref Discord bot (no web, infra network only)</li>
+            <li class="acceptance__item">Each archetype lists: reference repo, deployed?, DB?, Redis?, auth?, domain pattern, and the exact files to copy as scaffold</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>orchestrator/skills/project-lifecycle/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 02, 03</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">02</div>
+        <header class="plan-step__head"><h3>ADD playbook</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Author <code class="inline">skills/project-lifecycle/add.md</code> — the agentic playbook invoked as “build new project X like &lt;ref&gt;”. Phased, each phase self-loads context via pointers and gates on confirmation before side effects.</p>
+          <ul class="acceptance">
+            <li class="acceptance__item"><strong>Phase 1 Define</strong>: name, archetype/reference project, type, deps, deployed?, domain, auth/DB/Celery — run <code class="inline">project-lifecycle.sh preflight</code> for collisions (name, port, redis-db, domain)</li>
+            <li class="acceptance__item"><strong>Phase 2 GitHub</strong>: <code class="inline">gh repo create 922-Studio/&lt;name&gt;</code>, scaffold from archetype files, seed CI from <code class="inline">922-Studio/workflows</code>, push <code class="inline">main</code>+<code class="inline">dev</code>, set <code class="inline">dev</code> default</li>
+            <li class="acceptance__item"><strong>Phase 3 Local</strong>: clone to <code class="inline">/Users/gregor/dev/922/&lt;name&gt;</code>, <code class="inline">.env</code>, verify local run</li>
+            <li class="acceptance__item"><strong>Phase 4 Server</strong>: drive <code class="inline">new-service-setup.md</code> (db:create, redis db, compose, Traefik/Cloudflare, deploy.sh, first deploy) — each <code class="inline">ssh lab</code> step shown before execution</li>
+            <li class="acceptance__item"><strong>Phase 5 Monitoring</strong>: register in HomeCollector <code class="inline">DEFAULT_MONITORED_SERVICES</code> + HomeAPI versioning (mandatory for APIs)</li>
+            <li class="acceptance__item"><strong>Phase 6 Docs</strong>: registry.md row + type group + graph + deps; new <code class="inline">projects/&lt;name&gt;.md</code> from template; server.md; showcase.md (if showcase-worthy)</li>
+            <li class="acceptance__item"><strong>Phase 7 Verify</strong>: /health + /version reachable, monitoring green, CI green — report all URLs</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>orchestrator/skills/project-lifecycle/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>03, 04</span></div>
+          </div>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">03</div>
+        <header class="plan-step__head"><h3>REMOVE playbook (safety-gated)</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Author <code class="inline">skills/project-lifecycle/remove.md</code> — the inverse, ordered so teardown never leaves orphaned data or permanent false alerts. Presents an approval table (mirroring cleanup’s “type execute” gate) before any destructive action.</p>
+          <ul class="acceptance">
+            <li class="acceptance__item">Order: (1) remove from HomeCollector monitoring → (2) remove from HomeAPI versioning → (3) stop/remove containers → (4) <strong>backup then drop</strong> DB + free redis db → (5) strip Traefik/Cloudflare/Prometheus → (6) orchestrator docs (registry, archive <code class="inline">projects/&lt;name&gt;.md</code>, server.md, showcase) → (7) archive plans referencing it</li>
+            <li class="acceptance__item">Uses <code class="inline">project-lifecycle.sh audit &lt;name&gt;</code> to enumerate every reference before touching anything</li>
+            <li class="acceptance__item"><strong>Never</strong> auto-deletes the GitHub repo or remote branches — repo disposition is an explicit manual confirmation</li>
+            <li class="acceptance__item">DB drop requires a captured backup path first; destructive steps behind the approval gate</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>orchestrator/skills/project-lifecycle/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>02, 04</span></div>
+          </div>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">04</div>
+        <header class="plan-step__head"><h3>Helper script</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Author <code class="inline">scripts/project-lifecycle.sh</code> — pure data-gatherer (no edits), mirroring <code class="inline">orchestrator-audit.sh</code>. The skill reasons; the script just surfaces state in one shot.</p>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">preflight &lt;name&gt;</code>: check name/path/registry collision; list ports + redis dbs in use (parse server.md / new-service-setup.md) and suggest next free; check domain not already routed</li>
+            <li class="acceptance__item"><code class="inline">audit &lt;name&gt;</code>: grep orchestrator + ecosystem for every reference (registry, mappings, server.md, plans, and best-effort HomeCollector/HomeAPI config) → teardown inventory</li>
+            <li class="acceptance__item"><code class="inline">set -euo pipefail</code>, repo-root-relative paths, no destructive operations</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>orchestrator/scripts/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>02, 03</span></div>
+          </div>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>Entry commands</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Thin entry points in <code class="inline">~/.claude/commands/</code> that surface as skills and delegate to the versioned playbooks (same indirection as orchestrator-cleanup → audit script).</p>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">project-new.md</code> → loads <code class="inline">skills/project-lifecycle/add.md</code> + ARCHETYPES.md</li>
+            <li class="acceptance__item"><code class="inline">project-remove.md</code> → loads <code class="inline">skills/project-lifecycle/remove.md</code></li>
+            <li class="acceptance__item">Both pass the project name argument through</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>~/.claude/commands/</code> (not versioned — note in PR)</div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+        </div>
+        <footer class="plan-step__foot">depends on 02, 03, 04 · unblocks 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">06</div>
+        <header class="plan-step__head"><h3>Wire-up docs</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Make the new skill discoverable and canonical.</p>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">guides/agent-setup/07-skills-and-commands.md</code> — add both commands to the table</li>
+            <li class="acceptance__item"><code class="inline">registry.md</code> — header note: “add/remove projects via <code class="inline">/project-new</code> and <code class="inline">/project-remove</code>”</li>
+            <li class="acceptance__item"><code class="inline">CLAUDE.md</code> (orchestrator) — reference the skill under “How to Use This Repo”</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>orchestrator/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+        </div>
+        <footer class="plan-step__foot">depends on 05 · unblocks —</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Wave 1 · foundation</div><span class="pill pill--accent">01 · archetype catalog</span><span class="pill pill--accent">04 · helper script</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · parallel playbooks</div><span class="pill pill--accent">02 · ADD</span><span class="pill pill--accent">03 · REMOVE</span></div>
+      <div class="wave"><div class="wave__label">Wave 3 · sequential</div><span class="pill pill--muted">05 · entry commands</span><span class="pill pill--muted">06 · wire-up docs</span></div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">Dry-run ADD against a throwaway name proves preflight + doc edits without creating real infra</li>
+        <li class="acceptance__item">Dry-run REMOVE audit on a real project lists every reference correctly</li>
+        <li class="acceptance__item">Docs updated (07-skills-and-commands, registry header, CLAUDE.md)</li>
+        <li class="acceptance__item">CI pipeline green</li>
+        <li class="acceptance__item">PR URL reported back as a clickable link</li>
+        <li class="acceptance__item">Worktree removed; remote branch preserved</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

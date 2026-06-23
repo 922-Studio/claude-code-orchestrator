@@ -45,6 +45,8 @@ For multi-wave execution, group steps by wave (see `plans/_template.html` → `<
 | `server.md` | Server infrastructure reference: cluster, services, ports, networks, storage |
 | `projects/<name>.md` | Per-project mapping: what it is, tech stack, key files, best practices |
 | `projects/_template.md` | Template for adding a new project |
+| `skills/project-lifecycle/` | Add/remove-project skill: `ARCHETYPES.md`, `add.md`, `remove.md`, entry commands |
+| `scripts/project-lifecycle.sh` | Read-only helper for the lifecycle skill (`preflight` / `audit`) |
 | `plans/` | All plans, named `YYYY-MM-DD-<slug>.html` (new) — legacy `.md` plans remain readable but are no longer authored |
 | `plans/_template.html` | Canonical plan template (HTML, light mode, variant-studio) |
 | `plans/archive/_template.md` | Deprecated Markdown template — reference only, do not use for new plans |
@@ -60,7 +62,16 @@ For multi-wave execution, group steps by wave (see `plans/_template.html` → `<
 
 ## How to Use This Repo
 
-### Adding a new project
+### Adding / removing a project
+Use the **project lifecycle skill** — it covers the whole lifecycle (GitHub repo, server
+infra, local setup, monitoring, and orchestrator docs), driven by a proven existing project
+as the pattern. Don't hand-edit `registry.md` for a new project; let the skill do it.
+
+- **Add**: `/project-new <name> like <reference>` → runs `skills/project-lifecycle/add.md`
+  (archetype catalog in `skills/project-lifecycle/ARCHETYPES.md`).
+- **Remove**: `/project-remove <name>` → runs `skills/project-lifecycle/remove.md` (safety-gated).
+
+Manual fallback (docs only, if the skill is unavailable):
 1. Read `projects/_template.md`.
 2. Create `projects/<name>.md` following the template.
 3. Update `registry.md` with the new row + dependency notes.

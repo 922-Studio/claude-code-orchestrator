@@ -2,6 +2,11 @@
 
 Master list of all projects in Gregor's ecosystem.
 
+> **Add / remove projects via the lifecycle skill** — `/project-new <name> like <ref>` and
+> `/project-remove <name>` keep this table, the per-project mapping, `server.md`, infra, and
+> monitoring in sync. See `skills/project-lifecycle/`. Avoid hand-editing rows for a new
+> project; the skill owns the full lifecycle.
+
 | # | Project | Path | Type | Status | Mapping |
 |---|---------|------|------|--------|---------|
 | 1 | HomeAPI | /Users/gregor/dev/922/HomeAPI | fullstack (backend) | active | [mapping](projects/homeapi.md) |

@@ -42,7 +42,11 @@ This reads recent transcripts, finds repetitive permission prompts, and adds the
 
 ## Statusline
 
-The statusline runs `node ~/.claude/statusline/ctx_monitor.js` after each turn and displays the output in the Claude Code UI footer. It monitors context window usage — useful for knowing when the conversation is approaching compression.
+The statusline runs `node ~/.claude/statusline/ctx_monitor.js` after each turn and displays the output in the Claude Code UI footer. It monitors context window usage — useful for knowing when the conversation is approaching compression. The script is self-built (no dependencies); it reads the statusline JSON on stdin and reconstructs token usage from the transcript file (`transcript_path`), filtering out subagent/sidechain, synthetic, and error messages so only main-context usage counts.
+
+It renders two lines: `<model> | context used X.X% - (used/window) | cost: $X.XX` and `session: <id> | cwd: <path>`. The usage label is color-coded by **absolute tokens used** (model quality degrades with absolute context, independent of window size): green < 300K, yellow ≥ 300K, orange ≥ 400K, red ≥ 500K.
+
+The context window is **model-aware** via `contextWindowFor()`: 1M-context variants (tagged `[1m]` in the model id, e.g. `claude-opus-4-8[1m]`) use a 1,000,000-token window; all other models use 200,000.
 
 To change it: edit `statusLine` in `~/.claude/settings.json`. Set `"type": "off"` to disable.
 

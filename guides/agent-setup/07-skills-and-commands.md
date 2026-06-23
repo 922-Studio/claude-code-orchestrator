@@ -25,6 +25,8 @@ Claude executes the skill by fetching its instructions and following them. Skill
 | `/schedule` | Creates/manages scheduled remote agents running on a cron schedule |
 | `/fewer-permission-prompts` | Scans transcripts for repeated permission prompts, adds allowlist entries to `settings.local.json` |
 | `/orchestrator-cleanup` | Orchestrator maintenance — archiving, registry hygiene |
+| `/project-new` | Bootstrap a whole new project (GitHub repo + server + local + monitoring + docs) following a proven archetype — see `orchestrator/skills/project-lifecycle/add.md` |
+| `/project-remove` | Decommission a project safely (monitoring → containers → backup+drop DB → docs), gated — see `orchestrator/skills/project-lifecycle/remove.md` |
 | `/init` | Initializes a `CLAUDE.md` for a project that doesn't have one |
 | `/update-config` | Configures harness behaviors (hooks, permissions, env vars) in `settings.json` |
 
