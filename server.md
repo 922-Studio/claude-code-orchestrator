@@ -1,16 +1,22 @@
 # Server Infrastructure Reference
 
-> Last updated: 2026-03-27 (live server scan)
+> Last updated: 2026-06-23 (live server scan + post-rename reconciliation)
 
 ## Cluster (3-Node Docker Swarm)
 
-| Node | Hostname | Role | SSH | Tailscale IP | Status | Engine |
-|------|----------|------|-----|-------------|--------|--------|
-| **astro-antares** | `astro-antares` | Swarm Manager (Leader) | `ssh lab` | `100.112.171.16` | Active | 29.3.1 |
-| **exec-0** | `astro-polaris` | Swarm Worker | `ssh lab-exec-0` | `100.94.122.119` | Active | 29.3.1 |
-| **exec-1** | `astro-upsilon` | Swarm Worker | `ssh lab-exec-1` | `100.100.214.75` | Down | 29.3.1 |
+> **Renamed 2026-05 — 2026-06**: cluster renamed from `home-lab` / `home-lab-exec-0` / `home-lab-exec-1` to the `astro-*` scheme below — across OS hostname, Tailscale, SSH config, and all repos. A 4th physical box (HP ProDesk 400 G5 SFF) is not yet provisioned; the name `astro-mebsuta` is reserved for it.
 
-All access is key-based with passwordless sudo. All inter-node traffic goes over Tailscale.
+| Node | Hostname | Role | SSH alias | Tailscale IP | Status | Engine |
+|------|----------|------|-----------|--------------|--------|--------|
+| **astro-antares** (was home-lab) | `astro-antares` | Swarm Manager (Leader) | `ssh antares` | `100.112.171.16` | Active | 29.3.1 |
+| **astro-polaris** (was exec-0) | `astro-polaris` | Swarm Worker + **CI runners** | `ssh polaris` | `100.94.122.119` | Active | 29.3.1 |
+| **astro-upsilon** (was exec-1) | `astro-upsilon` | Swarm Worker | `ssh upsilon` | `100.100.214.75` | Active | 29.3.1 |
+
+All access is key-based with passwordless sudo. All inter-node traffic goes over Tailscale. SSH aliases are short names (`antares` / `polaris` / `upsilon`) in `~/.ssh/config`.
+
+**Hardware**: all nodes are HP ProDesk 400 G5 SFF. No PC speaker/beeper, and the `r8169` NICs don't support `ethtool -p` LED blink — so physical identification is done by **saturating disk I/O** on one box (`dd if=/dev/urandom … oflag=dsync` in a loop) and watching the front HDD activity LED, cross-checked against the chassis serial sticker (`dmidecode -s system-serial-number`).
+
+**CI runners moved to polaris**: GitHub Actions self-hosted runners now live on `astro-polaris` (not the manager). Deploys run on polaris and target antares's Docker daemon via `DOCKER_HOST=ssh://lab@astro-antares`. The 4 legacy runners on antares (`home-lab`, `home-lab-2/3/4`) are idle and pending deregistration once CI is confirmed green.
 
 **OS**: Ubuntu 24.04.4 LTS (Noble Numbat), kernel 6.8.0-106-generic
 **Docker**: 29.3.1, Compose v5.1.1
@@ -150,7 +156,7 @@ Config: `/home/lab/.cloudflared/config.yml`
 | Traefik | 80 (public), 8082 (dashboard, localhost) | Reverse proxy for all subdomains (Docker provider + file provider) |
 | cloudflared | systemd | Cloudflare Tunnel daemon (config at `~/.cloudflared/config.yml`) |
 | OpenClaw | 18789 (public), 18791/18792 (localhost) | AI gateway (systemd process) |
-| GitHub Runners | 4x systemd | `astro-antares`, `home-lab-2`, `home-lab-3`, `home-lab-4` (home-lab-4 has `e2e` label) |
+| GitHub Runners | 4x systemd **on astro-polaris** | `polaris`, `polaris-2`, `polaris-3`, `polaris-4` (polaris-4 has `e2e` label). Labels: `self-hosted,Linux,X64,polaris`. Legacy antares runners (`home-lab*`) idle, pending deregistration. |
 | Syncthing | 8384 (Tailscale only), 22000 (sync) | P2P file sync (Obsidian vault) |
 | Docker Registry | 5000 (internal) | Self-hosted container image registry (`docker_registry`) |
 | MinIO | 9000 (API, internal), 9001 (console, localhost only) | Object storage for media uploads (`minio`) |
@@ -174,8 +180,8 @@ Config: `/home/lab/.cloudflared/config.yml`
 ## Key Commands
 
 ```bash
-# Access server
-ssh lab
+# Access server (manager)
+ssh antares   # workers: ssh polaris / ssh upsilon
 
 # Service management
 cd ~/HomeStructure && ./scripts/homelab-ctl.sh status
