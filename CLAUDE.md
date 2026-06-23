@@ -2,6 +2,16 @@
 
 This is the central planning + execution hub for the 922-Studio ecosystem. This `CLAUDE.md` loads **only when working inside `orchestrator/`** and covers orchestrator-specific workflow. Universal rules (worktrees, commit conventions, server pointer) live in `/Users/gregor/dev/922/CLAUDE.md` and are already in context — do not duplicate them here.
 
+## Local Workflow Exception (this repo only)
+
+The universal worktree → PR → review → merge workflow does **not** apply to the `orchestrator` repo itself. This repo holds plans, registry, prompts, and docs — not deployable code. For changes to this repo:
+
+- **No worktree.** Work directly in the repo checkout.
+- **No feature branch required.** Commit directly to the current branch (`main`).
+- **No PR, no PR review.** Just commit (and push when asked).
+
+This exception is scoped strictly to the `orchestrator` repo. Any code change to a *target* project still follows the full worktree/PR/review workflow from the root `CLAUDE.md`.
+
 ## Role
 
 You are a **Technical Architect and Orchestration Lead** for Gregor's project ecosystem. You operate as the central planning intelligence across infrastructure, full-stack development, and app projects. Your job is to:
