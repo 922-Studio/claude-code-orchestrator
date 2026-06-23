@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: Invoice v1 — consolidate API + UI, rename v2 → v1</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-05-23 · HomeAPI + HomeUI</span>
+      <h1>Invoice v1 — consolidate API + UI, rename v2 → v1</h1>
+      <p class="lede">Fold all parallel invoice branches into a single coherent <code>feat/invoice-v1</code> per repo, rebrand "v2" → "v1" in code/comments/template, ship two PRs against <code>dev</code> with full review.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Projects</strong><span>HomeAPI, HomeUI</span></div>
+        <div class="scope-item"><strong>Branches</strong><code>feat/invoice-v1</code></div>
+        <div class="scope-item"><strong>Worktrees</strong><code>.worktrees/feat/invoice-v1</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>dev</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">projects/homeapi.md</code> — HomeAPI stack, alembic, test layout</li>
+        <li><code class="inline">projects/homeui.md</code> — HomeUI stack, design system, finance feature layout</li>
+        <li><strong>HomeAPI branches to fold</strong> (all branched off <code>origin/dev</code>, no shared commits between them):
+          <ul>
+            <li><code class="inline">origin/feat/invoice-v2</code> — base v2 work: DD.MM.YYYY dates, MM-NNN numbers, FIFO open-balance filter, payment block, t001 settings seed</li>
+            <li><code class="inline">origin/feat/invoice-v2-polish</code> — flat table, gradient logo, env-var payments, peeked preview number, t002 fix migration</li>
+            <li><code class="inline">origin/feat/invoice-payment-actions</code> — paid/notes endpoints, settings PUT merge, payment block Betrag + Verwendungszweck, u001/u002 migrations</li>
+            <li><code class="inline">origin/feat/invoice-flexible-payment</code> — flexible-payment option, env-var config</li>
+          </ul>
+        </li>
+        <li><strong>HomeUI branches to fold</strong>:
+          <ul>
+            <li><code class="inline">origin/feat/invoice-v2</code> — superset of <code>feat/finance-invoice-overhaul</code> (PR #91) + payment_terms_days + Fälligkeit + payment cards</li>
+            <li><code class="inline">origin/feat/invoice-payment-actions</code> — InvoiceDetailPage/ListPage with paid/unpaid/notes UI (overlaps with v2, more advanced variant)</li>
+          </ul>
+        </li>
+        <li><strong>Existing PR to close</strong>: HomeUI <code>#91</code> <code>feat/finance-invoice-overhaul</code> — its commits are included in <code>feat/invoice-v2</code>; close as superseded once v1 PR is open.</li>
+        <li><strong>"v2" code occurrences (HomeAPI)</strong>: <code class="inline">app/schemas/invoice.py</code>, <code class="inline">app/services/invoice_service.py</code>, <code class="inline">app/services/invoice_line_items.py</code>, <code class="inline">app/templates/invoice.html.j2</code>, <code class="inline">tests/unit/services/test_invoice_service.py</code>, <code class="inline">tests/unit/services/test_invoice_line_items.py</code>, <code class="inline">tests/integration/routers/finance/test_invoices.py</code>. HomeUI <code>src/</code> has no "v2" references (rename = no-op there).</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="strategy">
+      <span class="eyebrow">Strategy</span>
+      <ul>
+        <li>Two integration branches: <code class="inline">HomeAPI:feat/invoice-v1</code> and <code class="inline">HomeUI:feat/invoice-v1</code>, both cut fresh from <code>origin/dev</code>.</li>
+        <li>Cherry-pick commits in a defined order (see steps); resolve overlap conflicts by hand. All four HomeAPI branches edit <code>invoice_service.py</code>, <code>invoice.html.j2</code>, and the integration test file — expect conflicts there.</li>
+        <li>Migrations sequence: <code>t001</code> (v2 — with polish's modifications folded in) → <code>t002</code> (polish) → <code>u001</code> (payment-actions) → <code>u002</code> (payment-actions). Verify <code>alembic upgrade head</code> from a clean DB after consolidation.</li>
+        <li>Rename pass <strong>after</strong> consolidation: "v2" → "v1" in comments, docstrings, allure stories, test names, template comments, log messages. No behavior changes.</li>
+        <li>After both PRs are open and reviewed, delete old <code>origin/feat/invoice-v2</code>, <code>invoice-v2-polish</code>, <code>invoice-payment-actions</code>, <code>invoice-flexible-payment</code> (HomeAPI) and <code>invoice-v2</code>, <code>invoice-payment-actions</code> (HomeUI). Close PR #91 with link to new HomeUI PR.</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>HomeAPI — consolidate four branches into feat/invoice-v1</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Create a fresh worktree off <code>origin/dev</code> and cherry-pick each branch's single commit in dependency order. Resolve conflicts at each step; do not squash — keep four logical commits so review can map back to the original branches.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Worktree</strong><code>HomeAPI/.worktrees/feat/invoice-v1</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>Step 03 (HomeUI)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code>git worktree add HomeAPI/.worktrees/feat/invoice-v1 -b feat/invoice-v1 origin/dev</code></li>
+            <li class="acceptance__item">Cherry-pick order: <code>feat/invoice-v2</code> → <code>feat/invoice-v2-polish</code> → <code>feat/invoice-payment-actions</code> → <code>feat/invoice-flexible-payment</code>.</li>
+            <li class="acceptance__item">Conflict hotspots resolved: <code>app/services/invoice_service.py</code>, <code>app/templates/invoice.html.j2</code>, <code>app/routers/finance/invoices.py</code>, <code>app/schemas/invoice.py</code>, integration tests.</li>
+            <li class="acceptance__item">Migrations apply cleanly from empty DB: <code>alembic upgrade head</code> succeeds in order t001 → t002 → u001 → u002.</li>
+            <li class="acceptance__item">All unit + integration tests green locally (<code>pytest</code>).</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 02</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">02</div>
+        <header class="plan-step__head"><h3>HomeAPI — rename v2 → v1 in code, comments, tests, template</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Pure rename pass — no behavior change. Touch only strings/comments/docstrings/test names/allure stories that read "v2" in the invoice context. Skip generic "Pydantic V2" mentions (framework version, unrelated).</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Files</strong><span>see Context grep list</span></div>
+            <div class="meta-row"><strong>Commit</strong><code>refactor(finance): rename invoice v2 → v1 (no behavior change)</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code>grep -rn "invoice.*v2\|v2.*invoice\|template (v2)" app/ tests/</code> returns zero invoice-context hits after the pass.</li>
+            <li class="acceptance__item">"Pydantic V2" mentions in unrelated schemas (calendar, gmail) untouched.</li>
+            <li class="acceptance__item">Test names, allure <code>@story</code> labels, and template comment headers updated to v1.</li>
+            <li class="acceptance__item">Full test suite still green.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">03</div>
+        <header class="plan-step__head"><h3>HomeUI — consolidate invoice-v2 + invoice-payment-actions into feat/invoice-v1</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Branch off <code>origin/dev</code>. Cherry-pick <code>feat/invoice-v2</code> (5 commits) first; then cherry-pick <code>feat/invoice-payment-actions</code> (1 commit). Both touch <code>InvoiceDetailPage</code>, <code>InvoiceListPage</code>, <code>api/invoices.ts</code>, and <code>types/api/invoice.ts</code> — keep the more advanced payment-actions variant where they collide, but preserve the v2 list/detail wiring (routes, App.tsx).</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Worktree</strong><code>HomeUI/.worktrees/feat/invoice-v1</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>Step 01 (HomeAPI)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code>git worktree add HomeUI/.worktrees/feat/invoice-v1 -b feat/invoice-v1 origin/dev</code></li>
+            <li class="acceptance__item">Conflicts resolved on: <code>src/features/finance/pages/InvoiceDetailPage.tsx</code>, <code>InvoiceListPage.tsx</code>, <code>src/api/invoices.ts</code>, <code>src/types/api/invoice.ts</code>, <code>src/App.tsx</code>.</li>
+            <li class="acceptance__item">All vitest suites pass; <code>tsc --noEmit</code> clean; <code>eslint</code> clean.</li>
+            <li class="acceptance__item">Manual smoke against running HomeAPI (Step 04): create person → create invoice → mark paid → list filters → detail view renders.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 04</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">04</div>
+        <header class="plan-step__head"><h3>HomeUI — adapt to v1 API surface (any contract drift)</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Diff the consolidated HomeAPI schema (<code>app/schemas/invoice.py</code> on <code>feat/invoice-v1</code>) against the assumptions in HomeUI's <code>src/types/api/invoice.ts</code>. Adjust types and API clients where the four-branch fold changed field shapes (e.g. flexible-payment env-var fields, paid/notes endpoints).</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Reference</strong><code>HomeAPI feat/invoice-v1: app/schemas/invoice.py, app/routers/finance/invoices.py</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Type definitions in <code>src/types/api/invoice.ts</code> match HomeAPI schema field-for-field.</li>
+            <li class="acceptance__item">API client functions in <code>src/api/invoices.ts</code> cover all v1 endpoints (paid/notes, settings PUT, FIFO filter trigger).</li>
+            <li class="acceptance__item">No behavior change from Step 03 beyond schema-driven adjustments.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 03, 01 · unblocks 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>Push both branches, open PRs against dev</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Two PRs in parallel. Each PR body must (a) list the source branches it consolidates, (b) reference this plan file, (c) link the sibling PR for cross-review, (d) call out the v2 → v1 rename rationale.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>HomeAPI PR</strong><code>922-studio/HomeAPI</code> base <code>dev</code></div>
+            <div class="meta-row"><strong>HomeUI PR</strong><code>922-Studio/HomeUI</code> base <code>dev</code></div>
+            <div class="meta-row"><strong>HomeUI PR body</strong><span>note: supersedes #91</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Both branches pushed with <code>-u origin</code>.</li>
+            <li class="acceptance__item"><code>gh pr create</code> opened against <code>dev</code> on both repos; URLs reported back.</li>
+            <li class="acceptance__item">CI green on both PRs before review handoff.</li>
+            <li class="acceptance__item">HomeAPI PR adds the new API to HomeCollector uptime + HomeAPI versioning endpoint if any new top-level routes appeared (existing <code>/finance/invoices</code> already registered — verify).</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 02, 04 · unblocks 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">06</div>
+        <header class="plan-step__head"><h3>PR review — reviewer agent per PR</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Two reviewer-agent passes in parallel using <code>prompts/reviewer.md</code>. Reviewer must read this plan, the originating four (HomeAPI) / two (HomeUI) branch diffs, and verify the consolidation introduces no regression vs the union of source branches.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Prompt</strong><code>prompts/reviewer.md</code></div>
+            <div class="meta-row"><strong>Model</strong><span>Sonnet (per workflow default)</span></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>both reviews run together</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Reviewer report posted as PR comment per repo, structured: <em>correctness · tests · docs · CI · migration safety</em>.</li>
+            <li class="acceptance__item">Migration ordering verified end-to-end (HomeAPI only): clean DB <code>alembic upgrade head</code> + <code>downgrade base</code> reversible.</li>
+            <li class="acceptance__item">No behavior regression vs source branches — reviewer spot-checks at least 3 features per branch.</li>
+            <li class="acceptance__item">Findings either addressed or explicitly deferred with a follow-up issue link.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 05 · unblocks 07</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">07</div>
+        <header class="plan-step__head"><h3>Merge, deploy to dev, verify, clean up old branches</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Merge order: HomeAPI first (so HomeUI has a deployed v1 API to talk to on <code>lab-api-dev</code>), then HomeUI. Verify <code>lab-api-dev</code> picks up the new schema before HomeUI merges. After both deployed, retire obsolete branches.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Sequence</strong><span>HomeAPI merge → CI/CD to lab-api-dev → smoke → HomeUI merge → CI/CD → smoke</span></div>
+            <div class="meta-row"><strong>Reference</strong><code>server.md</code> (deploy targets), <code>guides/local-dev-setup-finance-invoice.md</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">HomeAPI PR merged to <code>dev</code>; CI/CD green; <code>lab-api-dev</code> health-check + invoice endpoint smoke passes.</li>
+            <li class="acceptance__item">HomeUI PR merged to <code>dev</code>; CI/CD green; deployed instance loads invoice list/detail against <code>lab-api-dev</code>.</li>
+            <li class="acceptance__item">Worktrees removed in both repos; main checkouts back on <code>dev</code>.</li>
+            <li class="acceptance__item">Old remote branches deleted: HomeAPI <code>feat/invoice-v2</code>, <code>feat/invoice-v2-polish</code>, <code>feat/invoice-payment-actions</code>, <code>feat/invoice-flexible-payment</code>; HomeUI <code>feat/invoice-v2</code>, <code>feat/invoice-payment-actions</code>.</li>
+            <li class="acceptance__item">PR #91 closed with comment linking the new HomeUI v1 PR; HomeUI <code>feat/finance-invoice-overhaul</code> branch deleted.</li>
+            <li class="acceptance__item">This plan moved to <code>plans/archive/</code>.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 06 · unblocks —</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Wave 1 · parallel (per repo)</div><span class="pill pill--accent">01 · HomeAPI consolidate</span><span class="pill pill--accent">03 · HomeUI consolidate</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · per repo, sequential after Wave 1</div><span class="pill pill--accent">02 · HomeAPI v2→v1 rename</span><span class="pill pill--accent">04 · HomeUI adapt to v1 contract</span></div>
+      <div class="wave"><div class="wave__label">Wave 3 · sequential</div><span class="pill pill--muted">05 · push + open PRs</span><span class="pill pill--muted">06 · reviewer agents (parallel)</span><span class="pill pill--muted">07 · merge HomeAPI → merge HomeUI → cleanup</span></div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="risks">
+      <span class="eyebrow">Risks &amp; mitigations</span>
+      <ul>
+        <li><strong>Cherry-pick conflict density</strong> — four branches all rewrite <code>invoice_service.py</code>, <code>invoice.html.j2</code>, and the integration test file. Mitigation: pick smallest-delta branches last (<code>flexible-payment</code> is +138 lines, do it last); resolve per-file, not per-hunk.</li>
+        <li><strong>Migration collisions</strong> — t001 is modified by polish; u001/u002 may assume schema state from t002. Mitigation: run <code>alembic upgrade head</code> + <code>downgrade base</code> after each cherry-pick, not only at the end.</li>
+        <li><strong>HomeUI list/detail divergence</strong> — invoice-v2 and invoice-payment-actions both ship full implementations of <code>InvoiceListPage</code>/<code>InvoiceDetailPage</code>. Mitigation: treat payment-actions as the canonical version, port any v2-only UX (auto-grow iframe, branded header) onto it.</li>
+        <li><strong>PR #91 conflicts with v1 PR review</strong> — if reviewers compare against #91 they'll see the same commits twice. Mitigation: close #91 immediately when v1 HomeUI PR opens (Step 05).</li>
+        <li><strong>Local testing canon</strong> — per memory <code>feedback_local_testing_vs_dev</code>, if Gregor has been testing locally against any of the four source branches, the worktree state matters. Mitigation: confirm with Gregor before deleting any worktree containing uncommitted work.</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">Both PRs merged into <code>dev</code>; CI green end-to-end.</li>
+        <li class="acceptance__item"><code>lab-api-dev</code> and HomeUI dev deploy serve consolidated invoice v1 feature.</li>
+        <li class="acceptance__item">All six obsolete remote branches deleted; PR #91 closed.</li>
+        <li class="acceptance__item">No "v2" references remain in HomeAPI invoice code/tests/template.</li>
+        <li class="acceptance__item">Worktrees removed; <code>git worktree list</code> shows only main checkout per repo.</li>
+        <li class="acceptance__item">Plan archived with done date in commit message.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
