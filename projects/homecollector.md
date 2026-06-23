@@ -4,7 +4,7 @@
 - **Type**: fullstack (backend)
 - **Path**: /Users/gregor/dev/922/HomeCollector
 - **Status**: active
-- **Description**: Data collection hub and uptime monitoring service for the 922-Studio home-lab. Owns all monitoring and external data collection responsibilities: Docker uptime monitoring via Docker socket + HTTP health checks, GitHub Actions monitoring, Allure test results, Prometheus system metrics, background notification tasks (disk alerts, email, Discord, OpenClaw), and a public status page at `/status`. Single source of truth for all monitoring data consumed by HomeUI dashboards.
+- **Description**: Data collection hub and uptime monitoring service for the 922-Studio astro-antares. Owns all monitoring and external data collection responsibilities: Docker uptime monitoring via Docker socket + HTTP health checks, GitHub Actions monitoring, Allure test results, Prometheus system metrics, background notification tasks (disk alerts, email, Discord, OpenClaw), and a public status page at `/status`. Single source of truth for all monitoring data consumed by HomeUI dashboards.
 
 ## Tech Stack
 - **Language(s)**: Python 3.13
@@ -58,7 +58,7 @@
 - **Coverage**: 70% minimum enforced in CI
 
 ## Documentation
-- **Where**: `docs/` (MkDocs at http://home-lab:8013), `README.md`
+- **Where**: `docs/` (MkDocs at http://astro-antares:8013), `README.md`
 - **Update rule**: Update docs when API or architecture changes
 
 ## Pipeline & Deployment

@@ -36,7 +36,7 @@
 ## Testing Strategy
 - **Unit tests**: `tests/test_*.py` — `PYTHONPATH=. pytest tests/ -x -q`
 - **Coverage**: 0% minimum initially (to be raised in a separate plan)
-- **Reporting**: Allure at `http://home-lab:5050` (project: `anime-api`)
+- **Reporting**: Allure at `http://astro-antares:5050` (project: `anime-api`)
 
 ## Documentation
 - **Where**: `README.md`

@@ -13,7 +13,7 @@
     <header class="plan-cover">
       <span class="eyebrow">2026-05-21 · HomeUI · completed 2026-05-21</span>
       <h1>HomeUI Design System Overhaul — Home Lab DS</h1>
-      <p class="lede">Replace the legacy Indigo/cream Tailwind theme with the mono-first, teal-accent <code class="inline">home-lab</code> design system. Single PR: foundation + every feature page, dark default + light variant, JetBrains Mono + Inter, semantic colors only.</p>
+      <p class="lede">Replace the legacy Indigo/cream Tailwind theme with the mono-first, teal-accent <code class="inline">astro-antares</code> design system. Single PR: foundation + every feature page, dark default + light variant, JetBrains Mono + Inter, semantic colors only.</p>
       <div class="scope-bar">
         <div class="scope-item"><strong>Project</strong><span>HomeUI</span></div>
         <div class="scope-item"><strong>Branch</strong><code>feat/homeui-design-system-overhaul</code></div>
@@ -33,7 +33,7 @@
         <li><code class="inline">HomeUI/src/components/</code> — shared atoms (StatusBadge, PriorityBadge, ProjectCard, SectionHeader, ProgressBar, EmptyState, TaskRow, ActivityLogEntry, NoteCard, Panel) — all must inherit the new chrome</li>
         <li><code class="inline">HomeUI/src/components/layout/</code> — global app shell, sidebar, sub-nav (target of Wave 2)</li>
         <li><code class="inline">HomeUI/src/features/</code> — 15 feature modules to migrate (auth, content, dashboard, debts, finance, health, management, modules, openclaw, organisations, projects, settings, users, wellbeing)</li>
-        <li><strong>Design source bundle</strong> — extracted at <code class="inline">/tmp/design-bundle/test2/project/home-lab/</code>:
+        <li><strong>Design source bundle</strong> — extracted at <code class="inline">/tmp/design-bundle/test2/project/astro-antares/</code>:
           <ul>
             <li><code class="inline">design-system.css</code> — single source of truth, ~800 lines of tokens + components (copy verbatim into HomeUI, then add light-variant overrides)</li>
             <li><code class="inline">design-system.html</code> — showcase document (ported to a <code class="inline">/design-system</code> dev route)</li>
@@ -155,7 +155,7 @@
         <div class="plan-step__num">05</div>
         <header class="plan-step__head"><h3>Add the <code class="inline">/design-system</code> showcase route</h3><span class="pill pill--accent">done</span></header>
         <div class="plan-step__body">
-          <p>Port the showcase from <code class="inline">/tmp/design-bundle/test2/project/home-lab/design-system.html</code> into a React page at <code class="inline">src/pages/DesignSystem.tsx</code>, mounted at <code class="inline">/design-system</code> (lazy-loaded, only registered when <code class="inline">import.meta.env.DEV</code> or behind a hidden link in settings). Keeps Gregor a single source-of-truth surface to QA the system in-app.</p>
+          <p>Port the showcase from <code class="inline">/tmp/design-bundle/test2/project/astro-antares/design-system.html</code> into a React page at <code class="inline">src/pages/DesignSystem.tsx</code>, mounted at <code class="inline">/design-system</code> (lazy-loaded, only registered when <code class="inline">import.meta.env.DEV</code> or behind a hidden link in settings). Keeps Gregor a single source-of-truth surface to QA the system in-app.</p>
           <div class="meta-grid">
             <div class="meta-row"><strong>Directory</strong><code>HomeUI/src/pages/</code> + <code class="inline">App.tsx</code></div>
             <div class="meta-row"><strong>Parallel with</strong><span>03, 04</span></div>
@@ -256,7 +256,7 @@
         <div class="plan-step__num">10</div>
         <header class="plan-step__head"><h3>QA, PR, monitor pipeline</h3><span class="pill pill--accent">done</span></header>
         <div class="plan-step__body">
-          <p>Run the full quality gate. Push, open PR against <code class="inline">main</code>, monitor deploy notification on Discord, smoke-test <code class="inline">http://home-lab:8000</code> (and lab.922-studio.com). Report PR URL. Remove the worktree.</p>
+          <p>Run the full quality gate. Push, open PR against <code class="inline">main</code>, monitor deploy notification on Discord, smoke-test <code class="inline">http://astro-antares:8000</code> (and lab.922-studio.com). Report PR URL. Remove the worktree.</p>
           <ul class="acceptance">
             <li class="acceptance__item"><code class="inline">npm run test:ci</code> green, coverage ≥ 70%</li>
             <li class="acceptance__item"><code class="inline">npm run test:e2e</code> green (Allure project <code class="inline">homeui-e2e</code>)</li>
@@ -285,7 +285,7 @@
 
     <section id="agent-prompts">
       <span class="eyebrow">Agent prompts</span>
-      <p>All sub-task executors are Sonnet, per <code class="inline">feedback_subagent_model</code>. Every executor reads <code class="inline">prompts/executor.md</code> + the context list under <code class="inline">#context</code> + the design source files at <code class="inline">/tmp/design-bundle/test2/project/home-lab/</code>. Standard worktree workflow applies; sub-tasks operating on disjoint files commit to the shared <code class="inline">feat/homeui-design-system-overhaul</code> branch sequentially after their parallel work lands.</p>
+      <p>All sub-task executors are Sonnet, per <code class="inline">feedback_subagent_model</code>. Every executor reads <code class="inline">prompts/executor.md</code> + the context list under <code class="inline">#context</code> + the design source files at <code class="inline">/tmp/design-bundle/test2/project/astro-antares/</code>. Standard worktree workflow applies; sub-tasks operating on disjoint files commit to the shared <code class="inline">feat/homeui-design-system-overhaul</code> branch sequentially after their parallel work lands.</p>
       <ul class="acceptance">
         <li class="acceptance__item">Executor prompt per step references the plan path <code class="inline">orchestrator/plans/2026-05-21-homeui-design-system-overhaul.html</code> and the specific step number</li>
         <li class="acceptance__item">Reviewer prompt (<code class="inline">prompts/reviewer.md</code>) gates the final PR before merge</li>

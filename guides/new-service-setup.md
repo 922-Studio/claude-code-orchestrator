@@ -288,11 +288,11 @@ async def version():
 
 Falls der Service über `new-service.922-studio.com` erreichbar sein soll:
 
-1. Cloudflare Dashboard → Zero Trust → Tunnels → `home-lab`
+1. Cloudflare Dashboard → Zero Trust → Tunnels → `astro-antares`
 2. Neue Public Hostname hinzufügen:
    - **Subdomain:** `new-service`
    - **Domain:** `922-studio.com`
-   - **Service:** `http://home-lab:80` (Traefik)
+   - **Service:** `http://astro-antares:80` (Traefik)
 3. Speichern — Traefik routet anhand des `Host()`-Labels automatisch
 
 ---
