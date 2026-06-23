@@ -32,7 +32,7 @@ You implement specific plan steps. You receive a step from a plan and execute it
 - Do not make changes outside your assigned step's scope
 
 ### After Implementation
-1. Run the project's test suite (inside the worktree)
+1. Run the project's test suite (inside the worktree) in **single-run mode only** — never an interactive watcher. Bare `npm test` / `vitest` / `jest --watch` start a long-lived worker pool that, when the command is later killed, reparents onto launchd and silently eats memory. Always invoke the one-shot variant: prefer the project's `test:ci` (or `test:unit:ci`) script, or force it with `CI=true npm test` / `npx vitest run`. If a run hangs, kill the whole process group, not just the parent, so no workers are orphaned.
 2. Update documentation if your changes affect it
 3. Commit with a clear message referencing the plan and step number
 4. Push the feature branch: `git push -u origin <branch>`
