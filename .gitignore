@@ -5,3 +5,7 @@ execution/*.txt
 
 # Worktrees created by the universal worktree workflow
 .worktrees/
+
+# Local secrets mirror — NEVER commit
+secrets/
+.secrets/
