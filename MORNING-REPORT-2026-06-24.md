@@ -46,7 +46,7 @@ branch-protected merges or a Cloudflare decision; none are production-affecting.
 | Portfolio | 🟢 deploy | same — Deploy green, E2E red on Allure upload |
 | discord | 🟢 | containers up; reworked safe deploy merged |
 | smoking-counter | 🟢 deploy | **safe-split fix VALIDATED**: deploy job green, built on polaris, antares stayed at 10.3 GB free (no OOM). Run red only on `notify-success` (needs the same DISCORD_BOT_TOKEN passthrough as Anime-API) |
-| sweatvalley_bingo | 🔴 | **PR #12 ready but branch-protected — needs your review/merge** |
+| sweatvalley_bingo | 🟢 deploy | **PR #12 MERGED** — now on the safe build-on-runner pattern; deploy ran with build on polaris, antares untouched (may show notify-step red only) |
 | Drafter | 🔴 | **registry 413 (Cloudflare 100 MB cap) — needs your decision** |
 
 ~171 CI-failure issues closed across the sweep.
@@ -57,8 +57,8 @@ branch-protected merges or a Cloudflare decision; none are production-affecting.
 1. **workflows PR #8** (`922-Studio/workflows`) — Allure hostname `home-lab→astro-antares` in the
    reusable defaults. Branch-protected (1 review). **Merging this turns HomeUI + Portfolio E2E green**
    (their only red is the Allure-upload step). After merge, re-run their E2E.
-2. **sweatvalley_bingo PR #12** — the safe-split deploy.sh (same pattern as discord). Branch-protected;
-   approve+merge → green deploy. (Worktree left at `sweatvalley_bingo/.worktrees/feat/deploy-server-independent`.)
+2. ~~sweatvalley_bingo PR #12~~ — **DONE (merged); now on the safe deploy pattern.** All three boot_script
+   repos (discord, smoking-counter, sweatvalley) are migrated. No action needed beyond the notify one-liner (#4).
 3. **Drafter registry 413** — image layers exceed Cloudflare's ~100 MB/request cap on
    `registry.922-studio.com`. Three Dockerfile layer-split attempts (PRs #25/#28/#30) didn't clear it.
    Decision needed: push via internal/Tailscale registry address (needs polaris insecure-registry host
