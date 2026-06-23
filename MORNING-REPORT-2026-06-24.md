@@ -45,8 +45,8 @@ branch-protected merges or a Cloudflare decision; none are production-affecting.
 | HomeUI | 🟢 deploy | Deploy green; separate **E2E** workflow red on Allure upload (see #8 below) |
 | Portfolio | 🟢 deploy | same — Deploy green, E2E red on Allure upload |
 | discord | 🟢 | containers up; reworked safe deploy merged |
-| smoking-counter | 🟢 deploy | **safe-split fix VALIDATED**: deploy job green, built on polaris, antares stayed at 10.3 GB free (no OOM). Run red only on `notify-success` (needs the same DISCORD_BOT_TOKEN passthrough as Anime-API) |
-| sweatvalley_bingo | 🟢 deploy | **PR #12 MERGED** — now on the safe build-on-runner pattern; deploy ran with build on polaris, antares untouched (may show notify-step red only) |
+| smoking-counter | 🟢 deploy | **safe-split fix VALIDATED**: deploy job green, built on polaris, antares stayed at 10.3 GB free (no OOM). Run shows cosmetic red on `notify-success` (artifact-storage quota annotation — self-recalculates, not a deploy problem) |
+| sweatvalley_bingo | 🟢 | **PR #12 MERGED & deploy fully green** (all jobs incl. notify-success); safe build-on-runner pattern, antares untouched |
 | Drafter | 🔴 | **registry 413 (Cloudflare 100 MB cap) — needs your decision** |
 
 ~171 CI-failure issues closed across the sweep.
@@ -63,16 +63,17 @@ branch-protected merges or a Cloudflare decision; none are production-affecting.
    `registry.922-studio.com`. Three Dockerfile layer-split attempts (PRs #25/#28/#30) didn't clear it.
    Decision needed: push via internal/Tailscale registry address (needs polaris insecure-registry host
    cfg) **or** raise the Cloudflare limit. Open issues: #23, #26, #27, #29 (the retry loop filed extras).
-4. **Discord notify passthrough** — smoking-counter (and likely sweatvalley_bingo) still need
-   `DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}` added to their `notify-success`/`notify-failure`
-   jobs (the one-liner Anime-API PR #47 got). Their **deploys are green**; only the notify step reds the run.
-5. **allure-ui** cosmetic recreate on antares (UI dashboard only; data-safe): `cd ~/HomeStructure/allure && docker compose up -d`.
-6. **discord #11** ("tests failed") — likely stale from the chaos; verify the latest Discord Bot Deploy is green and close.
+4. **allure-ui** cosmetic recreate on antares (UI dashboard only; data-safe): `cd ~/HomeStructure/allure && docker compose up -d`.
+5. _(optional, forward-looking)_ The reusable **`deploy-docker.yml` default path** (used by repos
+   without a boot_script) still does `docker compose up --build` with `DOCKER_HOST=antares` — i.e. it
+   *builds on antares*. Single deploys are tolerated (this was the historical norm), but it's the same
+   anti-pattern that bit us at scale. Worth migrating the reusable to build-on-runner→push→pull too.
 
-## Validation that the fix works
-smoking-counter's reworked deploy (PR #11) ran end-to-end: **build on polaris ✓, push ✓, smoke ✓,
-deploy on antares ✓** — and antares held at **10.3 GB free, no OOM**. This proves the build-on-runner /
-pull-on-antares split is correct. sweatvalley_bingo (PR #12) uses the identical pattern; merging it is safe.
+## Validation that the fix works (verified by the deploy-rework agent)
+All three reworked deploys (discord #13/#14, sweatvalley #12, smoking-counter #11) ran end-to-end with
+**build on polaris**; `pgrep buildkit` on antares returned **none at every checkpoint**, antares held at
+**~10 GB available the whole time (no OOM)**, and all four containers (incl. discord_bot_docs) are up
+from registry images. discord CI-issue #11 closed. The build-on-runner / pull-on-antares split is proven.
 
 ## Guardrails I held all night
 No builds on antares; one action at a time with verification; no destructive `down`/`--remove-orphans`
