@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: CI Green Sweep — all services green, all CI-failure issues closed</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-06-23 · ecosystem-wide</span>
+      <h1>CI Green Sweep</h1>
+      <p class="lede">Drive every service to a green latest deploy and close every CI-failure issue, repo by repo, via per-repo sub-agents. Auto-merge on green; repo-code fixes only (host-rooted failures are documented and handed back).</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Scope</strong><span>14 repos</span></div>
+        <div class="scope-item"><strong>Merge policy</strong><span>auto-merge when PR-CI green</span></div>
+        <div class="scope-item"><strong>Fix scope</strong><span>repo-code only</span></div>
+        <div class="scope-item"><strong>Sub-agent model</strong><code>sonnet</code></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">HANDOVER-ci-polaris-deploy-fix.md</code> — root cause of the migration-wave failures; reusable-workflow fixes already merged to <code class="inline">workflows@main</code></li>
+        <li><code class="inline">HANDOVER-pnpm11-fix.md</code> — pnpm break (resolved; Drafter only)</li>
+        <li><code class="inline">projects/&lt;name&gt;.md</code> — per-repo mapping &amp; best practices</li>
+        <li><code class="inline">server.md</code> — polaris=runners, antares=swarm manager (DOCKER_HOST ssh bridge)</li>
+        <li>Root <code class="inline">CLAUDE.md</code> — worktree → PR → (merge) workflow; base branch is <code class="inline">dev</code> where it exists, else <code class="inline">main</code></li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps — one sub-agent per repo</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>Close issues on green repos</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>HomeAuth (9) + Anime-APP (13) + HomeStructure (0) have green latest deploys. Close all open CI-failure issues with a comment linking the green run.</p>
+          <ul class="acceptance"><li class="acceptance__item">0 open issues on HomeAuth, Anime-APP</li></ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">02</div>
+        <header class="plan-step__head"><h3>Re-run + validate: Studio, Portfolio</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Last failures were the 09:23 migration wave (versioned-tag push + E2E trigger) — fixed upstream in <code class="inline">workflows@main</code>. Re-run latest deploy on <code class="inline">main</code>; if green, close all issues. Only if still red, apply repo-code fix.</p>
+          <ul class="acceptance"><li class="acceptance__item">Latest deploy green; Studio (7) + Portfolio (8) issues closed</li></ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">03</div>
+        <header class="plan-step__head"><h3>Trivial code fix: Anime-API</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Lint fails: <code class="inline">Would reformat: main.py</code>. Run <code class="inline">ruff format</code>, PR to <code class="inline">main</code>, merge green, validate deploy.</p>
+          <ul class="acceptance"><li class="acceptance__item">Latest deploy green</li></ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">04</div>
+        <header class="plan-step__head"><h3>Deploy-path fix: discord, sweatvalley_bingo</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Repo <code class="inline">deploy.sh</code> does <code class="inline">cd /home/lab/&lt;svc&gt;</code> — gone on polaris. Align to the <code class="inline">$GITHUB_WORKSPACE</code> + <code class="inline">DOCKER_HOST</code> bridge pattern (repo-code). PR to <code class="inline">main</code>, merge green, validate.</p>
+          <ul class="acceptance"><li class="acceptance__item">Latest deploy green; discord #8 closed</li></ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>Real test/dep fixes: HomeAPI, HomeCollector, HomeUI, smoking-counter</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>HomeAPI — pytest <code class="inline">libpango-1.0-0</code> missing (WeasyPrint invoice-PDF test). HomeCollector — pytest failing. HomeUI — vitest failing on dev (finance-invoice-overhaul). smoking-counter — native <code class="inline">better-sqlite3</code> build. Repo-code fix; if root cause is host-only, document &amp; hand back.</p>
+          <ul class="acceptance"><li class="acceptance__item">Latest deploy green; all issues closed (or blocker documented)</li></ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">06</div>
+        <header class="plan-step__head"><h3>Drafter — remaining smoke/.env + artifact</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>pnpm resolved. Left: smoke compose <code class="inline">.env</code> not found + unit-test artifact upload (quota). Determine repo-fixable vs infra-tolerated; reach green if possible, close resolved issues, document infra-only blockers.</p>
+          <ul class="acceptance"><li class="acceptance__item">Green deploy or documented infra blocker; resolved issues closed</li></ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">07</div>
+        <header class="plan-step__head"><h3>Capture learnings → skill</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Distill the sweep into a reusable skill (<code class="inline">skills/ci-green-sweep/</code>): recon recipe, failure taxonomy, per-bucket fix patterns, close-issues-when-green rule.</p>
+          <ul class="acceptance"><li class="acceptance__item">Skill committed; learnings documented</li></ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01-06 · unblocks future sweeps</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Wave 1 · parallel sub-agents</div><span class="pill pill--accent">01 · close-green</span><span class="pill pill--accent">02 · studio/portfolio</span><span class="pill pill--accent">03 · anime-api</span><span class="pill pill--accent">04 · discord/sweatvalley</span><span class="pill pill--accent">05 · homeapi/collector/ui/smoking</span><span class="pill pill--accent">06 · drafter</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · sequential</div><span class="pill pill--muted">07 · skill</span></div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">Every repo's latest deploy run is green</li>
+        <li class="acceptance__item">Every CI-failure issue closed (or open with a documented host-only blocker)</li>
+        <li class="acceptance__item">No stale worktrees left behind; no remote branches deleted</li>
+        <li class="acceptance__item">Final green report delivered to Gregor</li>
+        <li class="acceptance__item">ci-green-sweep skill created</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
