@@ -45,7 +45,7 @@ branch-protected merges or a Cloudflare decision; none are production-affecting.
 | HomeUI | 🟢 deploy | Deploy green; separate **E2E** workflow red on Allure upload (see #8 below) |
 | Portfolio | 🟢 deploy | same — Deploy green, E2E red on Allure upload |
 | discord | 🟢 | containers up; reworked safe deploy merged |
-| smoking-counter | ⏳→🟢 | safe-split PR #11 merged; deploy running (build-on-polaris) — confirming green |
+| smoking-counter | 🟢 deploy | **safe-split fix VALIDATED**: deploy job green, built on polaris, antares stayed at 10.3 GB free (no OOM). Run red only on `notify-success` (needs the same DISCORD_BOT_TOKEN passthrough as Anime-API) |
 | sweatvalley_bingo | 🔴 | **PR #12 ready but branch-protected — needs your review/merge** |
 | Drafter | 🔴 | **registry 413 (Cloudflare 100 MB cap) — needs your decision** |
 
@@ -63,8 +63,16 @@ branch-protected merges or a Cloudflare decision; none are production-affecting.
    `registry.922-studio.com`. Three Dockerfile layer-split attempts (PRs #25/#28/#30) didn't clear it.
    Decision needed: push via internal/Tailscale registry address (needs polaris insecure-registry host
    cfg) **or** raise the Cloudflare limit. Open issues: #23, #26, #27, #29 (the retry loop filed extras).
-4. **allure-ui** cosmetic recreate on antares (UI dashboard only; data-safe): `cd ~/HomeStructure/allure && docker compose up -d`.
-5. **discord #11** ("tests failed") — likely stale from the chaos; verify the latest Discord Bot Deploy is green and close.
+4. **Discord notify passthrough** — smoking-counter (and likely sweatvalley_bingo) still need
+   `DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}` added to their `notify-success`/`notify-failure`
+   jobs (the one-liner Anime-API PR #47 got). Their **deploys are green**; only the notify step reds the run.
+5. **allure-ui** cosmetic recreate on antares (UI dashboard only; data-safe): `cd ~/HomeStructure/allure && docker compose up -d`.
+6. **discord #11** ("tests failed") — likely stale from the chaos; verify the latest Discord Bot Deploy is green and close.
+
+## Validation that the fix works
+smoking-counter's reworked deploy (PR #11) ran end-to-end: **build on polaris ✓, push ✓, smoke ✓,
+deploy on antares ✓** — and antares held at **10.3 GB free, no OOM**. This proves the build-on-runner /
+pull-on-antares split is correct. sweatvalley_bingo (PR #12) uses the identical pattern; merging it is safe.
 
 ## Guardrails I held all night
 No builds on antares; one action at a time with verification; no destructive `down`/`--remove-orphans`
