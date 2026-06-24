@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: CI artifacts off GitHub — tests to Allure, runner logs to MinIO</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-06-24 · workflows · HomeStructure · frontend repos</span>
+      <h1>Get CI artifacts off GitHub: tests → Allure, runner execution detail → MinIO</h1>
+      <p class="lede">GitHub Actions artifact storage hit quota. Stop uploading any test artifacts to GitHub (all test diagnostics, including Playwright traces, live on the Allure server), and store only <em>runner execution detail</em> in a new dedicated MinIO bucket with 30-day retention, reached directly over Tailscale.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Status</strong><span>Deferred — not scheduled</span></div>
+        <div class="scope-item"><strong>Repos</strong><span>workflows, HomeStructure, frontend consumers</span></div>
+        <div class="scope-item"><strong>Branch</strong><code>feat/ci-artifacts-offload-minio</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>dev (per repo)</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">orchestrator/server.md</code> — cluster topology: MinIO on antares (<code class="inline">100.112.171.16</code>), 4 runners on polaris, S3 port 9000 not host-published today</li>
+        <li><code class="inline">HomeStructure/docs/services/minio.md</code> — MinIO access patterns, credentials (<code class="inline">~/HomeStructure/minio/.env</code>), bucket + <code class="inline">mc</code> management</li>
+        <li><code class="inline">HomeStructure/minio/docker-compose.yaml</code> — MinIO service definition (only <code class="inline">127.0.0.1:9001</code> published; <code class="inline">:9000</code> internal-only)</li>
+        <li><code class="inline">workflows/.github/workflows/frontend-e2e.yml</code> — uploads <code class="inline">playwright-artifacts</code> (failure) + <code class="inline">allure-e2e-results</code> (backup); also pushes to Allure server</li>
+        <li><code class="inline">workflows/.github/workflows/frontend-tests.yml</code> — uploads <code class="inline">test-results-*</code> (junit, cobertura, allure)</li>
+        <li><code class="inline">workflows/.github/workflows/python-tests.yml</code> — uploads <code class="inline">test-results</code> (allure + coverage.xml)</li>
+        <li><code class="inline">HomeStructure/.github/workflows/server-tests.yml</code> — uploads <code class="inline">allure-results-&lt;run_id&gt;</code> (30d)</li>
+        <li><code class="inline">workflows/.github/scripts/upload_allure_results.py</code> — existing Allure-server upload pattern (reuse for the MinIO push script)</li>
+        <li>Memory: <code class="inline">feedback_server_changes</code> (commit+push server config — CI overwrites manual edits), <code class="inline">feedback_server_independent_deploy_config</code> (no hardcoded host values), <code class="inline">incident_allure_upload_ipv6_hang</code> (IPv6/Happy-Eyeballs gotcha on uploads)</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="decisions">
+      <span class="eyebrow">Decisions locked</span>
+      <ul class="acceptance">
+        <li class="acceptance__item"><strong>No test artifacts on GitHub.</strong> Remove every <code class="inline">actions/upload-artifact</code> step, including Playwright traces — those attach to Allure instead.</li>
+        <li class="acceptance__item"><strong>MinIO bucket stores runner execution detail only</strong> (job logs + run metadata), 30-day lifecycle expiry.</li>
+        <li class="acceptance__item"><strong>Network path: direct over Tailscale</strong> — runners push to MinIO on antares's tailnet IP, bypassing Cloudflare's ~100MB body limit.</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="open-questions">
+      <span class="eyebrow">Open question to resolve in Step 01</span>
+      <ul>
+        <li><strong>What is "runner execution detail" exactly, and how to capture it?</strong> Two approaches:
+          <br/>• <em>(A) Inline final step</em> — a last job step assembles a JSON manifest (repo, run_id, run_attempt, job, runner host, commit, branch, event, conclusion, per-step durations, test summary) and pushes it to MinIO. Cheap, but cannot include the job's own complete live log (the job is still running).
+          <br/>• <em>(B) <code class="inline">workflow_run</code>-triggered archival</em> (recommended) — a separate reusable workflow fires when a CI run completes, calls <code class="inline">gh run view &lt;id&gt; --log</code> + <code class="inline">gh api</code> for timing/metadata, zips it, and pushes the complete bundle to MinIO. Gets the full log; one extra short job per run.</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>Design spike: define the runner-execution-detail bundle + capture mechanism</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Decide approach (A vs B above), the bundle contents, and the object key scheme (e.g. <code class="inline">s3://ci-runner-artifacts/&lt;repo&gt;/&lt;run_id&gt;/&lt;job&gt;/{metadata.json,job.log}</code>). Produce a short written decision doc; no code yet.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Repo</strong><span>workflows (design only)</span></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>05</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Bundle schema + object-key scheme documented</li>
+            <li class="acceptance__item">Capture approach chosen with rationale; downstream steps reference it</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">02</div>
+        <header class="plan-step__head"><h3>Provision MinIO bucket + 30d lifecycle + scoped CI access key</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>On antares MinIO: create <code class="inline">ci-runner-artifacts</code> (private — no anonymous policy), add an ILM expiry rule of 30 days, and create a dedicated access key restricted to that bucket (read/write only). Add the bootstrap as an idempotent script under <code class="inline">HomeStructure/minio/</code> and commit it (server config must be in git per <code class="inline">feedback_server_changes</code>). Reference: <code class="inline">mc mb</code>, <code class="inline">mc ilm rule add --expire-days 30</code>, <code class="inline">mc admin user add</code> + scoped policy from <code class="inline">minio.md</code>.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Repo</strong><span>HomeStructure (worktree → PR → dev)</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeStructure/minio/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Bucket exists, private; <code class="inline">mc ilm rule ls</code> shows 30-day expiry</li>
+            <li class="acceptance__item">Scoped key works for that bucket and is denied elsewhere</li>
+            <li class="acceptance__item">Bootstrap script committed + pushed; re-runnable</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">03</div>
+        <header class="plan-step__head"><h3>Expose MinIO S3 API to the tailnet</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Publish MinIO <code class="inline">:9000</code> bound to antares's Tailscale interface only (<code class="inline">100.112.171.16:9000:9000</code>), not <code class="inline">0.0.0.0</code>, so it stays private to the tailnet and never hits Cloudflare. Edit <code class="inline">HomeStructure/minio/docker-compose.yaml</code>, commit + push, redeploy. Verify from polaris: <code class="inline">curl http://100.112.171.16:9000/minio/health/live</code>. Note the host-IP coupling tension with <code class="inline">feedback_server_independent_deploy_config</code> — acceptable since MinIO only runs on antares; if preferred, source the IP from a HomeStructure config var.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Repo</strong><span>HomeStructure (worktree → PR → dev)</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeStructure/minio/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Health endpoint reachable from a polaris runner over Tailscale</li>
+            <li class="acceptance__item">Port not exposed on public/0.0.0.0 interfaces (verify with <code class="inline">ss -tlnp</code>)</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 02 · unblocks 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">04</div>
+        <header class="plan-step__head"><h3>Remove all test-artifact uploads to GitHub</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Delete every <code class="inline">actions/upload-artifact</code> step across the three reusable workflows and <code class="inline">server-tests.yml</code>: <code class="inline">playwright-artifacts</code> + <code class="inline">allure-e2e-results</code> (e2e), <code class="inline">test-results-*</code> (frontend), <code class="inline">test-results</code> (python), <code class="inline">allure-results-&lt;run_id&gt;</code> (HomeStructure). Keep the existing Allure-server upload and Pushgateway steps untouched. Confirm no downstream job consumes these artifacts via <code class="inline">download-artifact</code>.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Repos</strong><span>workflows + HomeStructure (worktree → PR → dev each)</span></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Zero <code class="inline">upload-artifact</code> steps remain in the four workflows</li>
+            <li class="acceptance__item">No <code class="inline">download-artifact</code> reference orphaned</li>
+            <li class="acceptance__item">A test CI run shows no artifacts produced and stays green</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 05 · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>Ensure Playwright diagnostics land in Allure</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Before removing the Playwright artifact upload, confirm traces/screenshots/videos are attached to Allure so nothing is lost. Audit each e2e-consuming frontend repo's <code class="inline">playwright.config.ts</code>: <code class="inline">use: { trace: 'retain-on-failure', screenshot: 'only-on-failure', video: 'retain-on-failure' }</code> and the <code class="inline">allure-playwright</code> reporter enabled (it attaches these to the result). Enumerate consumers from <code class="inline">registry.md</code>. Fix any repo missing the attachment config.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Repos</strong><span>each frontend e2e consumer (worktree → PR → dev)</span></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>01</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Every consumer's Playwright config attaches trace/screenshot/video on failure</li>
+            <li class="acceptance__item">A forced e2e failure shows the trace attached in the Allure report</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 04</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">06</div>
+        <header class="plan-step__head"><h3>Push runner execution detail to MinIO</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Implement the capture chosen in Step 01. Add a script (model it on <code class="inline">upload_allure_results.py</code>) that uploads the bundle to <code class="inline">ci-runner-artifacts</code> via the S3 API at <code class="inline">http://100.112.171.16:9000</code> using the scoped key, with the key scheme from Step 01. Store endpoint as a CI <em>variable</em> and access key/secret as CI <em>secrets</em> (never inline). Guard against the IPv6 Happy-Eyeballs hang seen in <code class="inline">incident_allure_upload_ipv6_hang</code> (force IPv4 / short timeout). Wire it into the workflows (approach A) or a new <code class="inline">workflow_run</code> archival workflow (approach B).</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Repo</strong><span>workflows (worktree → PR → dev)</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>workflows/.github/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">A completed CI run deposits a runner-detail bundle under the run's key in MinIO</li>
+            <li class="acceptance__item">Objects auto-expire after 30 days (ILM verified)</li>
+            <li class="acceptance__item">Credentials sourced from CI secrets/vars; nothing hardcoded</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01, 02, 03 · unblocks 07</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">07</div>
+        <header class="plan-step__head"><h3>Docs</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Update <code class="inline">HomeStructure/docs/services/minio.md</code> (new bucket row, tailnet S3 endpoint, ILM note) and <code class="inline">orchestrator/server.md</code>/CI docs to record that test artifacts no longer hit GitHub and runner detail lives in MinIO. Note the CI secret/var names for the MinIO key.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Repos</strong><span>HomeStructure + orchestrator</span></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">minio.md lists <code class="inline">ci-runner-artifacts</code> + tailnet endpoint + 30d ILM</li>
+            <li class="acceptance__item">server.md reflects the new CI artifact topology</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 06 · unblocks —</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Wave 1 · parallel</div><span class="pill pill--accent">01 · design spike</span><span class="pill pill--accent">05 · playwright→allure audit</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · sequential (HomeStructure infra)</div><span class="pill pill--muted">02 · bucket + ILM + key</span><span class="pill pill--muted">03 · tailnet expose</span></div>
+      <div class="wave"><div class="wave__label">Wave 3 · parallel</div><span class="pill pill--accent">04 · remove GitHub uploads</span><span class="pill pill--accent">06 · push runner detail</span></div>
+      <div class="wave"><div class="wave__label">Wave 4</div><span class="pill pill--muted">07 · docs</span></div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">No GitHub Actions artifacts produced by any CI run; quota pressure gone</li>
+        <li class="acceptance__item">Playwright failure diagnostics verified present in Allure</li>
+        <li class="acceptance__item">Runner-detail bundles land in MinIO and expire at 30 days</li>
+        <li class="acceptance__item">Server config changes committed + pushed (not just applied on the host)</li>
+        <li class="acceptance__item">Docs updated; PR URLs reported; worktrees removed (remote branches preserved)</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
