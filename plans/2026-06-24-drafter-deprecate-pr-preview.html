@@ -11,8 +11,9 @@
 
   <main class="shell">
     <header class="plan-cover">
-      <span class="eyebrow">2026-06-24 · Drafter + workflows</span>
+      <span class="eyebrow">2026-06-24 · Drafter + workflows · DONE (2026-06-24)</span>
       <h1>Deprecate Drafter PR Preview + cleanup builds/images</h1>
+      <p class="lede" style="color:#b00"><strong>Executed 2026-06-24.</strong> PRs: Drafter#34, workflows#10 (merge #34 first). Images pruned (~8.5 GB host) + registry healed after a GC incident (see note). Stale PR#4 closed; JWT_SHARED_SECRET repo secret added. INCIDENT: `registry garbage-collect --delete-untagged` stripped OCI/buildx layer blobs registry-wide; recovered by re-pushing local images. Never run that GC flag again (memory recorded).</p>
       <p class="lede">Remove the per-PR Docker preview stack (caller + shared reusable workflow), preserve E2E coverage by retargeting it at the existing dev environment, and prune stale build images, registry tags, failed runs, and the superseded PR.</p>
       <div class="scope-bar">
         <div class="scope-item"><strong>Projects</strong><span>Drafter, workflows</span></div>
