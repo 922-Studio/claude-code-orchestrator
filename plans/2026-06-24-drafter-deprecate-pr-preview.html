@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: Deprecate Drafter PR Preview + cleanup builds/images</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-06-24 · Drafter + workflows</span>
+      <h1>Deprecate Drafter PR Preview + cleanup builds/images</h1>
+      <p class="lede">Remove the per-PR Docker preview stack (caller + shared reusable workflow), preserve E2E coverage by retargeting it at the existing dev environment, and prune stale build images, registry tags, failed runs, and the superseded PR.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Projects</strong><span>Drafter, workflows</span></div>
+        <div class="scope-item"><strong>Branches</strong><code>feat/deprecate-pr-preview</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>dev</span></div>
+        <div class="scope-item"><strong>Trigger</strong><span>PR Preview fails on every run; only consumer is Drafter</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">projects/drafter.md</code> — Drafter mapping, pipeline, preview line to remove</li>
+        <li><code class="inline">Drafter/.github/workflows/pr-demo.yml</code> — caller (deploy-preview, e2e-tests, cleanup-preview, notify)</li>
+        <li><code class="inline">Drafter/.github/workflows/deploy.yml</code> — main pipeline; reference for notify wiring + dev env</li>
+        <li><code class="inline">workflows/.github/workflows/pr-demo.yml</code> + <code class="inline">workflows/.github/scripts/pr-demo.sh</code> — shared reusable stack (Drafter is sole consumer)</li>
+        <li><code class="inline">Drafter/playwright.config.ts</code> — reads <code class="inline">BASE_URL</code>; default <code class="inline">localhost:3000</code></li>
+        <li><code class="inline">Drafter/README.md:205</code>, <code class="inline">Drafter/docs/MVP-Scope.md:58,85</code> — doc references</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>Drafter: remove PR-preview caller, retarget E2E at dev, update docs</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Delete the preview/cleanup/notify jobs from <code class="inline">.github/workflows/pr-demo.yml</code>. Replace the file with a lean PR-triggered <code class="inline">e2e.yml</code> that runs Playwright against the live dev env (<code class="inline">BASE_URL=https://drafter-dev.922-studio.com</code>) on <code class="inline">opened/reopened/synchronize</code> — no preview deploy, no per-PR container. Keep Discord success/failure notify wired to the same channel. Remove the README preview line and mark/remove the two MVP-Scope preview items.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>Drafter</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>/Users/gregor/dev/922/Drafter</code></div>
+            <div class="meta-row"><strong>Worktree</strong><code>Drafter/.worktrees/feat-deprecate-pr-preview</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>02 (dev), sequential merge after 01)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">No workflow references the shared <code class="inline">pr-demo.yml</code>; no <code class="inline">pull_request: closed</code> cleanup job remains</li>
+            <li class="acceptance__item">New <code class="inline">e2e.yml</code> runs <code class="inline">pnpm test:e2e</code> against drafter-dev; secrets (JWT_SHARED_SECRET, DISCORD_BOT_TOKEN) wired</li>
+            <li class="acceptance__item">README:205 + MVP-Scope:58,85 no longer claim PR previews exist</li>
+            <li class="acceptance__item">PR opened against <code class="inline">dev</code>, CI green (E2E passes against dev), URL reported</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 02</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">02</div>
+        <header class="plan-step__head"><h3>workflows: delete the dead shared pr-demo stack</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Once 01 is merged (Drafter no longer calls it), delete <code class="inline">.github/workflows/pr-demo.yml</code> and <code class="inline">.github/scripts/pr-demo.sh</code>. Grep the whole ecosystem first to re-confirm zero remaining consumers. Remove any pr-demo mention from the workflows README/catalog.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>workflows</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>/Users/gregor/dev/922/workflows</code></div>
+            <div class="meta-row"><strong>Worktree</strong><code>workflows/.worktrees/feat-deprecate-pr-demo</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>— (merge after 01)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">grep -r pr-demo /Users/gregor/dev/922</code> returns no consumer outside this repo before deletion</li>
+            <li class="acceptance__item">Both files removed; no other reusable workflow references them</li>
+            <li class="acceptance__item">PR opened against <code class="inline">dev</code>, CI green, URL reported</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks 03,04</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">03</div>
+        <header class="plan-step__head"><h3>Cleanup: prune stale images on polaris + antares, GC registry</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>On polaris remove build images <code class="inline">drafter:dev-v1.3.3…v1.3.8</code>; on antares remove <code class="inline">dev-v0.2.2…v0.2.5</code>, <code class="inline">dev-v1.0.3</code>, <code class="inline">dev-v1.3.1</code> and orphan compose images <code class="inline">drafter-drafter:latest</code>, <code class="inline">drafter-dev-drafter:latest</code>. Keep the live <code class="inline">:dev</code> tag + its matching version tag on each host. Verify no preview containers/images (<code class="inline">drafter_pr_*</code>, <code class="inline">drafter-pr-*</code>) anywhere; remove <code class="inline">/tmp/drafter-pr*</code> state dirs if present. Run registry garbage-collection for dangling drafter blobs.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>infra (polaris, antares, registry)</span></div>
+            <div class="meta-row"><strong>Access</strong><code>ssh polaris · ssh antares</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>04, 05</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Only current <code class="inline">:dev</code> + matching version tag remain per host; live <code class="inline">drafter</code>/<code class="inline">drafter_dev</code> stay healthy</li>
+            <li class="acceptance__item">No <code class="inline">drafter_pr_*</code> containers, images, or <code class="inline">/tmp/drafter-pr*</code> state remain</li>
+            <li class="acceptance__item">Registry GC run; reclaimed space noted. NEVER run heavy promtool/TSDB ops on antares (OOM risk)</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 02 · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">04</div>
+        <header class="plan-step__head"><h3>Cleanup: failed PR-Preview runs + close superseded PR #4</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Delete the failed <code class="inline">Drafter PR Preview</code> workflow runs (all conclusion=failure noise) via <code class="inline">gh run delete</code>. Update/close any stale preview PR comments. Close PR #4 (<code class="inline">feat/minio-s3-setup</code>, March, superseded by merged #10 minio-integration) with a short explanatory comment; do NOT delete its branch. Leave #32 (active deploy work) untouched.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>Drafter (GitHub)</span></div>
+            <div class="meta-row"><strong>Tooling</strong><code>gh run list/delete · gh pr close</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>03, 05</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">No lingering <code class="inline">Drafter PR Preview</code> runs in the Actions history</li>
+            <li class="acceptance__item">PR #4 closed with comment; branch preserved; #32 left open</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 02 · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>Orchestrator: update drafter.md mapping</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>In <code class="inline">projects/drafter.md</code> remove the PR Previews line (62) and the pr-demo entry in the Workflows dependency list (67); note E2E now runs against dev on PRs. Commit directly to the orchestrator repo (no worktree/PR per repo exception).</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>orchestrator</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>/Users/gregor/dev/922/orchestrator</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>03, 04</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">drafter.md no longer advertises PR previews; pipeline section reflects dev-targeted E2E</li>
+            <li class="acceptance__item">Committed (and pushed when asked)</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks —</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Wave 1 · code deprecation (sequential merge)</div><span class="pill pill--accent">01 · Drafter caller + E2E retarget + docs</span><span class="pill pill--muted">02 · workflows shared stack (after 01)</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · cleanup (parallel, after 02)</div><span class="pill pill--accent">03 · images + registry GC</span><span class="pill pill--accent">04 · failed runs + PR #4</span><span class="pill pill--accent">05 · orchestrator docs</span></div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">E2E coverage survives (runs against drafter-dev on PRs); no preview infra referenced anywhere</li>
+        <li class="acceptance__item">Docs updated (Drafter README + MVP-Scope, orchestrator drafter.md)</li>
+        <li class="acceptance__item">Both PRs green and merged to dev; PR URLs reported as clickable links</li>
+        <li class="acceptance__item">Stale images/tags pruned, registry GC'd, failed runs deleted, PR #4 closed</li>
+        <li class="acceptance__item">Worktrees removed; remote branches preserved</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
