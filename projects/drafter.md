@@ -57,14 +57,14 @@
   - Dev: `drafter-dev.922-studio.com` (container: `drafter_dev`, port 3000 internal)
 - **Server paths**: `~/Drafter` (prod, dev branch), `~/Drafter-dev` (dev branch)
 - **Auth**: Traefik forward-auth via HomeAuth (public routes: /, /login, /_next, /api/health)
-- **PR Previews**: Docker-based via pr-demo workflow, Tailscale access (port 9100+PR#)
+- **PR E2E**: Playwright runs against the dev environment (`drafter-dev.922-studio.com`) on every PR via the `e2e` workflow (PR previews deprecated 2026-06-24 — pr-demo stack removed from Drafter and the shared workflows repo)
 - **Monitor after push**: Discord notifications, GitHub issue on failure
 
 ## Dependencies on Other Projects
 - **HomeAuth**: JWT shared secret, Traefik forward-auth for protected routes
 - **HomeStructure**: Shared PostgreSQL (shared_postgres), Traefik routing, Cloudflare tunnel
 - **MinIO**: Object storage for media uploads (S3-compatible, `minio:9000` on `infra` network)
-- **Workflows**: Uses reusable CI/CD workflows (versioning, frontend-tests, deploy-docker, pr-demo, send-notification)
+- **Workflows**: Uses reusable CI/CD workflows (versioning, frontend-tests, deploy-docker, send-notification)
 
 ## App Routes
 - **(app)/**: branding, calendar, dashboard, media, posts, timeline
