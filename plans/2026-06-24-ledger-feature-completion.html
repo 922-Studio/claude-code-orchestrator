@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: Ledger Feature Completion — MCP, Overview, Sheet Sync, Reverse-Sync</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-06-24 · HomeAPI · HomeUI · workflows</span>
+      <h1>Ledger Feature Completion</h1>
+      <p class="lede">Make the finance/ledger feature fully working, fully tested, and production-ready: a personal local MCP, a clean per-person overview, a Google&nbsp;Sheet backup, and a new per-person manual-entry sheet that syncs back into the app — without ever losing invoicing data.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Projects</strong><span>HomeAPI · HomeUI · workflows</span></div>
+        <div class="scope-item"><strong>Base branch</strong><code>dev</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>dev</span></div>
+        <div class="scope-item"><strong>Goal</strong><span>dev stable → promote to prod</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">projects/homeapi.md</code>, <code class="inline">projects/homeui.md</code> — project mappings &amp; best practices</li>
+        <li><code class="inline">HomeAPI/app/{models,routers,crud,schemas,services}/…/{debt,person,invoice,gsheets}</code> — ledger + sync domain</li>
+        <li><code class="inline">HomeAPI/.github/workflows/deploy.yml</code> + <code class="inline">workflows/.github/workflows/generate-mcp.yml</code> — MCP generation</li>
+        <li><code class="inline">HomeUI/src/features/{debts,finance}/</code>, <code class="inline">src/api/{debts,persons}.ts</code> — ledger UI + data layer</li>
+        <li><code class="inline">server.md</code> + <code class="inline">~/HomeStructure/docs/</code> — infra, cron_jobs, Celery beat, prod deploy</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ============ FINDINGS ============ -->
+    <section id="findings">
+      <span class="eyebrow">Current state on dev — what the analysis found</span>
+      <div class="card-grid">
+        <div class="card"><div class="card-body">
+          <div class="card-title">Backend ledger — solid core, integrity gaps</div>
+          <p>Confirmed <strong>dated-money model</strong>: <code class="inline">DebtTransaction</code> = <code class="inline">amount</code> + <code class="inline">transaction_date</code> + <code class="inline">person_id</code> (legacy <code class="inline">person_name</code>). “Times” = transaction dates, no hours/duration. <code class="inline">Person</code> + immutable <code class="inline">Invoice</code> layers exist. <span class="pill pill--warning">risk</span> hard-delete (no audit), no POST idempotency, summary double-counts during the name→FK migration, concurrent first-debt for a new person can 500.</p>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <div class="card-title">GSheets — backup done, reverse-sync unsafe</div>
+          <p>DB→Sheet backup <span class="pill pill--success">done</span>: daily 03:00 via <code class="inline">cron_jobs</code>, full-replace per tab, on-write debounce. Sheet→DB exists only as a generic manual upsert-by-<code class="inline">id</code> endpoint that <strong>skips blank-id rows, does no type coercion, and is wiped by the next backup <code class="inline">clear()</code></strong>. Not viable for manual entry as-is.</p>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <div class="card-title">MCP — exists but not personal-usable</div>
+          <p>A working FastMCP stdio server lives on antares (150 tools, 8 finance/ledger) but is <strong>server-side-only, hand-patched, not reproducible from a clean pipeline, and built against API v0.64.8</strong> (dev is v0.71.0). Pipeline gated to prod only. No local stdio path for your Claude client.</p>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <div class="card-title">Frontend — overview good, tree dirty</div>
+          <p>Per-person panel + trend chart already exist. <span class="pill pill--error">blocker</span> HomeUI is on <code class="inline">feat/finance-invoice-overhaul</code> with a <strong>broken staged <code class="inline">AddDebtPage.tsx</code></strong> (won't compile); a finished <code class="inline">feat/finance-quick-add</code> branch is stranded with no PR. The backend <code class="inline">/persons/{name}/history</code> endpoint (running balance, first/last dates) is <strong>unused</strong> — UI re-derives it client-side from 500 rows.</p>
+        </div></div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ============ DECISIONS ============ -->
+    <section id="decisions">
+      <span class="eyebrow">Design decisions &amp; recommendations</span>
+      <ul class="acceptance">
+        <li class="acceptance__item"><strong>MCP = personal-only local stdio</strong> (your choice). Run the generated FastMCP server locally against dev (then prod) with your own bearer token + <code class="inline">X-Org-ID</code>; register in your local Claude config. No new hosted service, no Traefik/monitoring work. Make generation reproducible so the local and prod servers are rebuildable.</li>
+        <li class="acceptance__item"><strong>Reverse-sync authority = app is source of truth; sheet is an append-only input surface</strong> (recommended). The per-person manual-entry sheet is a <em>separate surface</em> from the backup mirror and is never <code class="inline">clear()</code>ed. Import mints UUIDs for blank-id rows, validates+coerces types, resolves person, then writes the assigned id + a “synced ✓” marker back so rows are imported exactly once. This sidesteps the destructive-export data-loss trap entirely.</li>
+        <li class="acceptance__item"><strong>“100% tested” = full coverage on money-touching modules</strong> (ledger/person/invoice CRUD+routers+schemas+services, both sync directions, MCP finance tools), not 100% repo-wide. CI global gate stays 70%; the invoicing-critical paths get exhaustive unit + integration + data-loss + idempotency tests.</li>
+        <li class="acceptance__item"><strong>Finish the debts→ledger rename</strong> (recommended) to remove the dual-module confusion — bundled into the frontend phase; can be deferred if churn is unwelcome.</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ============ STEPS ============ -->
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+
+      <!-- PHASE 0 -->
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>Stabilize the baseline — land quick-add, clean the tree</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Open a PR for the stranded <code class="inline">feat/finance-quick-add</code> branch into <code class="inline">dev</code> (it's complete + tested), merge it, then discard the broken staged <code class="inline">AddDebtPage.tsx</code> on the overhaul branch. Fast-forward local HomeAPI <code class="inline">dev</code> to <code class="inline">origin/dev</code>. End state: both repos on a clean, compiling, green <code class="inline">dev</code>.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Projects</strong><span>HomeUI (primary) · HomeAPI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>/Users/gregor/dev/922/HomeUI</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>— (blocking gate)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">quick-add PR merged to <code class="inline">dev</code>; broken staged file gone; <code class="inline">tsc</code> + lint + unit + E2E green on dev</li>
+            <li class="acceptance__item">HomeAPI local <code class="inline">dev</code> == <code class="inline">origin/dev</code>; no stray worktrees referenced by the plan</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 02–07</footer>
+      </article>
+
+      <!-- PHASE 1 — backend hardening -->
+      <article class="plan-step">
+        <div class="plan-step__num">02</div>
+        <header class="plan-step__head"><h3>Soft-delete + audit trail for ledger transactions</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Replace the hard <code class="inline">db.delete</code> in <code class="inline">crud/debt.py</code> with a <code class="inline">deleted_at</code> soft-delete (Alembic migration), exclude deleted rows from list/summary/history/invoice computation, and record an audit entry. Deleting a transaction must never silently rewrite historical balances with no trace.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeAPI/app/{models,crud,routers/finance}</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>06, 08, 11 (different repos/domains)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">No hard deletes of <code class="inline">debt_transactions</code>; soft-delete migration + reversible; deleted rows excluded everywhere</li>
+            <li class="acceptance__item">Audit record on delete; 100% coverage on the new paths + migration test</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks 09</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">03</div>
+        <header class="plan-step__head"><h3>Idempotency + concurrency safety on writes</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Add idempotency keys to <code class="inline">POST /ledger/</code> and <code class="inline">POST /invoices/</code> (client key → dedupe within org) so retries don't create duplicate transactions/invoices. Catch <code class="inline">IntegrityError</code> on the concurrent first-debt person-auto-create path so it 409/looks-up instead of 500.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeAPI/app/routers/finance · app/crud</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>06, 08, 11</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Duplicate POST with same idempotency key returns the original resource, no second row</li>
+            <li class="acceptance__item">Concurrent first-debt for a new person never 500s; tests cover the race</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks 09</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">04</div>
+        <header class="plan-step__head"><h3>Consolidate person identity — kill double-counting</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Finish the <code class="inline">person_name</code>→<code class="inline">person_id</code> migration: backfill remaining rows, add a guard/report for blank/whitespace names that can't be attributed, switch the public per-person history endpoint to the FK-keyed variant, and make <code class="inline">get_debt_summary</code> group by person identity so a person with mixed FK/non-FK rows is one line, not two.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeAPI/app/crud/debt.py · routers/finance/ledger.py · alembic</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>06, 08, 11</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Summary never double-counts a person; per-person history keyed by <code class="inline">person_id</code></li>
+            <li class="acceptance__item">Unattributable-row report exists; migration tested; 100% coverage on summary/history</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks 06, 09</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>Backend finance test suite → 100% on money paths</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Close the coverage gaps the analysis found: thin debt-schema tests (response/summary/history schemas), the real create→set-person_id→flush sequence end-to-end, migration backfill correctness, invoice-number advisory-lock contention, surplus-credit / net-credit invoice edge cases.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeAPI/tests/{unit,integration}</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>06, 08, 11</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">100% line+branch coverage on ledger/person/invoice models, schemas, crud, routers, services</li>
+            <li class="acceptance__item">Migration + concurrency + invoice-edge tests added; CI green</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 02, 03, 04 · unblocks 12</footer>
+      </article>
+
+      <!-- PHASE 2 — frontend -->
+      <article class="plan-step">
+        <div class="plan-step__num">06</div>
+        <header class="plan-step__head"><h3>Per-person overview backed by the server endpoint</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Add an API fn + Zod schema (<code class="inline">DebtPersonHistoryResponse</code>) + <code class="inline">queryOptions</code> + hook for <code class="inline">GET /api/finance/ledger/persons/{…}/history</code>, and a dedicated per-person detail route/page (running balance, first/last dates, full history server-side) — replacing the client-side 500-row fetch-and-group. Wire <code class="inline">PATCH</code> to allow editing a transaction.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/src/{api,features/finance,App.tsx}</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>02–05 (backend), 08, 11</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Per-person page uses the server endpoint; no client-side balance derivation</li>
+            <li class="acceptance__item">Edit-transaction works; unit + E2E tests cover the page + edit + delete happy path</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 (FK history: 04) · unblocks 07</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">07</div>
+        <header class="plan-step__head"><h3>Clean overview polish + finish debts→ledger rename</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Polish the ledger overview (timeline/“times” by transaction date, totals, date-range filter), and complete the code-symbol rename debts→ledger (module path, query keys) so there's one coherent finance/ledger module. Add the missing E2E for the date-range filter.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/src/features/{debts→finance}</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>02–05, 08, 11</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Single coherent ledger module; overview shows per-person + timeline + totals + filters</li>
+            <li class="acceptance__item">Unit + E2E green; 70% gate held, key flows fully covered</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 06 · unblocks 12</footer>
+      </article>
+
+      <!-- PHASE 3 — backup hardening -->
+      <article class="plan-step">
+        <div class="plan-step__num">08</div>
+        <header class="plan-step__head"><h3>Harden + verify the DB→Sheet backup (Goal A)</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Confirm the <code class="inline">sync-all-sheets</code> cron_job is enabled and firing; add the missing tests: the cron→poller→task dispatch path, the export-header↔import-key round-trip contract, and typed import coercion for <code class="inline">debt_transactions</code> (Decimal/Date/FK).</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeAPI/app/{services,helpers,tasks,routers/sync.py} · tests</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>02–07, 11</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Daily backup verified live; cron-path + round-trip + coercion tests added</li>
+            <li class="acceptance__item">100% coverage on the sync export path</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks 09</footer>
+      </article>
+
+      <!-- PHASE 4 — reverse sync -->
+      <article class="plan-step">
+        <div class="plan-step__num">09</div>
+        <header class="plan-step__head"><h3>Reverse-sync import service — safe Sheet→DB for ledger</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Build a ledger-specialized import on a <strong>separate append-only per-person input surface</strong> (distinct from the backup mirror, never <code class="inline">clear()</code>ed): blank-id → mint UUID, coerce + validate <code class="inline">amount</code>/<code class="inline">transaction_date</code>, resolve/auto-create <code class="inline">Person</code> within org, reject malformed rows with a per-row error report, then write the assigned id + “synced ✓” marker back so each row imports exactly once (idempotent).</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeAPI/app/{services/gsheets.py,helpers/gsheets.py,routers/sync.py}</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>11</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Manual sheet row → validated DB transaction with minted UUID + write-back marker; re-import is a no-op</li>
+            <li class="acceptance__item">Malformed rows rejected with clear per-row errors; org/FK validated; never imports into wrong org</li>
+            <li class="acceptance__item">Backup export provably cannot wipe un-imported input rows (separate surface); 100% coverage incl. data-loss scenarios</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 02, 03, 04, 08 · unblocks 10</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">10</div>
+        <header class="plan-step__head"><h3>Schedule + trigger the reverse-sync</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Wire a scheduled import via a <code class="inline">cron_jobs</code> row (poll the input surface) ordered <em>before</em> the backup export, plus a manual trigger endpoint. Discord notify on imported/failed rows. Confirm import-then-export ordering so manual entries are always persisted before any export runs.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeAPI/app/{tasks,routers/sync.py} · alembic (cron seed)</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>11</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Scheduled import runs + reports; import strictly precedes export in the daily cycle</li>
+            <li class="acceptance__item">End-to-end test: write row in sheet fixture → appears in DB → marked synced → survives export</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 09 · unblocks 12</footer>
+      </article>
+
+      <!-- PHASE 5 — MCP -->
+      <article class="plan-step">
+        <div class="plan-step__num">11</div>
+        <header class="plan-step__head"><h3>Personal local MCP — reproducible + connectable</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Make MCP generation reproducible: commit the generator support files (<code class="inline">api_client_httpx.py</code>, <code class="inline">patch_api_methods.py</code>) and the <code class="inline">HOMEAPI_ORG_ID</code> patch into the <code class="inline">workflows</code>/generator repo. Produce a committed local stdio run path that generates from the dev <code class="inline">openapi.json</code> and runs against dev (then prod) with your personal bearer token + <code class="inline">X-Org-ID</code>; register it in your local Claude config. Document usage in HomeAPI and register the MCP in <code class="inline">server.md</code>.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Projects</strong><span>workflows · HomeAPI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>workflows/ · HomeAPI/scripts/mcp · server.md</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>02–10 (after API shape settles: 03/04)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Clean run reproduces a working server; local stdio MCP connects from your Claude client and lists finance/ledger tools</li>
+            <li class="acceptance__item">A finance/ledger tool round-trips against dev; smoke test + docs + server.md entry added</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 (current API: 03, 04) · unblocks 12</footer>
+      </article>
+
+      <!-- PHASE 6 — prod -->
+      <article class="plan-step">
+        <div class="plan-step__num">12</div>
+        <header class="plan-step__head"><h3>Promote to production</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>With dev green and every money path tested: promote <code class="inline">dev</code>→prod for HomeAPI + HomeUI, run migrations, regenerate the prod MCP (now reproducible), enable the reverse-sync cron in prod, and verify each goal live (backup export, manual-entry round-trip, per-person overview, MCP from your client). Update HomeCollector uptime + HomeAPI versioning if any contract surface changed.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Projects</strong><span>HomeAPI · HomeUI · HomeStructure</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>each repo · server (ssh antares)</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>— (final wave)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Prod migrations applied cleanly; all four goals verified live in prod</li>
+            <li class="acceptance__item">Prod MCP regenerated from pipeline (not hand-patched); monitoring/versioning updated</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 05, 07, 10, 11 · unblocks —</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ============ EXECUTION OVERVIEW ============ -->
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Wave 0 · blocking gate</div><span class="pill pill--accent">01 · stabilize baseline</span></div>
+      <div class="wave"><div class="wave__label">Wave 1 · parallel across repos/domains</div>
+        <span class="pill pill--accent">02→03→04→05 · backend hardening (HomeAPI, sequential)</span>
+        <span class="pill pill--accent">06→07 · ledger UI (HomeUI, sequential)</span>
+        <span class="pill pill--accent">08 · backup hardening (HomeAPI)</span>
+        <span class="pill pill--accent">11 · personal MCP (workflows/HomeAPI)</span>
+      </div>
+      <div class="wave"><div class="wave__label">Wave 2 · reverse-sync (after 02–04, 08)</div>
+        <span class="pill pill--muted">09 → 10</span>
+      </div>
+      <div class="wave"><div class="wave__label">Wave 3 · production</div>
+        <span class="pill pill--muted">12 · promote &amp; verify</span>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">All tests pass; 100% coverage on money-touching modules + both sync directions + MCP finance tools</li>
+        <li class="acceptance__item">Docs updated (HomeAPI MCP usage, reverse-sync sheet layout, server.md MCP entry)</li>
+        <li class="acceptance__item">CI pipeline green on dev for every repo before promotion</li>
+        <li class="acceptance__item">PR URLs reported back as clickable links; worktrees removed, remote branches preserved</li>
+        <li class="acceptance__item">All four goals verified live in prod; no data-loss path remains for invoicing data</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
