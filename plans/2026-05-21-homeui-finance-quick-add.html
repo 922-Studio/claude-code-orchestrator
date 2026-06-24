@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: HomeUI · Finance Quick-Add (Debt &amp; Person)</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-05-21 · HomeUI</span>
+      <h1>Finance Quick-Add: Debt &amp; Person</h1>
+      <p class="lede">Add one-click "New debt" affordances to the Finance overview and Ledger pages, plus a dedicated <code class="inline">/finance/add</code> page, and surface "New person" alongside it — backed by existing HomeAPI endpoints.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Project</strong><span>HomeUI</span></div>
+        <div class="scope-item"><strong>Branch</strong><code>feat/finance-quick-add</code></div>
+        <div class="scope-item"><strong>Worktree</strong><code>HomeUI/.worktrees/feat-finance-quick-add</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>main</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">orchestrator/projects/homeui.md</code> — feature-scoped modules, React Query patterns, Tailwind + CVA conventions</li>
+        <li><code class="inline">HomeUI/CLAUDE.md</code> — new-feature checklist, naming, testing rules</li>
+        <li><code class="inline">HomeUI/src/features/debts/pages/LedgerPage.tsx</code> — page that currently lacks an add affordance</li>
+        <li><code class="inline">HomeUI/src/features/finance/pages/FinanceOverviewPage.tsx</code> — overview that currently lacks an add affordance</li>
+        <li><code class="inline">HomeUI/src/features/debts/components/DebtNLInput.tsx</code> — existing NL parse flow, unused, schema mismatch to fix</li>
+        <li><code class="inline">HomeUI/src/api/debts.ts</code> + <code class="inline">src/types/api/debts.ts</code> — note <code class="inline">DebtCreateSchema</code> uses <code class="inline">person</code> while backend expects <code class="inline">person_name</code></li>
+        <li><code class="inline">HomeUI/src/api/persons.ts</code> — already-wired Persons CRUD, no UI consumers yet</li>
+        <li><code class="inline">HomeAPI/app/routers/finance/ledger.py</code> — POST /api/finance/ledger/ contract; auto-creates Person on unknown name</li>
+        <li><code class="inline">HomeUI/src/components/ui/dialog.tsx</code> — Radix dialog wrapper available for modal forms</li>
+      </ul>
+    </section>
+
+    <section id="findings">
+      <span class="eyebrow">Current-state findings</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">Ledger empty-state tells the user to "add first entry" but no button or affordance exists anywhere on the page.</li>
+        <li class="acceptance__item"><code class="inline">DebtNLInput</code> is built and styled but not imported in <code class="inline">App.tsx</code> nor in any page — it currently ships as dead code.</li>
+        <li class="acceptance__item">Persons API + Zod schemas already exist (<code class="inline">src/api/persons.ts</code>, <code class="inline">src/types/api/person.ts</code>); no list view, no create form, no hook layer.</li>
+        <li class="acceptance__item"><code class="inline">DebtCreateSchema</code> in TS uses keys <code class="inline">person</code>/<code class="inline">date</code> but the backend POST expects <code class="inline">person_name</code>/<code class="inline">transaction_date</code>. Any structured create form must use the backend's keys; existing parser flow needs a mapping fix.</li>
+        <li class="acceptance__item">Backend auto-creates a <code class="inline">Person</code> on unknown <code class="inline">person_name</code>, so "add debt" implicitly covers "add person" for the common path. A standalone person-create form is only needed when Gregor wants to seed people before any debt exists (e.g. roster management).</li>
+      </ul>
+    </section>
+
+    <section id="mockup">
+      <span class="eyebrow">Mockup — three entry points, one shared form</span>
+      <p>Single source of truth: a <code class="inline">QuickAddDebtDialog</code> component (modal). It is opened from three places:</p>
+      <ol>
+        <li><strong>Finance overview header</strong> — primary "New debt" button next to the page title; secondary "New person" link.</li>
+        <li><strong>Ledger page header</strong> — same two buttons, plus an inline empty-state CTA when no transactions exist.</li>
+        <li><strong>Dedicated route</strong> <code class="inline">/finance/add</code> — same form rendered inline (not modal) for keyboard-driven / deep-link / mobile flows; useful for bookmarking and from Discord deep links.</li>
+      </ol>
+
+      <pre class="mockup" style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; line-height: 1.45; background: var(--card); border: 1px solid var(--border); padding: 14px 16px; border-radius: 8px; overflow-x: auto; white-space: pre;">
+┌───────────────────────────────────────────────────────────────────────────┐
+│  Finance                                          [+ New debt]  [+ Person]│
+│  Debt summary                                                             │
+├───────────────────────────────────────────────────────────────────────────┤
+│  ┌─ Net balance ──┐ ┌─ People ───┐ ┌─ Transactions ─┐                     │
+│  │   +€42.00      │ │     4      │ │      17        │                     │
+│  └────────────────┘ └────────────┘ └────────────────┘                     │
+│                                                                           │
+│  Person          Balance      Transactions                                │
+│  Alice           +€20.00          5                                       │
+│  Bob             -€8.00           3                                       │
+│  ...                                                                      │
+└───────────────────────────────────────────────────────────────────────────┘
+
+Click [+ New debt]  →  modal:
+
+╭───────────────────── New debt ─────────────────────╮
+│  Tabs:  [ Quick form ]   [ Natural language ]      │
+│ ─────────────────────────────────────────────────  │
+│  Person     [ Alice ▾ ]   ← combobox; type to filter│
+│             existing persons; "Create 'Charlie'"    │
+│             appears at the bottom on unknown input  │
+│                                                     │
+│  Amount     [ 12.50 ] €                              │
+│  Direction  ( ) They owe me   (•) I owe them        │
+│  Date       [ 2026-05-21 ]   ← today by default     │
+│  Description[ Pizza Friday________________ ]        │
+│                                                     │
+│                       [ Cancel ]  [ Save (⌘↵) ]     │
+╰─────────────────────────────────────────────────────╯
+
+Switch to the "Natural language" tab to reuse DebtNLInput:
+
+╭───────────────────── New debt ─────────────────────╮
+│  Tabs:  [ Quick form ]   [ Natural language ]      │
+│ ─────────────────────────────────────────────────  │
+│  "Alice paid €60 for groceries, I owe her half"     │
+│  [────────── textarea ──────────────────────]       │
+│                                  [ Parse message ]  │
+│                                                     │
+│  Preview after parse:                               │
+│   ┌─────────────────────────────────────────────┐   │
+│   │ Alice                              -30.00 € │   │
+│   │ 2026-05-21 · groceries (half)               │   │
+│   └─────────────────────────────────────────────┘   │
+│                                                     │
+│                       [ Cancel ]  [ Save (⌘↵) ]     │
+╰─────────────────────────────────────────────────────╯
+
+Click [+ Person]  →  smaller modal:
+
+╭──────────── New person ────────────╮
+│  Name      [ Charlie______________ ]│
+│  Note      [ optional_____________ ]│
+│                                     │
+│            [ Cancel ]  [ Create ]   │
+╰─────────────────────────────────────╯
+</pre>
+      <p>Direction toggle: amount stored as signed number (positive = they owe me, matching backend convention in <code class="inline">DebtBaseSchema</code> comment). Submit flips sign client-side based on the radio choice — users never type a negative number.</p>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>Fix debt create contract + hook surface</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Align TS schema with backend so the new form (and the existing NL flow) actually persist. Add a <code class="inline">useCreateDebt</code> hook with proper invalidation.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/src/{api,types/api,hooks}</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>02</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Rename <code class="inline">DebtCreateSchema</code> fields to <code class="inline">person_name</code>, <code class="inline">transaction_date</code> (mirror backend); keep <code class="inline">ParsedDebtSchema</code> separate with a <code class="inline">parsedToCreate()</code> mapper.</li>
+            <li class="acceptance__item">Expose <code class="inline">useCreateDebt()</code> in <code class="inline">src/hooks/useDebts.ts</code>; invalidates <code class="inline">['debts']</code> on <code class="inline">onSettled</code>.</li>
+            <li class="acceptance__item">Add <code class="inline">useCreatePerson()</code> + <code class="inline">usePersons()</code> in a new <code class="inline">src/hooks/usePersons.ts</code>; invalidates <code class="inline">['persons']</code>.</li>
+            <li class="acceptance__item">Update <code class="inline">DebtNLInput</code> confirm flow to use the new mapper instead of posting <code class="inline">ParsedDebt</code> shape directly.</li>
+            <li class="acceptance__item">Unit tests in <code class="inline">api/debts.test.ts</code>, <code class="inline">api/persons.test.ts</code>, hook tests for create + invalidation.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 03, 04, 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">02</div>
+        <header class="plan-step__head"><h3>PersonCombobox component</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Reusable autocomplete that fetches persons via React Query, filters as the user types, and offers a "Create '<em>X</em>'" footer row on unknown input. Used by the quick-add form and any future filter.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/src/features/finance/components/PersonCombobox.tsx</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>01</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Keyboard-navigable list (↑/↓/Enter/Esc).</li>
+            <li class="acceptance__item">"Create '<em>X</em>'" option triggers <code class="inline">useCreatePerson</code> then bubbles the new id/name up via <code class="inline">onChange</code>.</li>
+            <li class="acceptance__item">Unit tests cover: typeahead filter, "create new" branch, empty list, loading skeleton.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 03</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">03</div>
+        <header class="plan-step__head"><h3>QuickAddDebtDialog (structured + NL tabs)</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Modal hosting two tabs: <strong>Quick form</strong> (PersonCombobox · amount · direction radio · date · description) and <strong>Natural language</strong> (re-mount of <code class="inline">DebtNLInput</code>). Submit closes the dialog and relies on hook invalidation.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/src/features/finance/components/QuickAddDebtDialog.tsx</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Trigger pattern: component accepts <code class="inline">children</code> as a render-prop trigger so it can be embedded under any button.</li>
+            <li class="acceptance__item">Form uses controlled inputs only, no extra form library — keep dependency surface flat (consistent with existing <code class="inline">DebtNLInput</code>).</li>
+            <li class="acceptance__item">⌘↵ / Ctrl+Enter submits; Esc cancels.</li>
+            <li class="acceptance__item">Sign handling: positive number entered, direction radio decides final sign.</li>
+            <li class="acceptance__item">Tests: happy path, validation errors, NL tab integration, person auto-create from combobox.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01, 02 · unblocks 04, 05, 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">04</div>
+        <header class="plan-step__head"><h3>Wire entry points: Finance overview + Ledger</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Add the "New debt" / "New person" buttons to <code class="inline">FinanceOverviewPage</code> and <code class="inline">LedgerPage</code> headers. Replace the static "Add first entry" text in the Ledger transactions empty-state with a real CTA.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/src/features/{debts,finance}/pages</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>05</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Both buttons placed in the existing page header flex container; no layout regression on narrow viewports (stack below title under 640px).</li>
+            <li class="acceptance__item">Tolgee keys added (<code class="inline">finance.newDebt</code>, <code class="inline">finance.newPerson</code>, etc.); no hard-coded English in components.</li>
+            <li class="acceptance__item">Updated tests for <code class="inline">LedgerPage</code> and <code class="inline">FinanceOverviewPage</code> assert the trigger rendering and dialog opening.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 03 · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>Dedicated /finance/add route</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Add a lazy route that renders the same form inline (not modal), letting users deep-link, bookmark, or be redirected to it from external triggers (Discord, mobile home-screen shortcut).</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/src/features/finance/pages/AddDebtPage.tsx</code> + <code class="inline">src/App.tsx</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>04</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Route <code class="inline">/finance/add</code> added under the Finance layout; prefetch persons list in <code class="inline">loader</code>.</li>
+            <li class="acceptance__item">After successful save, navigate to <code class="inline">/finance/ledger</code> and show a toast (or inline confirmation if no toast system yet — match existing pattern).</li>
+            <li class="acceptance__item">Optional query params <code class="inline">?person=…&amp;amount=…</code> pre-fill the form (Discord deep-link friendly).</li>
+            <li class="acceptance__item">Page-level unit + E2E tests (Playwright) for the create flow.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 03 · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">06</div>
+        <header class="plan-step__head"><h3>Docs + ship</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Document the new components and route, then push, open PR, monitor pipeline, report URL, remove worktree.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/tech_docs/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">tech_docs/api_integration.md</code> notes the corrected <code class="inline">person_name</code>/<code class="inline">transaction_date</code> contract.</li>
+            <li class="acceptance__item">New section in <code class="inline">tech_docs/project_structure.md</code> for finance quick-add components.</li>
+            <li class="acceptance__item">PR description references this plan file.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 04, 05 · unblocks —</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Wave 1 · parallel</div><span class="pill pill--accent">01 · contract + hooks</span><span class="pill pill--accent">02 · PersonCombobox</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · sequential</div><span class="pill pill--muted">03 · QuickAddDebtDialog</span></div>
+      <div class="wave"><div class="wave__label">Wave 3 · parallel</div><span class="pill pill--accent">04 · Wire overview + ledger</span><span class="pill pill--accent">05 · /finance/add route</span></div>
+      <div class="wave"><div class="wave__label">Wave 4 · sequential</div><span class="pill pill--muted">06 · docs + PR</span></div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="decisions">
+      <span class="eyebrow">Decisions (locked 2026-05-21)</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">"User" in scope = <strong>finance Person</strong>, not HomeAuth account. Person-create flow is the only one in this plan.</li>
+        <li class="acceptance__item">Currency is hard-coded <strong>EUR</strong>; remove the currency dropdown from the mockup. <code class="inline">DebtCreate</code> payload always sends <code class="inline">"EUR"</code>.</li>
+        <li class="acceptance__item">No toast system in this PR. Success/error feedback stays <strong>inline</strong> in the form (and dialog auto-closes on success), matching the current <code class="inline">DebtNLInput</code> pattern. Revisit when a second feature actually needs cross-page notifications.</li>
+        <li class="acceptance__item">Discord bot is <strong>out of scope</strong> — no deep-link integration follow-up.</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">All tests pass (unit + E2E); coverage ≥ 70%</li>
+        <li class="acceptance__item">tech_docs updated; Tolgee keys added</li>
+        <li class="acceptance__item">CI pipeline green (deploy → notify)</li>
+        <li class="acceptance__item">PR URL reported back as a clickable link</li>
+        <li class="acceptance__item">Worktree removed; remote branch preserved</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

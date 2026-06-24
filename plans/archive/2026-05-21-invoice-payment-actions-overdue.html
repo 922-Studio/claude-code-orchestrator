@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: Invoice payment actions, overdue visuals, copy-paste payment block</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-05-21 · HomeAPI + HomeUI</span>
+      <h1>Invoice payment actions, overdue visuals, copy-paste payment block</h1>
+      <p class="lede">Add paid/note actions, surface overdue at a glance, fix stornieren UX, and put Betrag + Verwendungszweck directly into the payment block so the recipient can copy without scrolling.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Projects</strong><span>HomeAPI, HomeUI</span></div>
+        <div class="scope-item"><strong>Branches</strong><code>feat/invoice-payment-actions</code> (both repos)</div>
+        <div class="scope-item"><strong>Base</strong><code>dev</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>dev</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">orchestrator/plans/2026-05-20-finance-invoice-overhaul.md</code> + this turn's prior PRs (#44, #48, #49, #50) — what v1/v2 shipped</li>
+        <li><code class="inline">HomeAPI/app/models/invoice.py</code> — current Invoice model (status enum, deleted_at, snapshots)</li>
+        <li><code class="inline">HomeAPI/app/routers/finance/invoices.py</code> — endpoints (incl. DELETE that returns 204 correctly)</li>
+        <li><code class="inline">HomeAPI/app/crud/invoice.py</code> — list/get/cancel patterns</li>
+        <li><code class="inline">HomeAPI/app/templates/invoice.html.j2</code> — payment-block markup (Zahlungsbedingungen + Zahlungsmöglichkeiten)</li>
+        <li><code class="inline">HomeUI/src/features/finance/pages/InvoiceListPage.tsx</code> — current row + Stornieren button</li>
+        <li><code class="inline">HomeUI/src/features/finance/pages/InvoiceDetailPage.tsx</code> — detail page (Stornieren refetches a 404 → crashes)</li>
+        <li><code class="inline">HomeUI/src/api/invoices.ts</code> — client (extend, don't restructure)</li>
+        <li><strong>Stornieren root cause</strong>: backend DELETE works (204). The detail page calls <code class="inline">cancelInvoice</code> then invalidates <code class="inline">['invoices']</code>, which refetches the <em>detail</em> query — GET <code class="inline">/{id}</code> excludes cancelled by default → 404 → <code class="inline">useSuspenseQuery</code> throws → page error. Fix: after cancel from detail, navigate back to list (or pass <code class="inline">?include_deleted=true</code> only for the detail page so it stays viewable with a "Storniert" badge).</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>Backend: paid status + notes + mark-paid endpoints</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Extend the Invoice model with payment-tracking fields and add explicit mark-paid / mark-unpaid / update-notes endpoints.</p>
+          <ul class="acceptance">
+            <li class="acceptance__item">Migration <code class="inline">u001_add_invoice_paid_and_notes.py</code> chained off <code class="inline">t002</code>: add columns <code class="inline">paid_at TIMESTAMP NULL</code>, <code class="inline">paid_amount NUMERIC(12,2) NULL</code> (nullable; we don't enforce partial payment yet), <code class="inline">user_notes TEXT NULL</code> (the user-editable note distinct from the immutable <code class="inline">notes</code> snapshot text). Extend the <code class="inline">invoice_status</code> enum with <code class="inline">paid</code> (use <code class="inline">ALTER TYPE invoice_status ADD VALUE 'paid'</code>; the migration must commit before any code references the new value — wrap in <code class="inline">op.execute</code>; downgrade can leave the value, Postgres doesn't easily remove enum members).</li>
+            <li class="acceptance__item">Update <code class="inline">app/models/invoice.py</code> + <code class="inline">app/schemas/invoice.py</code> (add the new fields to <code class="inline">Invoice</code> response; <code class="inline">InvoiceListItem</code> too).</li>
+            <li class="acceptance__item">New endpoints in <code class="inline">app/routers/finance/invoices.py</code>:
+              <code class="inline">POST /{id}/mark-paid</code> body <code class="inline">{paid_at?: date, paid_amount?: Decimal}</code> → sets <code class="inline">status='paid'</code>, <code class="inline">paid_at = body.paid_at or today</code>, <code class="inline">paid_amount = body.paid_amount or invoice.total_amount</code>. 200 with <code class="inline">Invoice</code>;
+              <code class="inline">POST /{id}/mark-unpaid</code> → reverts to <code class="inline">status='issued'</code>, clears <code class="inline">paid_at</code>/<code class="inline">paid_amount</code>;
+              <code class="inline">PATCH /{id}</code> body <code class="inline">{user_notes?: str}</code> → updates the editable note (status-agnostic).</li>
+            <li class="acceptance__item">All endpoints enforce <code class="inline">org_id</code> + 404 on missing. Cancelled invoices may not be marked paid (422 with clear message). Paid invoices may not be cancelled (422). Add CRUD helpers in <code class="inline">app/crud/invoice.py</code>.</li>
+            <li class="acceptance__item">Unit tests for the new CRUD; integration tests for the new endpoints (happy path + 422 transitions + 404 + cross-org isolation).</li>
+            <li class="acceptance__item">Alembic head goes <code class="inline">t002 → u001</code>. <code class="inline">start.sh</code> applies on container restart.</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Repo</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Worktree</strong><code>HomeAPI/.worktrees/feat-invoice-payment-actions</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>03</span></div>
+          </div>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 04, 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">02</div>
+        <header class="plan-step__head"><h3>Backend: fix Settings PUT to merge, not replace</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>The <code class="inline">put_settings</code> CRUD currently does <code class="inline">row.data = data</code>, wiping any keys not in the payload. A Settings save from the UI wipes the seeded <code class="inline">org_*</code> Impressum keys. Change to a deep merge so old keys survive.</p>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">app/crud/settings.py:put_settings</code> → merge new dict into <code class="inline">row.data</code> (shallow merge is enough; nested dicts in current schema are leaf JSON blobs).</li>
+            <li class="acceptance__item">Data migration <code class="inline">u002_reseed_org_impressum.py</code>: re-merge the <code class="inline">DEFAULT_SETTINGS</code> <code class="inline">org_*</code> keys into the singleton row if any are missing (defensive — covers DBs where the singleton was wiped). Idempotent.</li>
+            <li class="acceptance__item">Unit tests: <code class="inline">put_settings</code> preserves <code class="inline">org_*</code> when only a UI key is sent.</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Repo</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>01, 03</span></div>
+          </div>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks —</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">03</div>
+        <header class="plan-step__head"><h3>Template: Betrag + Verwendungszweck inline in payment block</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>In <code class="inline">app/templates/invoice.html.j2</code> Banküberweisung block, add a "Betrag" row showing <code class="inline">{{ invoice.total_amount }} EUR</code> (formatted DE: <code class="inline">123,45</code>) and a "Verwendungszweck" row showing <code class="inline">{{ invoice.invoice_number }}</code>. Match the existing <code class="inline">.payment-method-line</code> styling. Goal: recipient can copy-paste IBAN, BIC, Betrag, and Verwendungszweck directly from the payment block without scrolling up to find the totals or invoice number.</p>
+          <ul class="acceptance">
+            <li class="acceptance__item">Order inside Banküberweisung: Kontoinhaber → IBAN → BIC → Bank → <strong>Betrag</strong> → <strong>Verwendungszweck</strong> → payment_note.</li>
+            <li class="acceptance__item">German decimal formatting: register a Jinja filter <code class="inline">money_de</code> (<code class="inline">12,34 €</code>) and use it for the Betrag line + everywhere else amounts render (replace any existing inline format).</li>
+            <li class="acceptance__item">Unit test asserting both lines appear when <code class="inline">accept_cash + iban</code> are set; PDF smoke still passes.</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Repo</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>01, 02</span></div>
+          </div>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">04</div>
+        <header class="plan-step__head"><h3>HomeUI: API client + types for paid / notes / overdue</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Extend <code class="inline">src/api/invoices.ts</code> + <code class="inline">src/types/api/invoice.ts</code> with the new endpoints and fields.</p>
+          <ul class="acceptance">
+            <li class="acceptance__item">Types: extend <code class="inline">InvoiceSchema</code> + <code class="inline">InvoiceListItemSchema</code> with <code class="inline">paid_at: z.string().nullable()</code>, <code class="inline">paid_amount: z.string().nullable()</code> (Decimal serializes as string), <code class="inline">user_notes: z.string().nullable()</code>. Extend the status enum with <code class="inline">'paid'</code>.</li>
+            <li class="acceptance__item">Client functions: <code class="inline">markInvoicePaid(id, body?)</code>, <code class="inline">markInvoiceUnpaid(id)</code>, <code class="inline">updateInvoiceNotes(id, user_notes)</code>. Each posts/patches the right path and parses with the Zod schema.</li>
+            <li class="acceptance__item">A small client helper <code class="inline">isOverdue(inv): boolean</code> = <code class="inline">inv.status === 'issued' && new Date(inv.due_date) &lt; today &amp;&amp; !inv.paid_at</code>.</li>
+            <li class="acceptance__item">Unit tests for each new client function (mocked Axios) + <code class="inline">isOverdue</code> coverage (issued + past due → true; paid → false; cancelled → false; today → false).</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Repo</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>05</span></div>
+          </div>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks 05, 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>HomeUI: List page — Ausgestellt grouping, overdue visual, quick mark-paid</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Rework <code class="inline">InvoiceListPage.tsx</code> so the list is scannable at a glance: status sections, overdue tint, inline quick actions.</p>
+          <ul class="acceptance">
+            <li class="acceptance__item">Replace the single flat table with three sections under H2 headings: <strong>Ausgestellt</strong> (status=issued, with sub-grouping into "Überfällig" first then current), <strong>Bezahlt</strong> (status=paid, collapsible — default collapsed if &gt; 5 entries), <strong>Storniert</strong> (status=cancelled, collapsible — default collapsed). Keep the existing status-filter chip ("Alle") as an alternative view.</li>
+            <li class="acceptance__item">Row visual state:
+              <code class="inline">isOverdue</code> → red-tinted background (<code class="inline">rgba(220, 38, 38, 0.06)</code>) + an "Überfällig seit N Tagen" pill on the right of the number cell;
+              <code class="inline">paid</code> → green status badge with checkmark + the <code class="inline">paid_at</code> date shown small under the number;
+              <code class="inline">cancelled</code> → muted text + strikethrough on the number.</li>
+            <li class="acceptance__item">Inline actions cell (per row):
+              <code class="inline">issued</code> rows: "Bezahlt markieren" (primary, green), "PDF herunterladen", "Im neuen Tab öffnen", overflow menu (⋯) with "Stornieren", "Notiz bearbeiten";
+              <code class="inline">paid</code> rows: "Als unbezahlt markieren" (subtle), PDF actions, overflow → "Notiz bearbeiten";
+              <code class="inline">cancelled</code> rows: PDF actions only.</li>
+            <li class="acceptance__item">Confirm-dialog for Stornieren uses native <code class="inline">window.confirm</code> for v1; mark-paid is one-click (no confirm) — show a small toast/inline message on success.</li>
+            <li class="acceptance__item">All mutations invalidate <code class="inline">queryKey: ['invoices']</code> (list refetches).</li>
+            <li class="acceptance__item">Tests: render empty state per section; render mixed list including an overdue row → assert red tint + Überfällig pill; click "Bezahlt markieren" → <code class="inline">markInvoicePaid</code> called + list refetches; Stornieren still works from the list (regression test).</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Repo</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>04</span></div>
+          </div>
+        </div>
+        <footer class="plan-step__foot">depends on 04 · unblocks 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">06</div>
+        <header class="plan-step__head"><h3>HomeUI: Detail page — mark-paid, notes, fix Stornieren UX</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Make the detail page reflect status transitions cleanly and stop crashing after Stornieren.</p>
+          <ul class="acceptance">
+            <li class="acceptance__item">Action bar (left → right): "Bezahlt markieren" / "Als unbezahlt markieren" (state-dependent), "Notiz bearbeiten", "PDF herunterladen", "Im neuen Tab öffnen", "Stornieren" (only if not cancelled and not paid).</li>
+            <li class="acceptance__item">Status banner under <code class="inline">BrandedHeader</code>: green for paid (with <code class="inline">paid_at</code>), red for overdue (with days), grey strikethrough for cancelled, neutral pill otherwise.</li>
+            <li class="acceptance__item">Notes block: render <code class="inline">user_notes</code> as a card; "Notiz bearbeiten" opens a small inline textarea (no modal) with Save/Cancel.</li>
+            <li class="acceptance__item">Fix Stornieren UX: after <code class="inline">cancelInvoice</code> resolves, <code class="inline">useNavigate('/finance/invoices', { replace: true })</code> instead of staying on the detail page. Alternative (less disruptive): call <code class="inline">getInvoice(id, {include_deleted: true})</code> on the detail page (pass a flag) so the cancelled row remains viewable — pick the navigate-away approach for v1.</li>
+            <li class="acceptance__item">Tests: mark paid → status banner switches to green; mark unpaid → reverts; edit notes → POST hit + UI shows updated text; click Stornieren → mock <code class="inline">useNavigate</code> called with <code class="inline">/finance/invoices</code>.</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Repo</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+        </div>
+        <footer class="plan-step__foot">depends on 04, 05 · unblocks 07</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">07</div>
+        <header class="plan-step__head"><h3>E2E smoke + PR opening</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Walk the full flow locally (HomeUI on :5173 against lab-api-dev) before opening PRs. Iterate on visuals until the list + detail + rendered PDF look clean. The agent owns this — keep iterating until polish is real, not just code-correct.</p>
+          <ul class="acceptance">
+            <li class="acceptance__item">Create a fresh test invoice → see it in <strong>Ausgestellt</strong> with the right badge.</li>
+            <li class="acceptance__item">Force-overdue by editing <code class="inline">due_date</code> via SQL (paste the SQL into the report so the user can repeat) → reload list → red tint + "Überfällig seit N Tagen" pill visible.</li>
+            <li class="acceptance__item">Click "Bezahlt markieren" from the list → row moves to <strong>Bezahlt</strong>, green badge, <code class="inline">paid_at</code> visible.</li>
+            <li class="acceptance__item">Open detail → mark-paid/unpaid toggle works; notes save and persist after reload.</li>
+            <li class="acceptance__item">Stornieren from detail navigates back to list; the cancelled invoice appears under <strong>Storniert</strong> (collapsed by default).</li>
+            <li class="acceptance__item">Render the PDF preview → Banküberweisung block shows IBAN, BIC, Betrag (German formatted), Verwendungszweck (= invoice number). Confirm copy-paste of Betrag yields the right string for online-banking forms.</li>
+            <li class="acceptance__item">Open PRs (both repos) against <code class="inline">dev</code> with screenshots in the body; squash-merge after CI green; remove worktrees.</li>
+            <li class="acceptance__item">Report back: PR URLs, screenshots, anything skipped or deferred.</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Repos</strong><span>HomeAPI + HomeUI</span></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+        </div>
+        <footer class="plan-step__foot">depends on 01–06 · unblocks —</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Wave 1 · parallel (HomeAPI)</div><span class="pill pill--accent">01 · paid + notes + endpoints</span><span class="pill pill--accent">02 · Settings PUT merge fix</span><span class="pill pill--accent">03 · payment-block Betrag + Verwendungszweck</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · parallel (HomeUI)</div><span class="pill pill--accent">04 · API client + types + isOverdue</span><span class="pill pill--accent">05 · list page (sections, overdue tint, quick paid)</span></div>
+      <div class="wave"><div class="wave__label">Wave 3 · sequential (HomeUI)</div><span class="pill pill--muted">06 · detail page (mark-paid, notes, Stornieren navigate)</span></div>
+      <div class="wave"><div class="wave__label">Wave 4 · sequential (both)</div><span class="pill pill--muted">07 · E2E smoke + PR opening + iterate until visuals are clean</span></div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">HomeAPI: pytest green; ruff + mypy clean; alembic head = <code class="inline">u002</code>; new endpoints in OpenAPI</li>
+        <li class="acceptance__item">HomeUI: tsc clean; lint clean (no new violations on touched files); tests for list + detail flows green</li>
+        <li class="acceptance__item">Lab-api-dev deploy verified: <code class="inline">/version</code> bumped, <code class="inline">alembic_version</code> = <code class="inline">u002</code>, <code class="inline">/openapi.json</code> shows mark-paid/mark-unpaid/PATCH</li>
+        <li class="acceptance__item">PR URLs reported back as clickable links; worktrees removed</li>
+        <li class="acceptance__item">Screenshot of the live invoice list with at least one overdue row + one paid row, plus the rendered PDF payment block with Betrag + Verwendungszweck visible</li>
+        <li class="acceptance__item">Plan archived to <code class="inline">plans/archive/</code> with merge date</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

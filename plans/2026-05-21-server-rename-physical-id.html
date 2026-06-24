@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: Physically Identify & Rename Home-Lab Servers</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-05-21 · HomeStructure + ecosystem-wide</span>
+      <h1>Physically Identify & Rename Home-Lab Servers</h1>
+      <p class="lede">Beep each box via its PC speaker to find which is which, write the chosen name on the chassis, then rename it consistently across OS, Tailscale, SSH config, and every repo that references the old hostname.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Hosts (in scope)</strong><span>home-lab, home-lab-exec-0, home-lab-exec-1 (3 boxes)</span></div>
+        <div class="scope-item"><strong>New names</strong><span>astro-antares, astro-polaris, astro-upsilon</span></div>
+        <div class="scope-item"><strong>Reserved</strong><span><code>astro-mebsuta</code> — held for the 4th box (not yet set up)</span></div>
+        <div class="scope-item"><strong>Fixed mapping</strong><span><code>home-lab → astro-antares</code> (manager)</span></div>
+        <div class="scope-item"><strong>Method</strong><span>PC speaker (<code>beep</code>) → label → rename</span></div>
+        <div class="scope-item"><strong>Branch</strong><code>feat/server-rename-physical-id</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>dev (per repo touched)</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">orchestrator/server.md</code> — current cluster table, hostnames, Tailscale IPs, roles</li>
+        <li><code class="inline">HomeStructure/docs/config/cluster.md</code> — Swarm node roles and how nodes are referenced</li>
+        <li><code class="inline">HomeStructure/docs/guides/worker-node-setup.md</code> — how a worker is provisioned and named</li>
+        <li><code class="inline">~/.ssh/config</code> — local aliases (<code>lab</code>, <code>lab-exec-0</code>, <code>lab-exec-1</code>)</li>
+        <li>Memory: <code class="inline">feedback_server_changes</code> — manual host edits are overwritten by CI; HomeStructure source must change too</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">00</div>
+        <header class="plan-step__head"><h3>Reconcile the 4th server</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p><strong>Resolved 2026-05-21:</strong> Tailscale + Swarm both confirm <strong>3</strong> active boxes. The 4th physical box is not yet set up — out of scope for this plan. <code class="inline">astro-mebsuta</code> is reserved for it and will be assigned when it's provisioned.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Action</strong><span>Tailscale admin scan + ARP/LAN sweep if needed</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>—</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">4 boxes are accounted for with a known SSH/console path each</li>
+            <li class="acceptance__item">If the 4th is unprovisioned, plan branches: provision-first then rename, or rename-on-provision</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 01</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>Verify PC-speaker beep capability per host</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>On each host, check whether the motherboard beeper is wired and the kernel module is loaded. Test sequence:</p>
+          <ul>
+            <li><code class="inline">lsmod | grep pcspkr</code> — module loaded?</li>
+            <li><code class="inline">sudo modprobe pcspkr</code> — load if missing</li>
+            <li><code class="inline">command -v beep || sudo apt-get install -y beep</code></li>
+            <li>Test: <code class="inline">sudo beep -f 1000 -l 500</code> (1 kHz, 500 ms) — listen at the box</li>
+            <li>Fallback if no beeper present: <code class="inline">sudo ethtool -p &lt;iface&gt; 30</code> to blink the NIC LED instead, documented per host</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Access</strong><code>ssh lab / ssh lab-exec-0 / ssh lab-exec-1 / &lt;4th&gt;</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">For each host: either <code class="inline">beep</code> works, or a documented fallback signal works</li>
+            <li class="acceptance__item">Capability matrix captured (will go into <code class="inline">server.md</code> later)</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 00 · unblocks 02</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">02</div>
+        <header class="plan-step__head"><h3>Beep each box one-by-one and label it</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Gregor stands at the rack. <code class="inline">home-lab</code> is already assigned <code class="inline">astro-antares</code> (Swarm manager). For the two worker boxes, run a distinctive beep pattern, identify the chassis by ear, and label it with either <code class="inline">astro-polaris</code> or <code class="inline">astro-upsilon</code>. Suggested patterns to avoid ambiguity:</p>
+          <ul>
+            <li><code class="inline">home-lab</code> → <code class="inline">astro-antares</code>: 3× 1000 Hz / 200 ms — <code class="inline">sudo beep -f 1000 -l 200 -r 3 -d 200</code> (sanity-check only — mapping already fixed)</li>
+            <li><code class="inline">home-lab-exec-0</code>: 2× 600 Hz / 400 ms — assign polaris <em>or</em> upsilon</li>
+            <li><code class="inline">home-lab-exec-1</code>: 1× 1500 Hz / 800 ms — assign the remaining one</li>
+          </ul>
+          <p>Capture the mapping <em>current hostname → physical box → new name</em> in a scratch note; this becomes the input for the rest of the plan.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Output</strong><span>Mapping table (4 rows): old_hostname, physical position, new_hostname</span></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">All 4 boxes physically labelled with the chosen new name</li>
+            <li class="acceptance__item">Mapping table shared back to this plan before step 03 begins</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks 03</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">03</div>
+        <header class="plan-step__head"><h3>Rename OS hostname on each host</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>On each box, set the new hostname persistently and update local hosts file:</p>
+          <ul>
+            <li><code class="inline">sudo hostnamectl set-hostname &lt;new&gt;</code></li>
+            <li><code class="inline">sudo sed -i 's/\\b&lt;old&gt;\\b/&lt;new&gt;/g' /etc/hosts</code></li>
+            <li>Reload shell / re-SSH, confirm <code class="inline">hostname</code> and <code class="inline">hostnamectl</code> both report the new name</li>
+            <li>Reboot if anything else (Docker, Swarm, Tailscale) still cached the old name and won't refresh otherwise</li>
+          </ul>
+          <p><strong>Swarm warning:</strong> Docker Swarm node identity is tied to the node ID, not the hostname, so a hostname change is safe — but verify with <code class="inline">docker node ls</code> after each rename that the node still appears Ready and the manager still has quorum. Do exec workers first, manager last.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Order</strong><span>exec-0 → exec-1 → home-lab (manager last)</span></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>no (sequential, verify Swarm health between each)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">hostnamectl</code> reports new name on all 4 boxes</li>
+            <li class="acceptance__item"><code class="inline">docker node ls</code> shows all nodes Ready with new names</li>
+            <li class="acceptance__item">Cluster services unaffected (spot-check Traefik, HomeAPI, HomeUI)</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 02 · unblocks 04, 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">04</div>
+        <header class="plan-step__head"><h3>Rename in Tailscale</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Two layers to consider:</p>
+          <ul>
+            <li><strong>OS-reported hostname</strong> — already changed in step 03; Tailscale will pick this up after <code class="inline">sudo tailscale set --hostname=&lt;new&gt;</code> or on next daemon restart.</li>
+            <li><strong>Machine name override</strong> — set in the Tailscale admin console (<code class="inline">login.tailscale.com/admin/machines</code>) per device. Set this explicitly so MagicDNS lookups (<code class="inline">&lt;new&gt;.tailnet.ts.net</code>) work immediately and don't depend on the next daemon refresh.</li>
+          </ul>
+          <p>After: confirm <code class="inline">tailscale status</code> from the Mac shows all 4 boxes under the new names, and old DNS names no longer resolve.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Parallel with</strong><span>05 (independent local edits)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">All 4 nodes display new names in <code class="inline">tailscale status</code></li>
+            <li class="acceptance__item">MagicDNS resolves new names; old names removed/expired</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 03 · unblocks 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>Update local SSH config + known_hosts</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>On Gregor's Mac, edit <code class="inline">~/.ssh/config</code>: rename <code class="inline">Host lab</code>, <code class="inline">Host lab-exec-0</code>, <code class="inline">Host lab-exec-1</code> aliases (and add the 4th) to match the new naming, updating <code class="inline">HostName</code> if it pointed at the old hostname rather than the Tailscale IP. Then clean stale entries:</p>
+          <ul>
+            <li><code class="inline">ssh-keygen -R home-lab</code> / <code class="inline">-R home-lab-exec-0</code> / <code class="inline">-R home-lab-exec-1</code> (and 4th)</li>
+            <li>Test: <code class="inline">ssh &lt;new-alias&gt; hostname</code> for each — should print the new name and not prompt for fingerprint a second time</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>~/.ssh/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>04</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">ssh &lt;new-alias&gt;</code> works for all 4 hosts, key-based, no warnings</li>
+            <li class="acceptance__item">No leftover <code class="inline">Host lab*</code> entries pointing at retired names</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 03 · unblocks 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">06</div>
+        <header class="plan-step__head"><h3>Provision 4 GitHub Actions runners on polaris</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Before any workflow rename PR can succeed, polaris must have working runners that match the new <code class="inline">runs-on: polaris</code> targets. Currently all 4 runners live on antares (org-level, names <code class="inline">home-lab</code>, <code class="inline">home-lab-2..4</code>; the last carries the <code class="inline">e2e</code> label). New layout on polaris:</p>
+          <ul>
+            <li><code class="inline">polaris</code>, <code class="inline">polaris-2</code>, <code class="inline">polaris-3</code> — labels <code class="inline">self-hosted,Linux,X64,polaris</code></li>
+            <li><code class="inline">polaris-4</code> — labels <code class="inline">self-hosted,Linux,X64,polaris,e2e</code> (single E2E queue)</li>
+          </ul>
+          <p>Per <code class="inline">HomeStructure/docs/services/github-runner.md</code> "Adding Another Runner". Token via <code class="inline">gh api --method POST /orgs/922-Studio/actions/runners/registration-token</code> (mint fresh per runner — they expire ~1h). Use cached tarball <code class="inline">actions-runner-linux-x64-2.332.0.tar.gz</code>. Install as systemd service under user <code class="inline">lab</code>.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Host</strong><code>polaris (100.94.122.119)</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">4 systemd services <code class="inline">actions.runner.922-Studio.polaris{,-2,-3,-4}.service</code> active</li>
+            <li class="acceptance__item">GitHub org-runners page shows all 4 idle with the right labels</li>
+            <li class="acceptance__item">Antares runners still active (deregister deferred until Step 09)</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 03 · unblocks 07</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">07</div>
+        <header class="plan-step__head"><h3>One PR per repo: hostnames + workflow runner labels</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>14 repos touched. Each gets exactly one PR against <code class="inline">dev</code> that bundles:</p>
+          <ol>
+            <li>Hostname references — <code class="inline">home-lab</code>→<code class="inline">astro-antares</code>, <code class="inline">home-lab-exec-0</code>→<code class="inline">astro-polaris</code>, <code class="inline">home-lab-exec-1</code>→<code class="inline">astro-upsilon</code></li>
+            <li>Workflow runner labels — <code class="inline">runs-on: self-hosted</code>→<code class="inline">runs-on: polaris</code>; <code class="inline">[self-hosted, e2e]</code>→<code class="inline">[polaris, e2e]</code></li>
+            <li>HomeStructure docs only: rewrite <code class="inline">docs/services/github-runner.md</code> to reflect new runner names/host</li>
+          </ol>
+          <p><strong>Skip</strong>: emails (<code class="inline">gregor160505+home-lab@gmail.com</code>), git history, <code class="inline">orchestrator/plans/archive/*</code>, <code class="inline">HomeAPI/.claude/worktrees/*</code> (active WIP), <code class="inline">_deprecated/*</code>.</p>
+          <p>Fan-out: one Sonnet sub-agent per repo, all in parallel; HomeStructure runs first as gating (CI redeploy must succeed before others rely on the new docs). Branch <code class="inline">feat/server-rename</code> on every repo, worktree at <code class="inline">.worktrees/feat/server-rename</code>.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Repos</strong><span>HomeStructure, HomeAPI, orchestrator, HomeCollector, HomeUI, discord, workflows, sweatvalley_bingo, HomeAuth, Anime-APP, Anime-API, Studio, smoking-counter, Portfolio, Drafter</span></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>yes (HomeStructure first wave; rest concurrent)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">One PR per repo, base <code class="inline">dev</code>, opened by sub-agent</li>
+            <li class="acceptance__item">PR URLs collected and reported back</li>
+            <li class="acceptance__item">Worktrees removed after PR URL captured</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 06 · unblocks 08</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">08</div>
+        <header class="plan-step__head"><h3>Per-PR validation: monitor → verify → fix-plan on failure</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>For each PR opened in Step 07:</p>
+          <ol>
+            <li><code class="inline">gh pr checks &lt;url&gt; --watch</code> until CI completes</li>
+            <li>If green, merge to <code class="inline">dev</code> (squash) and verify the resulting deploy:
+              <ul>
+                <li>For service repos: hit the prod/dev URL listed in <code class="inline">orchestrator/server.md</code> "Public Routes"; expect 200</li>
+                <li>For docs repos: visit MkDocs site after deploy job finishes</li>
+                <li>For workflows repo: smoke-trigger a downstream pipeline</li>
+              </ul>
+            </li>
+            <li>If <strong>any</strong> CI fails or deploy regresses, do not merge. Write a fix plan at <code class="inline">orchestrator/plans/2026-05-23-server-rename-fix-&lt;repo&gt;.html</code> documenting the failure (logs link, root cause hypothesis, proposed remediation) and pause that PR.</li>
+          </ol>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Parallel with</strong><span>yes — one validator per PR</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Every PR either merged with green CI + verified deploy, or has an open fix-plan file</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 07 · unblocks 09</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">09</div>
+        <header class="plan-step__head"><h3>Deregister antares runners</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Only after all PRs in Step 08 are merged and verified green: stop + uninstall the 4 antares runners (<code class="inline">home-lab</code>, <code class="inline">home-lab-2..4</code>). Per runner: <code class="inline">sudo systemctl stop … &amp;&amp; sudo ./svc.sh uninstall &amp;&amp; ./config.sh remove --token &lt;FRESH&gt;</code>. Final state: only the 4 polaris runners exist in GitHub org settings.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Host</strong><code>antares</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">No <code class="inline">actions.runner.922-Studio.home-lab*</code> services on antares</li>
+            <li class="acceptance__item">GitHub org-runners page shows exactly 4 polaris runners</li>
+            <li class="acceptance__item"><code class="inline">/home/lab/actions-runner*</code> directories cleaned up</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 08 · unblocks 10</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">10</div>
+        <header class="plan-step__head"><h3>Update <code>server.md</code> + sanity verification</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>In <code class="inline">orchestrator</code>, rewrite the cluster table in <code class="inline">server.md</code> with the new names, the physical-position mapping, and the per-host identification capability (beep vs ethtool fallback). Update <code class="inline">"Last updated"</code> date. Verify end-to-end:</p>
+          <ul>
+            <li><code class="inline">tailscale status</code> → 4 new names</li>
+            <li><code class="inline">ssh &lt;new&gt; hostname</code> → new name on each box</li>
+            <li><code class="inline">docker node ls</code> on manager → all Ready, new names</li>
+            <li>Spot-check every prod service responds: HomeUI, HomeAPI, HomeAuth, HomeCollector, Traefik dashboard</li>
+            <li>Re-run workspace grep for old names — confirm only archived/historical files remain</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>/Users/gregor/dev/922/orchestrator</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>no (final reconciliation)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item"><code class="inline">server.md</code> reflects the new reality and the physical-ID method per host</li>
+            <li class="acceptance__item">All prod services healthy; no service references retired names</li>
+            <li class="acceptance__item">Plan marked done with completion date in commit message</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 09 · unblocks —</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Wave 1 · sequential (physical, Gregor at the rack)</div><span class="pill pill--accent">00 · reconcile 4th</span><span class="pill pill--accent">01 · verify beep</span><span class="pill pill--accent">02 · beep + label</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · sequential (host rename, Swarm-aware order)</div><span class="pill pill--accent">03 · hostnamectl on all 4</span></div>
+      <div class="wave"><div class="wave__label">Wave 3 · parallel</div><span class="pill pill--muted">04 · Tailscale rename</span><span class="pill pill--muted">05 · ~/.ssh/config + known_hosts</span></div>
+      <div class="wave"><div class="wave__label">Wave 4 · sequential</div><span class="pill pill--muted">06 · provision polaris runners</span></div>
+      <div class="wave"><div class="wave__label">Wave 5 · parallel sub-agents</div><span class="pill pill--muted">07 · one PR per repo (HomeStructure first)</span></div>
+      <div class="wave"><div class="wave__label">Wave 6 · parallel validators</div><span class="pill pill--muted">08 · per-PR monitor + verify + fix-plan</span></div>
+      <div class="wave"><div class="wave__label">Wave 7 · sequential</div><span class="pill pill--muted">09 · deregister antares runners</span><span class="pill pill--muted">10 · server.md + end-to-end verify</span></div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">All 4 boxes physically labelled and renamed consistently across OS, Tailscale, SSH, and every repo</li>
+        <li class="acceptance__item">HomeStructure CI redeploy completed; no stale references regenerated</li>
+        <li class="acceptance__item">All prod services responding under the new node names</li>
+        <li class="acceptance__item">All PRs merged; worktrees removed; remote branches preserved</li>
+        <li class="acceptance__item">Plan marked done in commit log with date 2026-05-21</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

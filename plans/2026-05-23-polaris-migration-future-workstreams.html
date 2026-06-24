@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: Polaris Migration — Future Workstreams (deferred)</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-05-23 · deferred future workstreams</span>
+      <h1>Polaris Migration — Future Workstreams</h1>
+      <p class="lede">After the workflow refactor lands and runners are stable on polaris, three follow-up moves are needed to fully realise the "polaris = heavy lifting, antares = stable hosting" architecture. <strong>Plan only — do not execute this session.</strong></p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Parent plans</strong><span><code>2026-05-21-server-rename-physical-id</code>, <code>2026-05-23-server-rename-fix-deploy-state</code></span></div>
+        <div class="scope-item"><strong>Status</strong><span>deferred — execute when CI on polaris is fully stable</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Why these are separate</span>
+      <p>Each of these workstreams involves data migration, downtime, and credential handling. Bundling them with the runner move would have ballooned the rename effort. They're listed here so they don't get lost; each gets its own plan file when started.</p>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="workstreams">
+      <span class="eyebrow">Workstreams</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">W1</div>
+        <header class="plan-step__head"><h3>Move dev + prod databases from antares to polaris</h3><span class="pill pill--muted">deferred</span></header>
+        <div class="plan-step__body">
+          <p>Targets: PostgreSQL (<code class="inline">shared_postgres</code>, port 5432 on antares) currently hosts <code class="inline">home_api</code>, <code class="inline">home_auth</code>, <code class="inline">home_collector</code>, <code class="inline">discord_bot</code>, <code class="inline">anime_api</code>, <code class="inline">drafter</code>. Redis, MinIO metadata DBs, Allure DB likewise.</p>
+          <ul>
+            <li>Per-DB: enumerate consumers, stop services, <code class="inline">pg_dump</code>/<code class="inline">restore</code> or volume rsync, update consumer connection strings to point at <code class="inline">astro-polaris</code> over Tailscale, restart.</li>
+            <li>Risk: most services reference <code class="inline">postgres</code>/<code class="inline">shared_postgres</code> by Docker network alias — moving the DB to a different host means switching from network alias to Tailscale-hostname connection strings.</li>
+            <li>Open question: should the DB host be a Swarm service (deployed via stack) or a plain-docker container on polaris?</li>
+            <li>Acceptance: each consumer service confirmed reading/writing against polaris-hosted DB; failover/backup story re-validated.</li>
+          </ul>
+          <p>Future plan file: <code class="inline">plans/2026-05-XX-db-migration-polaris.html</code></p>
+        </div>
+        <footer class="plan-step__foot">depends on workflow refactor complete · unblocks W2</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">W2</div>
+        <header class="plan-step__head"><h3>Move Docker registry from antares to polaris</h3><span class="pill pill--muted">deferred</span></header>
+        <div class="plan-step__body">
+          <p>Current registry: <code class="inline">registry.922-studio.com</code> (htpasswd auth) on antares. Move to polaris.</p>
+          <ul>
+            <li>Rsync registry storage volume to polaris</li>
+            <li>Update Cloudflare tunnel route to point at polaris</li>
+            <li>Update Traefik routing (if registry is fronted by Traefik)</li>
+            <li>Antares consumers (watchtower, manual pulls) re-test</li>
+            <li>Acceptance: <code class="inline">docker push</code> and <code class="inline">docker pull</code> work end-to-end against the moved registry; no manifest loss.</li>
+          </ul>
+          <p>Future plan file: <code class="inline">plans/2026-05-XX-registry-move-polaris.html</code></p>
+        </div>
+        <footer class="plan-step__foot">depends on W1 · unblocks W3</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">W3</div>
+        <header class="plan-step__head"><h3>PR-preview routing on polaris (preview Traefik or Tailscale-IP)</h3><span class="pill pill--muted">deferred</span></header>
+        <div class="plan-step__body">
+          <p>PR previews currently route through antares's Traefik via the runner's Tailscale IP. With previews moving to polaris, two routing options:</p>
+          <ul>
+            <li><strong>Tailscale-IP direct:</strong> update <code class="inline">tailscale_ip</code> default in <code class="inline">pr-demo.yml</code> from <code class="inline">100.112.171.16</code> (antares) to polaris's Tailscale IP <code class="inline">100.94.122.119</code>. Previews accessible at <code class="inline">100.94.122.119:&lt;port&gt;</code>. Simple, no Traefik on polaris.</li>
+            <li><strong>Preview Traefik on polaris:</strong> deploy a second Traefik instance on polaris configured for ephemeral PR routes (e.g. <code class="inline">pr-&lt;N&gt;-&lt;repo&gt;.preview.922-studio.com</code>). Adds Traefik + Cloudflare tunnel split. Nicer UX, more infra.</li>
+          </ul>
+          <p>Open question: is the preview URL going to be exposed publicly (Cloudflare) or only inside Tailscale?</p>
+          <p>Future plan file: <code class="inline">plans/2026-05-XX-pr-preview-routing-polaris.html</code></p>
+        </div>
+        <footer class="plan-step__foot">depends on W1, W2 · unblocks —</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Triggers for picking these up</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">Rename PRs all merged and validated green</li>
+        <li class="acceptance__item">Polaris runners stable for at least one week of normal CI traffic</li>
+        <li class="acceptance__item">Antares-runners deregistered (Step 09 of parent plan complete)</li>
+        <li class="acceptance__item">No regressions in production deploys</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

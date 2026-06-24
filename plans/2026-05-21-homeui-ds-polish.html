@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: HomeUI DS Polish — light tint, ledger tones, panel equalisation</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-05-21 · HomeUI · follow-up to DS overhaul</span>
+      <h1>HomeUI DS Polish — Light Tint · Ledger Tones · Panel Equalisation</h1>
+      <p class="lede">Three targeted DS refinements on top of the open overhaul: introduce a subtle cool tint into the light theme, repaint the ledger person rows in the app palette instead of saturated green/red, and equalise card / stat / section heights inside grids. Lands on the same branch — PR #93 auto-updates.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Project</strong><span>HomeUI</span></div>
+        <div class="scope-item"><strong>Branch</strong><code>feat/homeui-design-system-overhaul</code> (continues)</div>
+        <div class="scope-item"><strong>Worktree</strong><code>HomeUI/.worktrees/feat-homeui-design-system-overhaul</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>existing PR #93 → <code class="inline">dev</code></span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">orchestrator/projects/homeui.md</code> — HomeUI project mapping, tech stack, best practices</li>
+        <li><code class="inline">orchestrator/plans/2026-05-21-homeui-design-system-overhaul.html</code> — original overhaul plan, this is a polish round on top of it</li>
+        <li><code class="inline">orchestrator/pages-design-system.html</code> — DS class showcase (confirm available classes before extending)</li>
+        <li><code class="inline">HomeUI/.worktrees/feat-homeui-design-system-overhaul/src/styles/design-system.css</code> — single source of truth. Touch zones:
+          <ul>
+            <li>Lines 13–92 (<code class="inline">:root</code> dark tokens) — no edits expected; reference only</li>
+            <li>Lines 345–460 (<code class="inline">.hl-section</code>, <code class="inline">.hl-card</code>, <code class="inline">.hl-stat</code>) — height/flex retune for Problem 3</li>
+            <li>Lines 691–719 (<code class="inline">.hl-person</code>, <code class="inline">.hl-avatar--success/--error</code>, <code class="inline">.hl-person__amount--pos/--neg</code>) — Problem 2 dark tones</li>
+            <li>Lines 788–807 (<code class="inline">.hl-grid</code> utility) — needs <code class="inline">align-items: stretch</code> and grid-flow audit for Problem 3</li>
+            <li>Lines 819–878 (<code class="inline">.light</code> override + light-mode component tweaks, incl. <code class="inline">.light .hl-avatar--success/--error</code> at 877–878) — Problem 1 + 2 light tones</li>
+          </ul>
+        </li>
+        <li><code class="inline">HomeUI/.worktrees/feat-homeui-design-system-overhaul/src/pages.tsx</code> — <code class="inline">ModuleCard</code> at L65–101, overview grid at L210 (<code class="inline">.hl-grid hl-grid--3</code> of <code class="inline">.hl-card--interactive</code>) — Problem 3 driver</li>
+        <li><code class="inline">HomeUI/.worktrees/feat-homeui-design-system-overhaul/src/features/dashboard/pages/GitHubActionsPage.tsx</code> — KPI strip L667 (<code class="inline">.hl-grid hl-grid--4</code> of <code class="inline">.hl-stat</code>), runner-grid section L780, runs-table panel L794 (<code class="inline">.hl-card</code> wrapping <code class="inline">.hl-table</code>) — Problem 3 second driver</li>
+        <li><code class="inline">HomeUI/.worktrees/feat-homeui-design-system-overhaul/src/features/debts/pages/LedgerPage.tsx</code> — L34–58 <code class="inline">cva</code> maps + L263 <code class="inline">.hl-person</code> rows — Problem 2 consumer</li>
+        <li><code class="inline">HomeUI/.worktrees/feat-homeui-design-system-overhaul/src/features/finance/pages/FinanceOverviewPage.tsx</code> — L25–48 <code class="inline">PersonRow</code> emitter — Problem 2 consumer</li>
+        <li><code class="inline">HomeUI/.worktrees/feat-homeui-design-system-overhaul/src/components/charts/useChartTokens.ts</code> — chart token reader; verify any retuned tokens still expose chart-safe values</li>
+        <li><code class="inline">HomeUI/tech_docs/project_structure.md</code> — Theme &amp; colors section; update light-tint note + ledger palette note after step 02</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="decisions">
+      <span class="eyebrow">Locked decisions</span>
+      <div class="meta-grid">
+        <div class="meta-row"><strong>Light tint scope</strong><span>Tint the page background only — <code class="inline">--hl-bg</code> shifts to a cool blue-grey (hue ~220, very low chroma); <code class="inline">--hl-bg-1</code> (card surface) stays pure white. Cards then "lift" off the tinted page, which is the look Gregor described. Hover/active surfaces and sidebar bg gain a hair more tint than <code class="inline">--hl-bg</code> so they remain distinguishable.</span></div>
+        <div class="meta-row"><strong>Tint hue choice</strong><span>Hue <strong>220</strong> (the same cool hue used by the dark-mode surfaces) at chroma ~0.006 — a desaturated blue-grey. Stays clear of teal accent (hue 195) so the accent still reads as the accent, not as "background overflow".</span></div>
+        <div class="meta-row"><strong>Ledger palette family</strong><span>Move OFF semantic green/red. Use <strong>accent-soft tones for positive amounts</strong> (teal family, matches the app brand) and <strong>neutral muted tones for negative amounts</strong> (no warning hue — just <code class="inline">--hl-fg</code> at full weight against a neutral chip). Rationale: a ledger row is a stateful identity, not an alert; saturating it as success/error makes Finance feel like a stock-trading app. Accent-positive + neutral-negative reads as "owes the app vs. the app owes them" without screaming. Avatars get the same family: <code class="inline">--hl-avatar--success</code> → accent-soft chip, <code class="inline">--hl-avatar--error</code> → neutral chip with stronger border.</span></div>
+        <div class="meta-row"><strong>Pastel tokens fate</strong><span>Repurpose: <code class="inline">--hl-success-pastel</code> becomes <code class="inline">--hl-ledger-pos</code> (accent-derived). <code class="inline">--hl-error-pastel</code> becomes <code class="inline">--hl-ledger-neg</code> (neutral-fg-derived). Old token names removed; ledger is the only consumer so the rename is safe. Saturated <code class="inline">--hl-success</code> / <code class="inline">--hl-error</code> stay untouched — banners, pills, table pos/neg cells keep their semantics.</span></div>
+        <div class="meta-row"><strong>Panel equalisation</strong><span>Recommended: <strong>grid container = stretch + child flex column</strong>. Add <code class="inline">align-items: stretch</code> (default but make it explicit and add equal-row-height rules) to <code class="inline">.hl-grid</code>; change <code class="inline">.hl-card</code> and <code class="inline">.hl-stat</code> to <code class="inline">display: flex; flex-direction: column</code>; mark <code class="inline">.hl-card__desc</code> with <code class="inline">flex: 1</code> so footers align at the bottom of each card. For <code class="inline">.hl-section</code> panels that sit side-by-side (GitHub Actions runner-grid vs. runs-table), wrap them in a parent <code class="inline">.hl-grid--2</code> (new utility if missing — check showcase first) with stretch; the runs-table panel gets <code class="inline">display: flex; flex-direction: column</code> and its inner content takes the remaining height. No min-height hacks.</span></div>
+        <div class="meta-row"><strong>Branch policy</strong><span>No new branch, no new PR. Everything lands on <code class="inline">feat/homeui-design-system-overhaul</code>. PR #93 (open against <code class="inline">dev</code>) auto-updates on push.</span></div>
+        <div class="meta-row"><strong>Sub-agent model</strong><span>Per Gregor's explicit request for this round: <strong>Opus</strong> for all executors (overrides the default Sonnet in <code class="inline">feedback_subagent_model</code>).</span></div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>Light-theme token retune — subtle cool tint</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Edit the <code class="inline">.light</code> override block in <code class="inline">src/styles/design-system.css</code> (lines ~819–857). Shift surface tokens from warm hue 75 to cool hue 220 with very low chroma. Keep <code class="inline">--hl-bg-1</code> pure white so cards lift off the page.</p>
+          <ul>
+            <li><code class="inline">--hl-bg</code>: <code class="inline">oklch(0.975 0.006 220)</code> — cool off-white page tint</li>
+            <li><code class="inline">--hl-bg-1</code>: <code class="inline">oklch(1.000 0.000 0)</code> — pure white card (unchanged)</li>
+            <li><code class="inline">--hl-bg-2</code>: <code class="inline">oklch(0.955 0.006 220)</code> — hover/elevated; slightly more tint than page</li>
+            <li><code class="inline">--hl-bg-3</code>: <code class="inline">oklch(0.925 0.007 220)</code> — active/pressed</li>
+            <li><code class="inline">--hl-sidebar-bg</code>: <code class="inline">oklch(0.955 0.006 220)</code> — matches bg-2 so sidebar reads as elevated surface</li>
+            <li>Strokes shift to hue 220 at matching chromas; <code class="inline">--hl-border</code> ≈ <code class="inline">oklch(0.890 0.005 220)</code>, <code class="inline">--hl-border-strong</code> ≈ <code class="inline">oklch(0.800 0.006 220)</code>, <code class="inline">--hl-border-faint</code> ≈ <code class="inline">oklch(0.935 0.005 220)</code></li>
+            <li><code class="inline">--hl-fg*</code> tokens already on hue 220 — keep as is; re-verify AA contrast against the new tinted page</li>
+            <li>Accent + semantic + accent-soft / -line tokens — keep current light-mode values; visually re-QA against the cooler page</li>
+            <li>Re-check the <code class="inline">.light .hl-page</code> radial-gradient (L860) — the accent halo at 5% alpha will read differently on cool bg; lower opacity if it visibly tints the upper viewport</li>
+          </ul>
+          <p>Re-verify input chrome, focus ring, placeholder text, <code class="inline">.hl-table</code> stripes, <code class="inline">.hl-pill</code> backgrounds against the new page bg. No hard-coded oklch outside this block should be touched in this step; if an avatar/runner-dot reads poorly, capture it for Step 02 (avatar) or note in QA (other).</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/.worktrees/feat-homeui-design-system-overhaul/src/styles/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>02, 03 (disjoint CSS regions, but same file — sequence commits)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Light theme page bg has a perceptible cool undertone; cards (<code class="inline">--hl-bg-1</code>) remain pure white and visibly "lift"</li>
+            <li class="acceptance__item">All <code class="inline">--hl-fg*</code> tokens still pass AA 4.5:1 against the new <code class="inline">--hl-bg</code> and against <code class="inline">--hl-bg-1</code></li>
+            <li class="acceptance__item">Teal accent still reads as the accent (not absorbed into the page hue)</li>
+            <li class="acceptance__item">Inputs, focus ring, placeholder text, table stripes, pills all read coherently on the new bg</li>
+            <li class="acceptance__item">Dark mode untouched (no <code class="inline">:root</code> edits)</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 05, 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">02</div>
+        <header class="plan-step__head"><h3>Ledger person tones — accent-soft positive, neutral negative</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Repaint ledger person rows in the app palette. Touches the same CSS file and two consumers.</p>
+          <p><strong>Tokens (in <code class="inline">:root</code> and <code class="inline">.light</code>):</strong></p>
+          <ul>
+            <li>Remove <code class="inline">--hl-success-pastel</code> / <code class="inline">--hl-error-pastel</code> (dark L51–52, light L855–856)</li>
+            <li>Add <code class="inline">--hl-ledger-pos</code> (dark: <code class="inline">var(--hl-accent)</code> equivalent at slightly lower lightness for amount text; light: same)</li>
+            <li>Add <code class="inline">--hl-ledger-neg</code> (dark: <code class="inline">var(--hl-fg)</code>; light: <code class="inline">var(--hl-fg)</code>) — negative amount is just full-weight neutral text</li>
+            <li>Add <code class="inline">--hl-ledger-pos-soft</code> (dark: <code class="inline">var(--hl-accent-soft)</code>; light: same)</li>
+            <li>Add <code class="inline">--hl-ledger-neg-soft</code> (dark: <code class="inline">var(--hl-bg-3)</code> equivalent; light: <code class="inline">var(--hl-bg-2)</code>) — neutral chip surface</li>
+          </ul>
+          <p><strong>Selectors (lines ~691–719 dark, ~877–878 light):</strong></p>
+          <ul>
+            <li><code class="inline">.hl-avatar--success</code> (dark L714 + light L878): background → <code class="inline">--hl-ledger-pos-soft</code>, border-color → <code class="inline">--hl-accent-line</code>, color → <code class="inline">--hl-accent</code></li>
+            <li><code class="inline">.hl-avatar--error</code> (dark L713 + light L877): background → <code class="inline">--hl-ledger-neg-soft</code>, border-color → <code class="inline">--hl-border-strong</code>, color → <code class="inline">--hl-fg-muted</code></li>
+            <li><code class="inline">.hl-person__amount--pos</code> (L718): color → <code class="inline">--hl-ledger-pos</code></li>
+            <li><code class="inline">.hl-person__amount--neg</code> (L719): color → <code class="inline">--hl-ledger-neg</code></li>
+          </ul>
+          <p><strong>Consumers — no className changes needed</strong> (they already use <code class="inline">.hl-avatar--success/--error</code> and <code class="inline">.hl-person__amount--pos/--neg</code>):</p>
+          <ul>
+            <li><code class="inline">src/features/debts/pages/LedgerPage.tsx</code> L34–58 (cva maps) — verify rendered output, no edits expected</li>
+            <li><code class="inline">src/features/finance/pages/FinanceOverviewPage.tsx</code> L25–48 (<code class="inline">PersonRow</code>) — verify rendered output, no edits expected</li>
+          </ul>
+          <p><strong>Out of scope (do NOT touch):</strong> <code class="inline">.hl-pill--success/--error</code>, <code class="inline">.hl-table .pos/.neg</code>, banners, semantic <code class="inline">--hl-success</code> / <code class="inline">--hl-error</code> tokens.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/.worktrees/feat-homeui-design-system-overhaul/src/styles/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>01, 03 (same file, sequence commits)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Ledger person rows (LedgerPage + FinanceOverviewPage) render with accent-soft positive avatars/amounts and neutral negative avatars/amounts — no green, no red anywhere on the row</li>
+            <li class="acceptance__item">Pills inside the row, table pos/neg amounts on the same page, and banners still use the saturated semantic palette</li>
+            <li class="acceptance__item">Grep for <code class="inline">success-pastel</code> / <code class="inline">error-pastel</code> across <code class="inline">src/</code> returns zero matches</li>
+            <li class="acceptance__item">Both dark and light variants verified visually via <code class="inline">/design-system</code> showcase</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 05, 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">03</div>
+        <header class="plan-step__head"><h3>Panel-size equalisation — DS CSS</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Equalise card / stat / section heights inside grids. All edits in <code class="inline">design-system.css</code>.</p>
+          <ul>
+            <li><code class="inline">.hl-grid</code> (L788): add <code class="inline">align-items: stretch</code> explicitly and verify <code class="inline">grid-auto-rows: 1fr</code> is NOT applied (stretch on align is enough for equal-height children in the same row)</li>
+            <li><code class="inline">.hl-card</code> (L377): add <code class="inline">display: flex; flex-direction: column;</code> so inner blocks can grow</li>
+            <li><code class="inline">.hl-card__desc</code> (L408): add <code class="inline">flex: 1;</code> so cards with longer descriptions push the footer down and cards with shorter descriptions still align footers at the bottom row</li>
+            <li><code class="inline">.hl-stat</code> (L428): already <code class="inline">display: flex; flex-direction: column;</code> — add <code class="inline">justify-content: flex-start;</code> + <code class="inline">height: 100%;</code> so stats fill their grid cell when neighbours are taller</li>
+            <li><code class="inline">.hl-section</code> (L345): currently just <code class="inline">margin-bottom</code> — when used as a grid child (e.g. GitHub Actions runner-grid vs. runs-table side-by-side), it must also fill height. Add <code class="inline">.hl-section</code> defaults: <code class="inline">display: flex; flex-direction: column;</code> and make the section's primary content block the flex-grow target. Verify this doesn't break pages where <code class="inline">.hl-section</code> is a top-level page wrapper (it currently is on most pages — flex-column with no growers is a no-op visually but verify margin behaviour)</li>
+            <li>Edge case — very-short content: cards with 1-line descriptions inside a row of 3-line-description neighbours should still look intentional. Verify that <code class="inline">flex: 1</code> on <code class="inline">.hl-card__desc</code> doesn't create awkward whitespace gaps; if it does, prefer <code class="inline">align-self: stretch</code> on the desc + a minimum content block instead</li>
+          </ul>
+          <p>If the GitHub Actions side-by-side panels (runner-grid <code class="inline">.hl-section</code> + runs-table <code class="inline">.hl-card</code>) need a 2-col grid utility and <code class="inline">.hl-grid--2</code> is missing from <code class="inline">pages-design-system.css</code> showcase, add it here as the obvious sibling of <code class="inline">--3</code> / <code class="inline">--4</code> / <code class="inline">--5</code> (L789–791).</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/.worktrees/feat-homeui-design-system-overhaul/src/styles/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>01, 02 (same file)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">HomePage module grid (<code class="inline">pages.tsx</code> L210): all 3 cards in a row are visually the same height; footers align on the same baseline</li>
+            <li class="acceptance__item">GitHub Actions KPI strip (L667): all 4 <code class="inline">.hl-stat</code> tiles in a row are equal-height</li>
+            <li class="acceptance__item">GitHub Actions runner-grid section + runs-table panel (L780, L794): when laid out side-by-side, both panels are equal-height</li>
+            <li class="acceptance__item">Cards with 1-line descriptions don't introduce awkward vertical gaps inside an equal-height row</li>
+            <li class="acceptance__item">No regression on pages where <code class="inline">.hl-card</code> / <code class="inline">.hl-section</code> are used standalone (not inside a grid)</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 04, 05, 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">04</div>
+        <header class="plan-step__head"><h3>Panel-size cascade — component className tweaks</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>If Step 03's DS-level changes don't fully resolve specific layouts, surgically adjust the affected pages. Expected touch points (verify, may be no-ops after Step 03):</p>
+          <ul>
+            <li><code class="inline">src/pages.tsx</code> L65–101 <code class="inline">ModuleCard</code> — the inner <code class="inline">.hl-card__desc</code> already exists; if the cascade from Step 03 doesn't propagate (e.g. because the card uses <code class="inline">__head</code> + <code class="inline">__title</code> + <code class="inline">__desc</code> + <code class="inline">__footer</code> as siblings), confirm <code class="inline">__desc</code> is the flex-grow child. No new classes — adjust DOM order or wrap if needed</li>
+            <li><code class="inline">src/features/dashboard/pages/GitHubActionsPage.tsx</code> L780 + L794 — wrap runner-grid + runs-table panels in <code class="inline">&lt;div className="hl-grid hl-grid--2"&gt;</code> if not already; remove the inline <code class="inline">style=&#123;&#123; marginBottom: 0 &#125;&#125;</code> hack at L780 in favour of the grid gap</li>
+            <li><code class="inline">src/features/finance/pages/FinanceOverviewPage.tsx</code> — audit grids of <code class="inline">.hl-person</code> rows; if person rows of varying name/sub-text length sit in a grid, the equalisation should already cover them via <code class="inline">.hl-card</code> base — verify</li>
+          </ul>
+          <p>This step is "verify-then-only-if-needed". Open dev server, eyeball each affected grid in both themes, only edit components if the DS cascade is insufficient. Document the as-built outcome (no-op vs. specific edits) in the commit message.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/.worktrees/feat-homeui-design-system-overhaul/src/</code> (pages + features)</div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">HomePage, GitHubActionsPage, FinanceOverviewPage all render with aligned grid rows in both themes</li>
+            <li class="acceptance__item">No inline <code class="inline">style=&#123;&#123; marginBottom: 0 &#125;&#125;</code> or similar hacks survive on the touched grids</li>
+            <li class="acceptance__item">If no component edits were necessary, commit message records "DS cascade sufficient — no component edits"</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 03 · unblocks 05, 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>Docs update — showcase + tech_docs</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Update documentation to reflect the polished system:</p>
+          <ul>
+            <li><code class="inline">src/pages/DesignSystem.tsx</code> (the <code class="inline">/design-system</code> showcase): update token swatches (cool light-mode bgs, new <code class="inline">--hl-ledger-*</code> tokens) and the person-row example so positive/negative show the new tones. Note the equal-height behaviour in the grid/card section</li>
+            <li><code class="inline">HomeUI/tech_docs/project_structure.md</code> — Theme &amp; colors section: note (a) light theme uses cool hue 220 surfaces with pure-white cards; (b) ledger uses dedicated <code class="inline">--hl-ledger-*</code> tokens that are NOT semantic — semantic green/red is reserved for status/alerts; (c) cards and stats inside <code class="inline">.hl-grid</code> equalise via flex-column + <code class="inline">flex: 1</code> on the description block</li>
+            <li>If <code class="inline">orchestrator/pages-design-system.html</code> (the orchestrator showcase) shows person rows or light-mode swatches, sync the tones there too — keep both showcases honest</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/.worktrees/feat-homeui-design-system-overhaul/src/pages/</code> + <code class="inline">tech_docs/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">/design-system showcase reflects the three polish changes in both themes</li>
+            <li class="acceptance__item">tech_docs/project_structure.md has updated palette + equalisation notes; no stale references to the warm hue 75 light bg or the saturated ledger tones</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01, 02, 03, 04 · unblocks 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">06</div>
+        <header class="plan-step__head"><h3>QA, push, monitor PR #93</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Quality gate + push. No new PR — PR #93 auto-updates.</p>
+          <ul>
+            <li><code class="inline">npm run lint</code> — clean</li>
+            <li><code class="inline">npm run test:ci</code> — green, coverage ≥ 70%; if any unit test snapshotted the old pastel/oklch values or warm light bg, update assertions to read tokens rather than literal colors</li>
+            <li><code class="inline">npm run build</code> — green; bundle delta &lt; ±2%</li>
+            <li>Dev-server smoke on <code class="inline">http://localhost:5175</code> — toggle dark/light on <code class="inline">/design-system</code>, <code class="inline">/</code> (overview), <code class="inline">/dashboard/github-actions</code>, <code class="inline">/finance/ledger</code>, <code class="inline">/finance</code></li>
+            <li>Commit, push to <code class="inline">feat/homeui-design-system-overhaul</code>; verify PR #93 updates and CI runs</li>
+            <li>Monitor pipeline; report status back. Do NOT remove the worktree — the overhaul branch is still active for further polish rounds until PR #93 merges</li>
+          </ul>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/.worktrees/feat-homeui-design-system-overhaul/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Lint, unit, build all green</li>
+            <li class="acceptance__item">Manual smoke confirms the three polish changes in both themes on all four pages</li>
+            <li class="acceptance__item">PR #93 picks up the new commits; CI green</li>
+            <li class="acceptance__item">PR URL re-shared with Gregor for review</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 05 · unblocks —</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Wave 1 · DS CSS (sequential — same file)</div><span class="pill pill--accent">01 · light tint</span><span class="pill pill--accent">02 · ledger tones</span><span class="pill pill--accent">03 · panel equalisation</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · component verification</div><span class="pill pill--muted">04 · cascade check + targeted edits</span></div>
+      <div class="wave"><div class="wave__label">Wave 3 · finalise</div><span class="pill pill--muted">05 · docs</span><span class="pill pill--muted">06 · QA + push</span></div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="agent-prompts">
+      <span class="eyebrow">Agent prompts</span>
+      <p>All executors run on <strong>Opus</strong> for this round (Gregor's explicit override of the default Sonnet in <code class="inline">feedback_subagent_model</code>, consistent with the original overhaul plan). Each executor reads <code class="inline">prompts/executor.md</code> + this plan + the context list under <code class="inline">#context</code>, then operates inside the existing worktree at <code class="inline">HomeUI/.worktrees/feat-homeui-design-system-overhaul</code>. Steps 01–03 share <code class="inline">design-system.css</code> — run them sequentially under one executor, or three parallel executors with explicit sequencing of their commits.</p>
+      <ul class="acceptance">
+        <li class="acceptance__item">Each executor prompt references this plan path <code class="inline">orchestrator/plans/2026-05-21-homeui-ds-polish.html</code> and the specific step number</li>
+        <li class="acceptance__item">Reviewer (<code class="inline">prompts/reviewer.md</code>) gates the PR #93 delta before any merge attempt</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">Lint + unit + build green; coverage ≥ 70%</li>
+        <li class="acceptance__item">Manual dark/light smoke on <code class="inline">/design-system</code>, overview, GitHub Actions, Ledger, Finance Overview</li>
+        <li class="acceptance__item">tech_docs + design-system showcase updated</li>
+        <li class="acceptance__item">PR #93 updated with the polish commits; CI green</li>
+        <li class="acceptance__item">PR URL re-shared with Gregor as a clickable link</li>
+        <li class="acceptance__item">Worktree retained (branch still under active iteration); no new branch / no new PR</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

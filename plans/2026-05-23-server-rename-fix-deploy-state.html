@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: Fix — Deploy State Missing on Polaris After Runner Move</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-05-23 · fix plan for parent <code>2026-05-21-server-rename-physical-id</code></span>
+      <h1>Fix — Deploy State Missing on Polaris After Runner Move</h1>
+      <p class="lede">Runners now live on polaris and pick up jobs correctly, but every deploy workflow assumes filesystem state (<code>/home/lab/&lt;Service&gt;</code> checkouts, <code>.env</code> files, Docker volumes, compose projects) that physically resides on antares. Drafter PR #18 already confirms the failure mode; all other service deploys will fail identically on merge.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Parent plan</strong><code>2026-05-21-server-rename-physical-id.html</code></div>
+        <div class="scope-item"><strong>Trigger failure</strong><code>Drafter PR #18 — runs/26331063110</code></div>
+        <div class="scope-item"><strong>Blocked PRs</strong><span>all 15 rename PRs (merging will break deploys)</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">What we observed</span>
+      <ul>
+        <li>Drafter PR-preview deploy ran on <code class="inline">polaris-4</code> (good — runner labels work).</li>
+        <li>Step <em>Deploy PR preview</em> failed: <code class="inline">/tmp/drafter-pr/pr-18/.env</code> missing, no compose project found, no containers running.</li>
+        <li>Drafter deploy workflow expects a checkout at <code class="inline">/home/lab/Drafter[-dev]</code> on the runner host — that path only exists on antares.</li>
+        <li>Same pattern in HomeAPI/HomeUI/HomeAuth/HomeCollector/Studio/Portfolio/etc. — every <code class="inline">deploy.yml</code> references <code class="inline">/home/lab/&lt;Service&gt;</code> via reusable workflows from <code class="inline">workflows/.github/workflows/{docker-build,smoke-test,frontend-e2e,...}.yml</code>.</li>
+        <li>Beyond checkouts: Docker Swarm manager, MinIO volumes, Allure server, registry, Traefik — all run on antares. Polaris currently has Docker installed but no swarm membership state for these workloads.</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="root-cause">
+      <span class="eyebrow">Root cause</span>
+      <p>The parent plan moved runner <em>compute</em> to polaris without moving (or aliasing) the deploy-time <em>state</em>. The two are coupled: the runners were not just CI executors, they were also the host where service code, configs, and Docker state were materialised. Decoupling them needs an explicit decision.</p>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="options">
+      <span class="eyebrow">Three remediation paths (pick one)</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">A</div>
+        <header class="plan-step__head"><h3>Bridge: polaris runners SSH into antares to deploy</h3><span class="pill pill--accent">least disruptive</span></header>
+        <div class="plan-step__body">
+          <p>Keep deploy state on antares; treat polaris runners as orchestrators that SSH into antares for filesystem and Docker operations. Requires:</p>
+          <ul>
+            <li>SSH key from <code class="inline">lab@polaris</code> → <code class="inline">lab@antares</code> with passwordless sudo</li>
+            <li>Rewrite reusable workflows in <code class="inline">workflows/.github/workflows/</code> so steps that touch <code class="inline">/home/lab/&lt;Service&gt;</code> wrap commands in <code class="inline">ssh antares "…"</code>, or use <code class="inline">DOCKER_HOST=ssh://lab@antares</code> for Docker</li>
+            <li>Confirm runners can SSH out (Tailscale or LAN routable)</li>
+          </ul>
+          <p><strong>Pro:</strong> No data migration. Antares remains source of truth. Reversible.<br/>
+          <strong>Con:</strong> Adds an SSH hop to every deploy step; reusable workflows get more complex; runners on polaris become a thin proxy.</p>
+        </div>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">B</div>
+        <header class="plan-step__head"><h3>Migrate: move all service state to polaris</h3><span class="pill pill--muted">most aligned with the rename intent</span></header>
+        <div class="plan-step__body">
+          <p>Treat polaris as the new home for both runners <em>and</em> the deployed services. Antares becomes Swarm manager only (or also gets demoted).</p>
+          <ul>
+            <li>Replicate <code class="inline">/home/lab/&lt;Service&gt;</code> directories from antares to polaris (rsync over Tailscale)</li>
+            <li>Replicate <code class="inline">.env</code> files (secrets management — consider sops or just rsync with care)</li>
+            <li>Migrate Docker volumes (named volumes via <code class="inline">docker run --volumes-from</code> + tar, or stop service / cp / start)</li>
+            <li>Move Swarm services: redeploy each stack so it lands on polaris (Swarm placement constraints or full stack redeploy from polaris)</li>
+            <li>Decide what stays on antares (registry, Traefik, MinIO, Allure) vs moves to polaris</li>
+            <li>Per-service smoke test after migration</li>
+          </ul>
+          <p><strong>Pro:</strong> Clean end-state. Polaris really is the new home. Antares can later be retired or repurposed as a build/CI fan-out node.<br/>
+          <strong>Con:</strong> Largest amount of work. Service downtime per migration. Lots of secret/volume handling.</p>
+        </div>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">C</div>
+        <header class="plan-step__head"><h3>Revert: dual-label antares runners with <code>polaris</code></h3><span class="pill pill--muted">fastest unblock</span></header>
+        <div class="plan-step__body">
+          <p>Add the label <code class="inline">polaris</code> to the existing 4 antares runners (without re-installing or moving them). Jobs that now target <code class="inline">runs-on: polaris</code> route back to antares where the state actually lives. The 4 new runners on polaris stay idle or get deregistered.</p>
+          <ul>
+            <li>Stop each antares runner, re-config with extra label, restart</li>
+            <li>OR via API: <code class="inline">gh api -X POST /orgs/922-Studio/actions/runners/&lt;id&gt;/labels --field labels[]=polaris</code></li>
+            <li>Decide fate of polaris runners (deregister or keep for future migration)</li>
+          </ul>
+          <p><strong>Pro:</strong> Immediate unblock; rename PRs can merge today.<br/>
+          <strong>Con:</strong> The <code class="inline">polaris</code> label becomes a lie (it's not actually on polaris). Defeats the original intent of moving compute off the manager. Keep only as a stop-gap.</p>
+        </div>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="decision">
+      <span class="eyebrow">Decision (2026-05-23)</span>
+      <p><strong>Chosen path: Solution A — polaris as orchestrator, antares as deploy target.</strong></p>
+      <p><strong>Bridge mechanism: <code class="inline">DOCKER_HOST=ssh://lab@astro-antares</code></strong> for runtime deploy commands. SSH key from <code class="inline">lab@polaris</code> → <code class="inline">lab@antares</code> already provisioned and tested (<code class="inline">DOCKER_HOST=ssh://lab@astro-antares docker ps</code> returns prod containers).</p>
+      <p><strong>CI state on polaris: refactor reusable workflows to use <code class="inline">$GITHUB_WORKSPACE</code></strong> instead of the <code class="inline">repository_path: /home/lab/&lt;Service&gt;</code> pattern. No state seeding on polaris.</p>
+      <p>Sub-decisions for the future:</p>
+      <ul>
+        <li>PR previews: polaris-local (ephemeral)</li>
+        <li>Registry: move from antares to polaris (separate workstream)</li>
+        <li>Dev / prod DBs: move to polaris (separate workstream)</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="refactor-scope">
+      <span class="eyebrow">Workflow refactor scope</span>
+      <p>Reusable workflows in <code class="inline">/Users/gregor/dev/922/workflows/.github/workflows/</code> to refactor:</p>
+      <ul>
+        <li><code class="inline">docker-build.yml</code> — drop <code class="inline">repository_path</code>; use <code class="inline">$GITHUB_WORKSPACE</code> as build context. <code class="inline">pull_code: true</code> becomes a no-op (the runner's own checkout is the source).</li>
+        <li><code class="inline">smoke-test.yml</code> — same: workdir = <code class="inline">$GITHUB_WORKSPACE</code>. <code class="inline">env_file_path</code> input: load from GitHub Secrets at runtime, OR pull from antares via SSH (<code class="inline">scp lab@antares:/home/lab/&lt;Service&gt;/.env ./.env</code>). Decide per-service.</li>
+        <li><code class="inline">pr-demo.yml</code> — refactor <code class="inline">pr-demo.sh</code> to operate fully in <code class="inline">/tmp/&lt;project&gt;-pr/pr-N/</code> on polaris; fetch <code class="inline">.env</code> via SSH from antares. Preview Traefik routing TBD (or expose via Tailscale IP <code class="inline">tailscale_ip</code> input, which would now point to polaris).</li>
+        <li><code class="inline">frontend-e2e.yml</code> — same workdir change; ensure Allure URL points at the right host.</li>
+        <li><code class="inline">deploy-docker.yml</code> — if/where it triggers prod runtime, wrap with <code class="inline">DOCKER_HOST=ssh://lab@astro-antares</code>. Today watchtower on antares handles the actual restart, so this may not need changes.</li>
+      </ul>
+      <p>Per-service deploy workflows (Drafter, HomeAPI, etc.) need their <code class="inline">with: repository_path</code> inputs removed once the reusables stop requiring them.</p>
+      <p>Order of execution:</p>
+      <ol>
+        <li>Refactor reusable workflows on a new branch in <code class="inline">workflows</code> repo (extend the existing PR #3 feat/server-rename or open a follow-up PR).</li>
+        <li>Update caller workflows to drop <code class="inline">repository_path</code> input.</li>
+        <li>Canary: trigger Drafter dev deploy manually; iterate until green end-to-end.</li>
+        <li>Merge workflows PR; merge per-service rename PRs; watch each post-merge deploy.</li>
+        <li>Deregister antares runners.</li>
+      </ol>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Decision needed from Gregor</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">Choose A / B / C / B-with-C-bridge.</li>
+        <li class="acceptance__item">Confirm whether the 15 open rename PRs should hold until the chosen path is in motion, or merge in parallel under option C.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
