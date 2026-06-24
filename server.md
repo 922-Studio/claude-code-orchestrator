@@ -43,6 +43,30 @@ ssh au   # astro-upsilon (spare worker)
 
 Key-based, passwordless sudo. Cluster management script on antares: `~/HomeStructure/scripts/homelab-ctl.sh`.
 
+## MCP Servers
+
+| Server | Location | Transport | Status |
+|--------|----------|-----------|--------|
+| `homeapi` (server-side) | `astro-antares:/home/lab/openclaw/mcp-servers/homeapi/` | stdio via mcporter | Active (prod, v0.64.8 — regenerate on next prod push) |
+| `homeapi-dev` (personal local) | `HomeAPI/scripts/mcp/generated/` on Gregor's Mac | stdio, Claude Code user-scope | Set up per README in `HomeAPI/scripts/mcp/` |
+
+### Server-side MCP (`homeapi` on antares)
+- **Entry point**: `/home/lab/openclaw/mcp-servers/homeapi/run.sh`
+- **Config**: mcporter at `/home/lab/openclaw/workspace/config/mcporter.json`
+- **Auth**: reads `HOMEAPI_TOKEN` from `/home/lab/OpenClaw/.env`; `HOMEAPI_ORG_ID` defaulted in `run.sh`
+- **Regeneration**: triggered on prod push via `HomeAPI/.github/workflows/deploy.yml` →
+  `922-Studio/workflows/.github/workflows/generate-mcp.yml`; support files (`api_client_httpx.py`,
+  `patch_api_methods.py`) are now tracked in `922-Studio/workflows/scripts/` — pipeline is
+  self-contained (no manual file placement needed)
+- **Tools**: 150 tools across all HomeAPI tags; 8 finance/ledger tools
+
+### Personal local MCP (`homeapi-dev` on Mac)
+- **Purpose**: direct interaction with HomeAPI (dev or prod) from Claude Code / Claude Desktop
+- **Setup**: `HomeAPI/scripts/mcp/README.md` — one-time `.env` fill-in, then `./scripts/mcp/generate.sh`
+- **Registration**: `claude mcp add -s user homeapi-dev -- bash HomeAPI/scripts/mcp/generated/run.sh`
+- **Auth**: personal bearer token + `X-Org-ID` from `scripts/mcp/.env` (gitignored)
+- **Switching env**: re-run `generate.sh prod` to point at port 8080 instead of 8180
+
 ## Where the detail lives (`HomeStructure/docs/`)
 
 Everything low-level and fast-changing is documented (and version-controlled) in HomeStructure — read it there rather than duplicating it here:
