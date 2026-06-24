@@ -101,6 +101,11 @@ feat/gsheets-backup-hardening PRs must already be merged to dev — confirm befo
 Goal (Goal B): a Google Sheet per-person overview where I manually enter NEW ledger entries
 and they sync into the app automatically — with ZERO data-loss risk for invoicing data.
 
+DEV/PROD SHEET SPLIT (must hold): dev and prod use SEPARATE spreadsheets. dev's GOOGLE_SHEET_ID
+lives in /home/lab/dev/HomeAPI/.env (env_file_source); prod's in /home/lab/HomeAPI/.env. ALL
+reverse-sync build + tests run ONLY against the dev spreadsheet — never the prod sheet. Service
+account for sharing any sheet: home-server@home-server-480516.iam.gserviceaccount.com (Editor).
+
 Locked design (from the plan): APP IS SOURCE OF TRUTH; the manual-entry sheet is a SEPARATE,
 append-only input surface, DISTINCT from the existing backup mirror, and is NEVER clear()ed.
 The existing backup is a generic 1:1 DB→Sheet full-replace mirror (daily 03:00 via cron_jobs)
