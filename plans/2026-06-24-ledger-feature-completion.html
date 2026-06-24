@@ -52,8 +52,8 @@
           <p>A working FastMCP stdio server lives on antares (150 tools, 8 finance/ledger) but is <strong>server-side-only, hand-patched, not reproducible from a clean pipeline, and built against API v0.64.8</strong> (dev is v0.71.0). Pipeline gated to prod only. No local stdio path for your Claude client.</p>
         </div></div>
         <div class="card"><div class="card-body">
-          <div class="card-title">Frontend — overview good, tree dirty</div>
-          <p>Per-person panel + trend chart already exist. <span class="pill pill--error">blocker</span> HomeUI is on <code class="inline">feat/finance-invoice-overhaul</code> with a <strong>broken staged <code class="inline">AddDebtPage.tsx</code></strong> (won't compile); a finished <code class="inline">feat/finance-quick-add</code> branch is stranded with no PR. The backend <code class="inline">/persons/{name}/history</code> endpoint (running balance, first/last dates) is <strong>unused</strong> — UI re-derives it client-side from 500 rows.</p>
+          <div class="card-title">Frontend — overhauled on dev, one gap left</div>
+          <p><span class="pill pill--success">re-baselined 2026-06-24</span> A big design-system + invoice-UI overhaul (PR #93, v0.71.0) is now merged to <code class="inline">dev</code>: ledger, finance overview, invoice list/detail, person-record CRUD page, and quick-add (PersonSelect/QuickAddDebtDialog/NewPersonDialog/AddDebtPage) all exist with tests. The stale local <code class="inline">feat/finance-invoice-overhaul</code> branch is superseded — abandon it. <strong>Remaining gap:</strong> the backend <code class="inline">/persons/{name}/history</code> endpoint (running balance, first/last dates) is still <strong>unused</strong> — no per-person ledger drill-down exists; the overview re-derives history client-side.</p>
         </div></div>
       </div>
     </section>
@@ -80,9 +80,9 @@
       <!-- PHASE 0 -->
       <article class="plan-step">
         <div class="plan-step__num">01</div>
-        <header class="plan-step__head"><h3>Stabilize the baseline — land quick-add, clean the tree</h3><span class="pill pill--muted">pending</span></header>
+        <header class="plan-step__head"><h3>Stabilize the baseline — re-baseline on overhauled dev</h3><span class="pill pill--success">done 2026-06-24</span></header>
         <div class="plan-step__body">
-          <p>Open a PR for the stranded <code class="inline">feat/finance-quick-add</code> branch into <code class="inline">dev</code> (it's complete + tested), merge it, then discard the broken staged <code class="inline">AddDebtPage.tsx</code> on the overhaul branch. Fast-forward local HomeAPI <code class="inline">dev</code> to <code class="inline">origin/dev</code>. End state: both repos on a clean, compiling, green <code class="inline">dev</code>.</p>
+          <p><strong>Resolved by the UI overhaul.</strong> The quick-add feature + invoice UI are already merged to <code class="inline">dev</code> (v0.71.0); the stale local <code class="inline">feat/finance-invoice-overhaul</code> branch is superseded — abandoned (its pushed branch is left intact on origin, not built upon). All new work branches off <code class="inline">origin/dev</code> in fresh worktrees, so the broken local staged file is irrelevant. HomeAPI worktrees created off <code class="inline">origin/dev</code>.</p>
           <div class="meta-grid">
             <div class="meta-row"><strong>Projects</strong><span>HomeUI (primary) · HomeAPI</span></div>
             <div class="meta-row"><strong>Directory</strong><code>/Users/gregor/dev/922/HomeUI</code></div>
