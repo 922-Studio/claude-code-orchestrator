@@ -282,23 +282,14 @@
         <footer class="plan-step__foot">depends on 01 (current API: 03, 04) · unblocks 12</footer>
       </article>
 
-      <!-- PHASE 6 — prod -->
+      <!-- PHASE 6 — prod — DEFERRED, extracted to its own plan -->
       <article class="plan-step">
         <div class="plan-step__num">12</div>
-        <header class="plan-step__head"><h3>Promote to production</h3><span class="pill pill--muted">pending</span></header>
+        <header class="plan-step__head"><h3>Promote to production — DEFERRED</h3><span class="pill pill--muted">deferred</span></header>
         <div class="plan-step__body">
-          <p>With dev green and every money path tested: promote <code class="inline">dev</code>→prod for HomeAPI + HomeUI, run migrations, regenerate the prod MCP (now reproducible), enable the reverse-sync cron in prod, and verify each goal live (backup export, manual-entry round-trip, per-person overview, MCP from your client). Update HomeCollector uptime + HomeAPI versioning if any contract surface changed.</p>
-          <div class="meta-grid">
-            <div class="meta-row"><strong>Projects</strong><span>HomeAPI · HomeUI · HomeStructure</span></div>
-            <div class="meta-row"><strong>Directory</strong><code>each repo · server (ssh antares)</code></div>
-            <div class="meta-row"><strong>Parallel with</strong><span>— (final wave)</span></div>
-          </div>
-          <ul class="acceptance">
-            <li class="acceptance__item">Prod migrations applied cleanly; all four goals verified live in prod</li>
-            <li class="acceptance__item">Prod MCP regenerated from pipeline (not hand-patched); monitoring/versioning updated</li>
-          </ul>
+          <p>Production promotion is intentionally <strong>out of scope for this plan</strong> and deferred (decision 2026-06-25). It now lives in its own plan, to be executed only when Gregor green-lights a prod push: <code class="inline">plans/2026-06-25-important-on-prod-push.html</code>. This completion plan ends at "all four goals verified on dev".</p>
         </div>
-        <footer class="plan-step__foot">depends on 05, 07, 10, 11 · unblocks —</footer>
+        <footer class="plan-step__foot">moved to → 2026-06-25-important-on-prod-push.html</footer>
       </article>
     </section>
 
@@ -317,8 +308,8 @@
       <div class="wave"><div class="wave__label">Wave 2 · reverse-sync (after 02–04, 08)</div>
         <span class="pill pill--muted">09 → 10</span>
       </div>
-      <div class="wave"><div class="wave__label">Wave 3 · production</div>
-        <span class="pill pill--muted">12 · promote &amp; verify</span>
+      <div class="wave"><div class="wave__label">Wave 3 · production — DEFERRED</div>
+        <span class="pill pill--muted">12 · moved to 2026-06-25-important-on-prod-push.html</span>
       </div>
     </section>
 

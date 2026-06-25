@@ -1,0 +1,454 @@
+{
+  "themes": [
+    {
+      "theme": "Astro + Dino",
+      "suggestions": [
+        {
+          "name": "Astro-Rex",
+          "dino": "Tyrannosaurus Rex",
+          "vibe": "Apex predator, the boss node"
+        },
+        {
+          "name": "Astro-Raptor",
+          "dino": "Velociraptor",
+          "vibe": "Fast, agile, pack hunter"
+        },
+        {
+          "name": "Astro-Ptera",
+          "dino": "Pteranodon",
+          "vibe": "Airborne, networking/edge"
+        },
+        {
+          "name": "Astro-Bronto",
+          "dino": "Brontosaurus",
+          "vibe": "Massive, slow, storage-heavy"
+        },
+        {
+          "name": "Astro-Allo",
+          "dino": "Allosaurus",
+          "vibe": "Lean predator, compute node"
+        },
+        {
+          "name": "Astro-Spino",
+          "dino": "Spinosaurus",
+          "vibe": "Aquatic giant, DB node"
+        },
+        {
+          "name": "Astro-Stego",
+          "dino": "Stegosaurus",
+          "vibe": "Armored, defensive, firewall"
+        },
+        {
+          "name": "Astro-Trike",
+          "dino": "Triceratops",
+          "vibe": "Tank, three-horned, robust"
+        },
+        {
+          "name": "Astro-Giga",
+          "dino": "Giganotosaurus",
+          "vibe": "Even bigger than Rex"
+        },
+        {
+          "name": "Astro-Carno",
+          "dino": "Carnotaurus",
+          "vibe": "Horned predator, sprinter"
+        },
+        {
+          "name": "Astro-Anky",
+          "dino": "Ankylosaurus",
+          "vibe": "Club-tailed tank"
+        },
+        {
+          "name": "Astro-Dilo",
+          "dino": "Dilophosaurus",
+          "vibe": "Crested, spitter, dev/test"
+        },
+        {
+          "name": "Astro-Compy",
+          "dino": "Compsognathus",
+          "vibe": "Tiny, fast, edge/Pi node"
+        },
+        {
+          "name": "Astro-Iguano",
+          "dino": "Iguanodon",
+          "vibe": "Classic herbivore, steady"
+        },
+        {
+          "name": "Astro-Para",
+          "dino": "Parasaurolophus",
+          "vibe": "Crested singer, comms node"
+        },
+        {
+          "name": "Astro-Mosa",
+          "dino": "Mosasaurus",
+          "vibe": "Ocean apex, deep storage"
+        },
+        {
+          "name": "Astro-Pleisi",
+          "dino": "Plesiosaurus",
+          "vibe": "Long-necked sea reptile"
+        },
+        {
+          "name": "Astro-Diplo",
+          "dino": "Diplodocus",
+          "vibe": "Long, lean, archive"
+        },
+        {
+          "name": "Astro-Bary",
+          "dino": "Baryonyx",
+          "vibe": "Fish-hunter, claw, niche"
+        },
+        {
+          "name": "Astro-Therizino",
+          "dino": "Therizinosaurus",
+          "vibe": "Giant claws, weird, dev box"
+        },
+        {
+          "name": "Astro-Quetz",
+          "dino": "Quetzalcoatlus",
+          "vibe": "Largest flyer, ingress/gateway"
+        },
+        {
+          "name": "Astro-Velo",
+          "dino": "Velociraptor (short)",
+          "vibe": "Snappy, scripty"
+        },
+        {
+          "name": "Astro-Maia",
+          "dino": "Maiasaura",
+          "vibe": "Good mother lizard, nurturing CI"
+        },
+        {
+          "name": "Astro-Pachy",
+          "dino": "Pachycephalosaurus",
+          "vibe": "Headbutter, stubborn, build node"
+        },
+        {
+          "name": "Astro-Oviraptor",
+          "dino": "Oviraptor",
+          "vibe": "Egg-thief, sneaky, scraper"
+        },
+        {
+          "name": "Astro-Archae",
+          "dino": "Archaeopteryx",
+          "vibe": "Proto-bird, transitional, experimental"
+        },
+        {
+          "name": "Astro-Deino",
+          "dino": "Deinonychus",
+          "vibe": "Terrible claw, sharp ops"
+        },
+        {
+          "name": "Astro-Utah",
+          "dino": "Utahraptor",
+          "vibe": "Big raptor, heavy compute"
+        },
+        {
+          "name": "Astro-Mega",
+          "dino": "Megalosaurus",
+          "vibe": "First named dino, OG node"
+        },
+        {
+          "name": "Astro-Cera",
+          "dino": "Ceratosaurus",
+          "vibe": "Horned predator, mid-tier"
+        }
+      ]
+    },
+    {
+      "theme": "Star Names",
+      "suggestions": [
+        {
+          "name": "Astro-Pollux",
+          "origin": "Gemini",
+          "vibe": "Orange giant twin, paired node — beta Geminorum"
+        },
+        {
+          "name": "Astro-Castor",
+          "origin": "Gemini",
+          "vibe": "Sextuple system, the other twin — alpha Geminorum"
+        },
+        {
+          "name": "Astro-Alhena",
+          "origin": "Gemini",
+          "vibe": "Gamma Geminorum, the mark, subgiant blue-white"
+        },
+        {
+          "name": "Astro-Wasat",
+          "origin": "Gemini",
+          "vibe": "Delta Geminorum, the middle, near the ecliptic"
+        },
+        {
+          "name": "Astro-Mebsuta",
+          "origin": "Gemini",
+          "vibe": "Epsilon Geminorum, outstretched paw, supergiant"
+        },
+        {
+          "name": "Astro-Mekbuda",
+          "origin": "Gemini",
+          "vibe": "Zeta Geminorum, classical Cepheid variable, pulsing"
+        },
+        {
+          "name": "Astro-Propus",
+          "origin": "Gemini",
+          "vibe": "Eta Geminorum, the forward foot, red giant variable"
+        },
+        {
+          "name": "Astro-Tejat",
+          "origin": "Gemini",
+          "vibe": "Mu Geminorum, red giant, semi-regular variable"
+        },
+        {
+          "name": "Astro-Alzirr",
+          "origin": "Gemini",
+          "vibe": "Xi Geminorum, the button, subgiant"
+        },
+        {
+          "name": "Astro-Jishui",
+          "origin": "Gemini",
+          "vibe": "Omicron Geminorum, Chinese name, calm tributary"
+        },
+        {
+          "name": "Astro-Lambda",
+          "origin": "Gemini",
+          "vibe": "Lambda Geminorum, white subgiant, steady worker"
+        },
+        {
+          "name": "Astro-Iota",
+          "origin": "Gemini",
+          "vibe": "Iota Geminorum, yellow giant, mellow node"
+        },
+        {
+          "name": "Astro-Kappa",
+          "origin": "Gemini",
+          "vibe": "Kappa Geminorum, G-type giant, balanced load"
+        },
+        {
+          "name": "Astro-Theta",
+          "origin": "Gemini",
+          "vibe": "Theta Geminorum, A-type, sharp and clean"
+        },
+        {
+          "name": "Astro-Nu",
+          "origin": "Gemini",
+          "vibe": "Nu Geminorum, B-type giant, fast spinner"
+        },
+        {
+          "name": "Astro-Rho",
+          "origin": "Gemini",
+          "vibe": "Rho Geminorum, triple star system, redundant"
+        },
+        {
+          "name": "Astro-Sigma",
+          "origin": "Gemini",
+          "vibe": "Sigma Geminorum, RS CVn variable, dynamic"
+        },
+        {
+          "name": "Astro-Tau",
+          "origin": "Gemini",
+          "vibe": "Tau Geminorum, orange giant, hosts exoplanet"
+        },
+        {
+          "name": "Astro-Upsilon",
+          "origin": "Gemini",
+          "vibe": "Upsilon Geminorum, M-type red giant, slow burn"
+        },
+        {
+          "name": "Astro-Phi",
+          "origin": "Gemini",
+          "vibe": "Phi Geminorum, A-type, crisp and minimal"
+        },
+        {
+          "name": "Astro-Chi",
+          "origin": "Gemini",
+          "vibe": "Chi Geminorum, K-type giant, quiet worker"
+        },
+        {
+          "name": "Astro-Psi",
+          "origin": "Gemini",
+          "vibe": "Psi Geminorum, multiple star group, cluster"
+        },
+        {
+          "name": "Astro-Omega",
+          "origin": "Gemini",
+          "vibe": "Omega Geminorum, G-type supergiant, heavyweight"
+        },
+        {
+          "name": "Astro-Geminga",
+          "origin": "Gemini",
+          "vibe": "Famous gamma-ray pulsar, high-frequency signals"
+        },
+        {
+          "name": "Astro-Eskimo",
+          "origin": "Gemini (NGC 2392)",
+          "vibe": "Eskimo Nebula, planetary nebula, cold storage"
+        },
+        {
+          "name": "Astro-Medusa",
+          "origin": "Gemini (Abell 21)",
+          "vibe": "Medusa Nebula, ancient planetary nebula, archive"
+        },
+        {
+          "name": "Astro-Jellyfish",
+          "origin": "Gemini (IC 443)",
+          "vibe": "Jellyfish supernova remnant, exploded compute"
+        },
+        {
+          "name": "Astro-M35",
+          "origin": "Gemini (Messier 35)",
+          "vibe": "Open cluster of hundreds of stars, swarm node"
+        },
+        {
+          "name": "Astro-Thestias",
+          "origin": "Gemini",
+          "vibe": "Pollux's exoplanet, orbiting workload"
+        },
+        {
+          "name": "Astro-Twins",
+          "origin": "Gemini (constellation)",
+          "vibe": "The constellation itself, HA pair anchor"
+        },
+        {
+          "name": "Astro-Sirius",
+          "origin": "Canis Major",
+          "vibe": "Brightest star in night sky, primary node"
+        },
+        {
+          "name": "Astro-Vega",
+          "origin": "Lyra",
+          "vibe": "Blue-white, fast, iconic"
+        },
+        {
+          "name": "Astro-Rigel",
+          "origin": "Orion",
+          "vibe": "Blue supergiant, raw power"
+        },
+        {
+          "name": "Astro-Betelgeuse",
+          "origin": "Orion",
+          "vibe": "Red supergiant, massive, near-supernova"
+        },
+        {
+          "name": "Astro-Altair",
+          "origin": "Aquila",
+          "vibe": "Fast-spinning, agile compute"
+        },
+        {
+          "name": "Astro-Deneb",
+          "origin": "Cygnus",
+          "vibe": "Distant luminous giant, archive"
+        },
+        {
+          "name": "Astro-Procyon",
+          "origin": "Canis Minor",
+          "vibe": "Close, bright, reliable"
+        },
+        {
+          "name": "Astro-Capella",
+          "origin": "Auriga",
+          "vibe": "Quadruple star system, cluster vibe"
+        },
+        {
+          "name": "Astro-Arcturus",
+          "origin": "Boötes",
+          "vibe": "Orange giant, steady veteran"
+        },
+        {
+          "name": "Astro-Aldebaran",
+          "origin": "Taurus",
+          "vibe": "Red giant, the follower, watcher node"
+        },
+        {
+          "name": "Astro-Antares",
+          "origin": "Scorpius",
+          "vibe": "Heart of the scorpion, hot core"
+        },
+        {
+          "name": "Astro-Spica",
+          "origin": "Virgo",
+          "vibe": "Binary blue, sharp and precise"
+        },
+        {
+          "name": "Astro-Fomalhaut",
+          "origin": "Piscis Austrinus",
+          "vibe": "Lonely southern beacon, edge node"
+        },
+        {
+          "name": "Astro-Bellatrix",
+          "origin": "Orion",
+          "vibe": "Amazon star, warrior compute"
+        },
+        {
+          "name": "Astro-Mintaka",
+          "origin": "Orion's Belt",
+          "vibe": "Belt star, part of a trio"
+        },
+        {
+          "name": "Astro-Alnitak",
+          "origin": "Orion's Belt",
+          "vibe": "Belt star, hot blue supergiant"
+        },
+        {
+          "name": "Astro-Alnilam",
+          "origin": "Orion's Belt",
+          "vibe": "Belt star, string of pearls"
+        },
+        {
+          "name": "Astro-Polaris",
+          "origin": "Ursa Minor",
+          "vibe": "North Star, the fixed anchor / control plane"
+        },
+        {
+          "name": "Astro-Mizar",
+          "origin": "Ursa Major",
+          "vibe": "Famous double star, paired node"
+        },
+        {
+          "name": "Astro-Alcor",
+          "origin": "Ursa Major",
+          "vibe": "Mizar's companion, sidekick node"
+        },
+        {
+          "name": "Astro-Regulus",
+          "origin": "Leo",
+          "vibe": "Little king, royal compute"
+        },
+        {
+          "name": "Astro-Algol",
+          "origin": "Perseus",
+          "vibe": "The demon star, eclipsing binary, chaotic"
+        },
+        {
+          "name": "Astro-Mira",
+          "origin": "Cetus",
+          "vibe": "Wonderful pulsating star, variable load"
+        },
+        {
+          "name": "Astro-Canopus",
+          "origin": "Carina",
+          "vibe": "Second brightest, southern navigator"
+        },
+        {
+          "name": "Astro-Achernar",
+          "origin": "Eridanus",
+          "vibe": "End of the river, edge of cluster"
+        },
+        {
+          "name": "Astro-Hadar",
+          "origin": "Centaurus",
+          "vibe": "Beta Centauri, blue giant pair"
+        },
+        {
+          "name": "Astro-Atria",
+          "origin": "Triangulum Australe",
+          "vibe": "Southern orange giant, off-grid"
+        },
+        {
+          "name": "Astro-Tabby",
+          "origin": "Cygnus (KIC 8462852)",
+          "vibe": "Mysterious dimming star, the weird dev box"
+        }
+      ]
+    }
+  ]
+}

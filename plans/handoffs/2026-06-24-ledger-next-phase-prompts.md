@@ -138,9 +138,9 @@ Workflow: worktree off origin/dev (feat/ledger-reverse-sync), tests green, push,
 
 ---
 
-## After all phases land → Production migration (plan step 12)
+## Production migration — DEFERRED (decision 2026-06-25)
 
-Once dev is green with every PR merged and all four goals verified on dev, run a final session
-for step 12: promote dev→prod (HomeAPI + HomeUI), run migrations, regenerate the prod MCP from
-the now-reproducible pipeline, enable the reverse-sync cron in prod, verify all four goals live,
-and update HomeCollector uptime + HomeAPI versioning if any contract surface changed.
+Step 12 (prod promotion) is **intentionally deferred** — prod waits a day or two; do NOT run it
+unprompted. It has been extracted out of the completion plan into its own gated plan:
+**`plans/2026-06-25-important-on-prod-push.html`** — execute that ONLY on Gregor's explicit
+green-light, after dev is fully green and E2E-validated.
