@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: Ledger E2E Validation &amp; Edge-Case Coverage</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-06-25 · HomeUI · HomeAPI</span>
+      <h1>Ledger E2E Validation &amp; Edge-Case Coverage</h1>
+      <p class="lede">Prove the whole ledger/finance system works end-to-end on dev, author exhaustive Playwright E2E covering every edge case, and fix any bug found in the process.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Primary project</strong><span>HomeUI</span></div>
+        <div class="scope-item"><strong>Branch</strong><code>feat/ledger-e2e-validation</code></div>
+        <div class="scope-item"><strong>Worktree</strong><code>HomeUI/.worktrees/feat-ledger-e2e-validation</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>dev</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">orchestrator/projects/homeui.md</code> + <code class="inline">orchestrator/projects/homeapi.md</code> — project mappings, test strategy, ports</li>
+        <li><code class="inline">orchestrator/plans/2026-06-24-ledger-feature-completion.html</code> — the feature this validates (all 4 goals)</li>
+        <li><code class="inline">HomeUI/.claude/skills/e2e.md</code> — Playwright POM, auth-mock fixture, `page.route()` mocking, anti-patterns (MANDATORY conventions)</li>
+        <li><code class="inline">HomeUI/.claude/HOW-TO-UNIT-TEST.md</code> + root &amp; HomeUI <code class="inline">CLAUDE.md</code></li>
+        <li><code class="inline">HomeUI/e2e/ledger/</code> + <code class="inline">HomeUI/src/features/ledger/</code> — existing specs &amp; the feature code (post debts→ledger rename, PR #129)</li>
+        <li><code class="inline">HomeAPI app/services/depts_sync.py</code> + <code class="inline">tests/**/test_depts_sync.py</code> — reverse-sync (PR #70), already at 100%</li>
+      </ul>
+    </section>
+
+    <section id="context">
+      <span class="eyebrow">Verified state on dev (do not re-establish)</span>
+      <ul>
+        <li>dev deploy green (HomeAPI v0.73.1). Reverse-sync endpoints live: <code class="inline">POST /api/sync/depts/import-export[/background]</code>.</li>
+        <li>Live round-trip already proven on dev: import (blank-id→UUID, Decimal, date=today, person merged into real org <code class="inline">1382cb98-…</code>), timeline-sorted export rewrite, id/date/<code class="inline">synced ✓</code> write-back, idempotent re-import. <code class="inline">OWNER_ORG_ID</code> set on dev host <code class="inline">.env</code>.</li>
+        <li>Sheet conventions: one tab per person; header <code class="inline">id | Amount | Note | transaction_date | synced</code>; manual cols = Amount, Note.</li>
+        <li>HomeUI Playwright runs against a <strong>mocked</strong> backend (MSW + <code class="inline">page.route</code>) — edge cases are exercised via crafted mock responses, not the live API.</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>Audit current ledger E2E coverage &amp; build the edge-case matrix</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Read existing <code class="inline">e2e/ledger/</code> specs + page-objects and the <code class="inline">src/features/ledger/</code> surface. Produce a written coverage matrix: every user journey × every state. Identify gaps. No code yet.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>02</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Matrix covers: ledger overview, per-person drill-down, transaction edit (PATCH), delete, date-range filter, quick-add, person CRUD, invoice list/detail.</li>
+            <li class="acceptance__item">States enumerated per flow: loading, empty, error (4xx/5xx/network), success, optimistic/rollback, permission/401.</li>
+            <li class="acceptance__item">Edge cases listed: negative/zero/large decimals, comma decimals, sign convention, long person names, special chars/emoji in notes, person-not-found, 500-row history, timeline ordering, running-balance correctness, first/last date.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 03</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">02</div>
+        <header class="plan-step__head"><h3>Live-dev integration smoke — contract truth</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>The gap mocked E2E cannot catch: confirm the real dev API contract matches what the UI mocks assume. Use the personal token + <code class="inline">X-Org-ID: 1382cb98-…</code> against <code class="inline">http://astro-antares:8180</code> (or the connected <code class="inline">homeapi-dev</code> MCP). Read-only except a self-cleaning reverse-sync probe.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI (dev, live)</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeAPI/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>01</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Verify response shapes for <code class="inline">/finance/ledger/summary</code>, <code class="inline">/ledger/persons/{name}/history</code>, PATCH/DELETE <code class="inline">/finance/ledger/{id}</code> match the HomeUI Zod schemas (flag any drift = a real bug).</li>
+            <li class="acceptance__item">Re-confirm reverse-sync round-trip via a tab seeded + torn down by the agent (never touch real person balances permanently); confirm dev sheet ends pristine.</li>
+            <li class="acceptance__item">Document any contract mismatch as a Step-05 bug.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 03, 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">03</div>
+        <header class="plan-step__head"><h3>Author the Playwright E2E suite (mocked) to close every gap</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Write specs + page-objects per <code class="inline">.claude/skills/e2e.md</code> (POM, auth-mock fixture, semantic locators, web-first assertions, data factories, zero <code class="inline">waitForTimeout</code>). One describe block per journey; cover every matrix cell from Step 01, mocking edge-case responses via <code class="inline">page.route()</code>.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/e2e/ledger/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Per-person drill-down: running balance, first/last dates, full server-side history, timeline order, edit + delete happy paths, error/empty states.</li>
+            <li class="acceptance__item">Overview: totals, timeline, date-range filter (incl. empty range, inverted range, single-day).</li>
+            <li class="acceptance__item">Quick-add + person CRUD journeys; all error/rollback states asserted with web-first assertions.</li>
+            <li class="acceptance__item"><code class="inline">npm run test:e2e</code> green; <code class="inline">npm run test:ci</code> green; 70% coverage gate held; new flows fully covered.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01, 02 · unblocks 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">04</div>
+        <header class="plan-step__head"><h3>Reverse-sync edge-case audit (HomeAPI)</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Confirm <code class="inline">test_depts_sync.py</code> already covers the full edge set; add any missing case. Do NOT regress the 100% gate. If gaps exist, add tests in a separate HomeAPI worktree/PR.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeAPI/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>03</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Confirmed coverage: blank-id mint, malformed amount/date rejection + per-row error report, idempotent re-import, org/FK isolation (never wrong org), data-loss (manual row survives next export/backup), import-before-export ordering.</li>
+            <li class="acceptance__item">Any added test keeps the suite green; report whether a new PR was needed.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>Fix every bug found, gate, and open PR(s)</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>For each defect surfaced in Steps 01–04, fix it in the worktree, add a regression test reproducing it, re-run the suite. Keep a defect log (symptom → root cause → fix → test). HomeUI fixes ride the E2E PR; HomeAPI fixes get their own worktree/PR.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI (+ HomeAPI if needed)</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/ , HomeAPI/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Every found bug has a fix + a regression test; defect log included in the PR body.</li>
+            <li class="acceptance__item">Full suites green; coverage gates held (HomeUI 70%, HomeAPI 100% on reverse-sync).</li>
+            <li class="acceptance__item">PR(s) opened <code class="inline">--base dev</code> referencing this plan; PR URL(s) reported; worktree(s) removed, remote branches preserved.</li>
+            <li class="acceptance__item">If zero bugs found, state that explicitly with the coverage evidence.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01–04 · unblocks —</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Wave 1 · parallel</div><span class="pill pill--accent">01 · coverage audit</span><span class="pill pill--accent">02 · live-dev smoke</span><span class="pill pill--accent">04 · reverse-sync audit</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · sequential</div><span class="pill pill--muted">03 · author Playwright suite</span></div>
+      <div class="wave"><div class="wave__label">Wave 3 · sequential</div><span class="pill pill--muted">05 · fix bugs · gate · PR</span></div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">Every ledger journey + edge case has automated E2E coverage</li>
+        <li class="acceptance__item">All bugs found are fixed with regression tests; defect log in PR body</li>
+        <li class="acceptance__item">CI green; coverage gates held (HomeUI 70%, HomeAPI reverse-sync 100%)</li>
+        <li class="acceptance__item">Docs updated if any contract/behavior drift was found &amp; fixed</li>
+        <li class="acceptance__item">PR URL(s) reported as clickable links; worktree(s) removed, remote branches preserved</li>
+        <li class="acceptance__item">Production untouched (validation is dev-only)</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
