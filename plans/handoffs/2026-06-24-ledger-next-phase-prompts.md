@@ -7,8 +7,11 @@ Companion to `plans/2026-06-24-ledger-feature-completion.html`. Each block below
 - 🔄 Wave 1 backend foundation — `feat/ledger-integrity-hardening` (steps 02–05) + `feat/gsheets-backup-hardening` (step 08) exist as **local worktrees only** (not pushed, no PRs, not merged). **This is the critical path for Prompt C.**
 - 🔵 Prompt A (frontend, steps 06–07) — **PR open**: HomeUI [#129](https://github.com/922-Studio/HomeUI/pull/129) → `dev`. Includes full debts→ledger rename. ⚠️ HomeUI CI does not run on PR-to-dev; tests first exercise on merge.
 - 🔵 Prompt B (local MCP, step 11) — **PRs open**: HomeAPI [#66](https://github.com/922-Studio/HomeAPI/pull/66) + workflows [#11](https://github.com/922-Studio/workflows/pull/11) → `dev`; server.md committed to main. `homeapi-dev` MCP connected & smoke-tested green on dev. Prod regen waits on #11 merge + prod push.
-- ⏸️ Prompt C (reverse-sync, steps 09–10) — **blocked** until the two Wave 1 backend PRs are merged to dev.
-- ⏸️ Step 12 (prod migration) — blocked until A/B/C all land and verify on dev.
+- ✅ Wave 1 backend foundation — **MERGED to dev**: HomeAPI [#68](https://github.com/922-Studio/HomeAPI/pull/68) (ledger integrity) + [#67](https://github.com/922-Studio/HomeAPI/pull/67) (gsheets backup 100% cov).
+- ✅ Prompt A (06–07) — **MERGED**: HomeUI [#129](https://github.com/922-Studio/HomeUI/pull/129). Prompt B (11) — **MERGED**: HomeAPI [#66](https://github.com/922-Studio/HomeAPI/pull/66) + workflows [#11](https://github.com/922-Studio/workflows/pull/11).
+- 🔵 Prompt C (reverse-sync, steps 09–10) — **PR open**: HomeAPI [#70](https://github.com/922-Studio/HomeAPI/pull/70) → `dev`. New "depts" sheet (separate spreadsheet, one tab/person, manual Amount+Note, app fills id/transaction_date/synced ✓; import-then-export, export sorted by timeline). Dev sheet `1lt68m…2b2iA` wired to new env `GOOGLE_DEPTS_SHEET_ID` on dev host .env. 1451 tests green locally; HomeAPI has NO PR-gated CI (deploy.yml runs only on push to dev/prod), so CI+migration run on merge.
+  - ⚠️ Open: cron job attributes imports to `OWNER_ORG_ID` (unset on dev → falls back to all-zeros org, matches backfill). Set `OWNER_ORG_ID` explicitly if dev/prod ledger data lives under a real org. Manual trigger always uses request `X-Org-ID`.
+- ⏸️ Step 12 (prod migration) — blocked until C is merged + all four goals verified on dev.
 
 Dependency note: **Prompt C (reverse-sync) must wait until the two backend-foundation PRs are merged to `dev`.** Prompts A (frontend) and B (MCP) are independent and can run in parallel now.
 
