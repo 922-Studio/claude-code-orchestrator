@@ -50,7 +50,7 @@
 
 ## Pipeline & Deployment
 - **CI trigger**: Push to `dev` (deploys dev), manual dispatch for prod
-- **Pipeline**: cancel-previous → version → build → unit tests → push-dev → push-prod → notify (smoke test scaffolded but disabled)
+- **Pipeline**: cancel-previous → version → build → unit tests → **smoke test (enabled)** → push-dev → push-prod → deploy → notify
 - **Deploy**: Docker Compose to home lab via deploy.sh (zero-downtime)
 - **Domains**:
   - Prod: `drafter.922-studio.com` (container: `drafter`, port 3000 internal)
@@ -77,3 +77,27 @@
 - Database `drafter` created in shared_postgres (user: admin)
 - Cloudflare DNS routes created for both subdomains
 - Docker image served from registry.922-studio.com/drafter
+
+## Current Status — CI/Deploy (2026-06-25)
+
+**Smoke test: FIXED & merged. Dev deploy: still RED on registry push (handed to orchestrator).**
+
+### What was fixed
+- Original failure: smoke container exited (1) with `Cannot find module 'next'`. Root cause: pnpm's hidden `.pnpm` virtual store was dropped during the Dockerfile node_modules chunking, leaving dangling symlinks at runtime.
+- Resolved across PRs #35–#45 by preserving `.pnpm` and splitting it into chunked Docker layers. **PR #45** (merged, commit `77cc798` on `dev`, v1.3.16) added a 3-way `.pnpm` split with a dedicated `pnpm-at` layer for `@`-scoped store entries.
+- Smoke test now passes consistently (build + unit tests + smoke all green).
+
+### What is still RED
+- **Push dev image fails with 413 Payload Too Large.** Last dev deploy run `28097748882` died on the registry push; therefore **Deploy dev to antares never runs**.
+- Root cause is architectural, NOT repo-code: `registry.922-studio.com` is behind Cloudflare, which enforces a hard **100 MB per-blob-upload cap**. Dockerfile layer-splitting reduces blob sizes but cannot reliably beat the cap for the largest layers (Next.js standalone `.pnpm` entries).
+
+### Handoff
+- The **orchestrator owns the real fix: push server-to-server, bypassing Cloudflare** (the Cloudflare cap is the actual constraint; layer-splitting was only a workaround).
+
+### Outstanding for Gregor
+- **CI-failure issues #23–#46** (auto-created "CI Failure on dev" stack) are still OPEN — intentionally not closed because the pipeline is still red on push. Close once the deploy goes green via the orchestrator's push fix.
+- **`reports/`** dir in the Drafter checkout is untracked but NOT gitignored (local test-coverage artifacts, predates this work). Consider adding `reports/` to `.gitignore`.
+- **GitHub Actions storage quota** warning ("Artifact storage quota has been hit") fails the unit-test artifact upload on every run — account-level GitHub storage issue, unrelated to Drafter code.
+
+### Repo cleanup done
+- All smoke/413 worktrees and feature branches removed (local + remote); checkout is on latest `origin/dev` with a clean tree.
