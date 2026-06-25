@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: Ledger Insert-Queue Sheet + Frontend Feature Flag</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-06-25 · HomeAPI · HomeUI</span>
+      <h1>Ledger Insert-Queue Sheet + Frontend Feature Flag</h1>
+      <p class="lede">Turn the depts sheet's first tab into a manual intake queue: a Celery-beat job consumes rows every 5 min, persists them, and deletes each on confirmation — toggleable on/off from a HomeUI setting.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Projects</strong><span>HomeAPI · HomeUI</span></div>
+        <div class="scope-item"><strong>Branches</strong><code>feat/ledger-insert-queue</code></div>
+        <div class="scope-item"><strong>PR target</strong><span>dev</span></div>
+        <div class="scope-item"><strong>Prereq</strong><span>reverse-sync-robustness merged</span></div>
+      </div>
+    </header>
+
+    <section id="context">
+      <span class="eyebrow">⚠️ Sequencing</span>
+      <ul>
+        <li><strong>Start only after</strong> HomeAPI <code class="inline">feat/ledger-reverse-sync-robustness</code> (auto-create tabs + 429 batching) is merged to <code class="inline">dev</code> — this builds directly on the reworked <code class="inline">depts_sync.py</code>. Branch off the new <code class="inline">origin/dev</code>.</li>
+        <li>PRODUCTION is out of scope (dev only) — see <code class="inline">plans/2026-06-25-important-on-prod-push.html</code>.</li>
+      </ul>
+    </section>
+
+    <section id="context">
+      <span class="eyebrow">Context — read before starting</span>
+      <ul>
+        <li><code class="inline">orchestrator/projects/homeapi.md</code> + <code class="inline">homeui.md</code>; root + per-repo <code class="inline">CLAUDE.md</code></li>
+        <li><code class="inline">HomeAPI app/services/depts_sync.py</code> (post-robustness), <code class="inline">app/routers/sync.py</code>, <code class="inline">app/tasks/gsheets_tasks.py</code>, the Celery beat schedule, and the <code class="inline">cron_jobs</code> / Celery setup</li>
+        <li>HomeAPI org-settings / org-modules / feature-flag mechanism (admin org-modules endpoints exist) — the flag belongs in the existing config surface, not a new bespoke table</li>
+        <li>HomeUI <code class="inline">src/features/settings/</code> + <code class="inline">src/features/modules/</code>, <code class="inline">.claude/skills/e2e.md</code>, <code class="inline">.claude/HOW-TO-UNIT-TEST.md</code></li>
+      </ul>
+    </section>
+
+    <section id="context">
+      <span class="eyebrow">Locked design (confirmed with Gregor 2026-06-25)</span>
+      <ul>
+        <li><strong>Insert sheet = the depts sheet's FIRST tab.</strong> Columns: <code class="inline">Person | Amount | Note</code> (manual). No date column → <code class="inline">transaction_date = processing date</code>.</li>
+        <li><strong>Queue semantics:</strong> a 5-min Celery-beat job reads every row, resolves/auto-creates the Person (in org), coerces+validates Amount (Decimal), persists idempotently (<code class="inline">transaction_date = today</code>), and <strong>DELETES the row once confirmed</strong>. Persist-then-delete ordering; malformed rows are NOT deleted — they stay with a per-row error note. Resilience: if the system is down, rows wait in the queue and process when it returns.</li>
+        <li><strong>Person tabs are read-only mirrors</strong> — sole input path is the insert sheet. Drop per-person manual import; export still rewrites person tabs (timeline order).</li>
+        <li><strong>Feature flag</strong> (org-level) toggles the whole intake on/off, set from a HomeUI setting. Beat job is a no-op when disabled. Interval fixed at 5 min.</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="steps">
+      <span class="eyebrow">Steps</span>
+
+      <article class="plan-step">
+        <div class="plan-step__num">01</div>
+        <header class="plan-step__head"><h3>Backend: feature flag in the org config surface + read/write endpoint</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Add an org-scoped boolean flag (e.g. <code class="inline">ledger_insert_queue_enabled</code>) to the existing settings/org-modules mechanism. Expose <code class="inline">GET</code> + <code class="inline">PUT</code> (or PATCH) so the frontend can read/toggle it. Default OFF.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeAPI/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Flag stored via the existing config/org-modules pattern (no bespoke one-off table); migration if needed.</li>
+            <li class="acceptance__item">Endpoint round-trips the flag, org-scoped via <code class="inline">X-Org-ID</code>; Zod-friendly response shape documented for HomeUI.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on — · unblocks 02, 03, 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">02</div>
+        <header class="plan-step__head"><h3>Backend: insert-queue processor + person tabs read-only</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>New processor over the first tab: per row → resolve/auto-create Person (org-scoped), coerce/validate Amount (Decimal), persist idempotently with <code class="inline">transaction_date = today</code>; on success DELETE the row; on malformed input keep the row + write an error note (per-row report). Make person tabs read-only (remove per-person manual import; export rewrite stays).</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeAPI/app/services/depts_sync.py</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Persist-before-delete; crash between persist+delete cannot duplicate (idempotent) or lose data.</li>
+            <li class="acceptance__item">Malformed rows survive with a clear error note; valid rows are removed exactly once.</li>
+            <li class="acceptance__item">Batched Sheets calls + 429 backoff (inherit robustness work); never wrong-org.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks 03, 04</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">03</div>
+        <header class="plan-step__head"><h3>Backend: 5-min Celery-beat task (flag-gated) + manual trigger</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Register a Celery-beat schedule (every 5 min) that runs the processor only when the flag is ON (else no-op, cheap). Add a manual trigger endpoint. Discord notify on processed/failed rows. Keep ordering relative to the existing export/backup sane.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeAPI/app/tasks/ , app/routers/sync.py</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Beat task fires every 5 min; no-op when flag OFF; processes + notifies when ON.</li>
+            <li class="acceptance__item">Manual trigger endpoint works with <code class="inline">X-Org-ID</code>.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01, 02 · unblocks 04</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">04</div>
+        <header class="plan-step__head"><h3>Backend tests → 100% on queue + flag paths</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Cover: flag OFF = no-op; flag ON happy path (persist + delete); idempotent re-process; malformed row stays with error + is not deleted; person auto-create + org isolation; persist-before-delete crash-safety; multi-row batch under a mocked call budget.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeAPI/tests/</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">100% coverage on the new queue + flag code; full suite green.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 02, 03 · unblocks 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>Frontend: settings toggle for the feature flag</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Add a setting (switch) in HomeUI that reads + toggles the flag via the Step-01 endpoint: API fn + Zod schema + queryOptions + mutation hook + UI in the settings/modules surface. Optimistic toggle with rollback on error.</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>HomeUI/src/features/settings/ (or modules/)</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>02–04 (after 01 contract is fixed)</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">Toggle reads current state, persists on change, shows error/rollback; RTL + Playwright (mocked) cover on/off + error.</li>
+            <li class="acceptance__item">70% gate held; new flow fully covered.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 01 · unblocks 06</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">06</div>
+        <header class="plan-step__head"><h3>Verify on dev + open PR(s)</h3><span class="pill pill--muted">pending</span></header>
+        <div class="plan-step__body">
+          <p>Live-dev: toggle the flag from the UI, drop test rows into the first tab, confirm the beat job (or manual trigger) persists them, deletes confirmed rows, leaves a malformed row with an error, and the entries appear in the person tab + app. Flag OFF = nothing processed. Tear down test data (sheet + balances pristine).</p>
+          <div class="meta-grid">
+            <div class="meta-row"><strong>Project</strong><span>HomeAPI · HomeUI</span></div>
+            <div class="meta-row"><strong>Directory</strong><code>both repos · dev (ssh antares)</code></div>
+            <div class="meta-row"><strong>Parallel with</strong><span>—</span></div>
+          </div>
+          <ul class="acceptance">
+            <li class="acceptance__item">End-to-end verified on dev; test data torn down; prod untouched.</li>
+            <li class="acceptance__item">PR(s) opened <code class="inline">--base dev</code> referencing this plan; URLs reported; worktrees removed, remote branches preserved.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 04, 05 · unblocks —</footer>
+      </article>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="execution-overview">
+      <span class="eyebrow">Execution overview</span>
+      <div class="wave"><div class="wave__label">Gate</div><span class="pill pill--muted">reverse-sync-robustness merged to dev</span></div>
+      <div class="wave"><div class="wave__label">Wave 1</div><span class="pill pill--accent">01 · feature flag + endpoint (HomeAPI)</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · parallel</div><span class="pill pill--accent">02→03→04 · queue processor + beat + tests (HomeAPI)</span><span class="pill pill--accent">05 · settings toggle (HomeUI)</span></div>
+      <div class="wave"><div class="wave__label">Wave 3</div><span class="pill pill--muted">06 · verify on dev · PR(s)</span></div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-execution">
+      <span class="eyebrow">Post-execution checklist</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">Insert-queue processes + deletes confirmed rows; malformed rows kept with error; idempotent &amp; crash-safe</li>
+        <li class="acceptance__item">Beat job 5-min, flag-gated; person tabs read-only; feature toggle works from the UI</li>
+        <li class="acceptance__item">Backend 100% on new paths; HomeUI 70% gate held; CI green</li>
+        <li class="acceptance__item">Docs updated (sync + settings); PR URL(s) reported; worktrees removed; remote branches preserved</li>
+        <li class="acceptance__item">Production untouched</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
