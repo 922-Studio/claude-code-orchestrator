@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Plan: Important on Prod Push — Ledger Production Migration (DEFERRED)</title>
+  <title>Plan: Ledger Production Migration (GATED)</title>
   <link rel="stylesheet" href="../pages-design-system.css" />
 </head>
 <body class="variant-studio" data-plan-cover="off">
@@ -11,50 +11,52 @@
 
   <main class="shell">
     <header class="plan-cover">
-      <span class="eyebrow">2026-06-25 · HomeAPI · HomeUI · HomeStructure · DEFERRED</span>
-      <h1>Important on Prod Push — Ledger Production Migration</h1>
-      <p class="lede">The deferred prod-promotion checklist for the ledger feature. Execute ONLY when Gregor explicitly green-lights a prod push (decision 2026-06-25: prod waits — do not run unprompted).</p>
+      <span class="eyebrow">2026-06-25 (refreshed 2026-06-30) · HomeAPI · HomeUI · HomeStructure · GATED</span>
+      <h1>Ledger Production Migration</h1>
+      <p class="lede">Promote the complete, dev-verified ledger feature to production — onto live invoicing data — safely, reversibly, and with each goal verified live. Execute ONLY on Gregor's explicit go-ahead.</p>
       <div class="scope-bar">
-        <div class="scope-item"><strong>Status</strong><span>deferred — awaiting go</span></div>
-        <div class="scope-item"><strong>Prerequisite</strong><span>dev fully green + E2E validated</span></div>
+        <div class="scope-item"><strong>dev</strong><span>v0.75.0 — feature-complete &amp; verified</span></div>
+        <div class="scope-item"><strong>prod</strong><span>v0.64.9 — ~88 commits behind</span></div>
         <div class="scope-item"><strong>Trigger</strong><span>explicit Gregor go-ahead</span></div>
-        <div class="scope-item"><strong>Blast radius</strong><span>production — outward-facing</span></div>
+        <div class="scope-item"><strong>Blast radius</strong><span>production invoicing data</span></div>
       </div>
     </header>
 
     <section id="context">
-      <span class="eyebrow">⚠️ Hold conditions — all must be true before starting</span>
+      <span class="eyebrow">⚠️ Hold conditions &amp; hazards — read before starting</span>
       <ul>
-        <li>Gregor has <strong>explicitly</strong> said "do the prod push" — this plan never runs on its own.</li>
-        <li>dev is green: ledger feature-completion plan done, E2E-validation PR(s) merged to <code class="inline">dev</code>, all four goals verified on dev.</li>
-        <li>Heed memory <code class="inline">incident_antares_promtool_oom.md</code> (don't OOM the 16GB host), <code class="inline">incident_registry_gc_delete_untagged.md</code> (never GC --delete-untagged), and <code class="inline">project_broken_deploy_pipeline.md</code> (deploys can report success without updating code — verify running code after).</li>
+        <li>Gregor has <strong>explicitly</strong> said "do the prod push". This plan never runs on its own.</li>
+        <li>Promotion brings <strong>everything</strong> on dev to prod (~88 HomeAPI / ~127 HomeUI commits), not only ledger — confirm dev is the intended integration state.</li>
+        <li>The migration batch is large: ledger <code class="inline">v001</code> (soft-delete) / <code class="inline">v002</code> (idempotency) / <code class="inline">v003</code> (reverse-sync cron) <em>plus</em> the invoice/person ones incl. the <code class="inline">s001</code> person backfill — running against prod's real ledger rows (~115 txns). A backup precedes any migration (step 02).</li>
+        <li>Heed memory: <code class="inline">incident_antares_promtool_oom.md</code> (don't OOM the 16GB host), <code class="inline">incident_registry_gc_delete_untagged.md</code> (never GC --delete-untagged), <code class="inline">project_broken_deploy_pipeline.md</code> (a green deploy can fail to update running code — verify after).</li>
       </ul>
     </section>
 
     <section id="context">
       <span class="eyebrow">Context — read before starting</span>
       <ul>
-        <li><code class="inline">orchestrator/plans/2026-06-24-ledger-feature-completion.html</code> (step 12 was extracted here) + <code class="inline">orchestrator/projects/homeapi.md</code>, <code class="inline">homeui.md</code>, <code class="inline">orchestrator/server.md</code></li>
-        <li>Memory <code class="inline">reference_homeapi_gsheets_env.md</code> — per-env host <code class="inline">.env</code> (env_file_source), GSheets service account, dev/prod sheet split</li>
-        <li>Memory <code class="inline">feedback_server_changes.md</code> / <code class="inline">feedback_server_independent_deploy_config.md</code> — server edits must be committed/pushed; never hardcode host values</li>
-        <li>Memory <code class="inline">feedback_new_api_requirements.md</code> — new/changed APIs go into HomeCollector uptime + HomeAPI versioning</li>
-        <li><code class="inline">workflows/docs/generate-mcp.md</code> — prod MCP regeneration pipeline (now reproducible after PR #11)</li>
+        <li><code class="inline">orchestrator/plans/2026-06-24-ledger-feature-completion.html</code> · <code class="inline">projects/homeapi.md</code> · <code class="inline">homeui.md</code> · <code class="inline">server.md</code></li>
+        <li>Memory <code class="inline">reference_homeapi_gsheets_env.md</code> — per-env host <code class="inline">.env</code> (env_file_source), GSheets SA, dev/prod sheet split, the creds-mount fix (#69)</li>
+        <li>Memory <code class="inline">feedback_server_changes.md</code> / <code class="inline">feedback_server_independent_deploy_config.md</code> / <code class="inline">feedback_new_api_requirements.md</code></li>
+        <li><code class="inline">workflows/docs/generate-mcp.md</code> — prod MCP regeneration (reproducible after workflows #11)</li>
       </ul>
     </section>
 
     <div class="section-divider"></div>
 
     <section id="steps">
-      <span class="eyebrow">Steps — run in order, verify each before the next</span>
+      <span class="eyebrow">Steps — strictly sequential; verify each before the next</span>
 
       <article class="plan-step">
         <div class="plan-step__num">01</div>
-        <header class="plan-step__head"><h3>Pre-flight: confirm dev parity &amp; prod secrets staged</h3><span class="pill pill--muted">deferred</span></header>
+        <header class="plan-step__head"><h3>Pre-flight: dev parity, TZ-nit fixed, prod prerequisites staged</h3><span class="pill pill--muted">gated</span></header>
         <div class="plan-step__body">
-          <p>Confirm every ledger PR is merged to <code class="inline">dev</code> and dev is green. Stage prod-only secrets that have NO dev equivalent yet (do not write them until the actual push):</p>
+          <p>Confirm dev is green and every ledger PR is merged (incl. invoice-correctness <code class="inline">#77</code> and creds-mount <code class="inline">#69</code>). Land the one open dev fix and stage all prod-only inputs.</p>
           <ul class="acceptance">
-            <li class="acceptance__item">Prod <strong>depts</strong> spreadsheet created &amp; shared with <code class="inline">home-server@home-server-480516.iam.gserviceaccount.com</code> (Editor); its id ready for the prod host <code class="inline">.env</code> as <code class="inline">GOOGLE_DEPTS_SHEET_ID</code> — distinct from prod's backup <code class="inline">GOOGLE_SHEET_ID</code> (the <code class="inline">_assert_distinct_sheets</code> guard).</li>
-            <li class="acceptance__item"><code class="inline">OWNER_ORG_ID</code> value for prod confirmed (Gregor's prod org id — verify it owns the prod ledger data, mirroring the dev check).</li>
+            <li class="acceptance__item"><strong>TZ-nit fixed on dev first:</strong> <code class="inline">depts-reverse-sync</code> cron is UTC 02:00 while <code class="inline">sync-all-sheets</code> is Europe/Berlin 03:00 (=01:00 UTC summer) → import currently runs <em>after</em> backup. Align timezones (update the <code class="inline">v003</code> seed + the dev cron row) so import reliably precedes the backup; this then seeds prod correctly.</li>
+            <li class="acceptance__item"><strong>Prod depts sheet</strong> created, first tab <code class="inline">Insert</code>, shared with <code class="inline">home-server@home-server-480516.iam.gserviceaccount.com</code> (Editor); id ready for prod <code class="inline">GOOGLE_DEPTS_SHEET_ID</code> — must differ from prod backup <code class="inline">GOOGLE_SHEET_ID</code> (the <code class="inline">_assert_distinct_sheets</code> guard).</li>
+            <li class="acceptance__item">Prod <code class="inline">OWNER_ORG_ID</code> confirmed (owns the prod ledger data) and the <code class="inline">ledger_insert_queue_enabled</code> flag decision made for the prod org.</li>
+            <li class="acceptance__item">Full alembic migration list dev-ahead-of-prod enumerated; new env keys (<code class="inline">GOOGLE_DEPTS_SHEET_ID</code>, <code class="inline">OWNER_ORG_ID</code>) confirmed present in prod host <code class="inline">.env</code> staging (prod <code class="inline">HOST_APP_DIR</code> already set).</li>
           </ul>
         </div>
         <footer class="plan-step__foot">depends on — · unblocks 02</footer>
@@ -62,42 +64,56 @@
 
       <article class="plan-step">
         <div class="plan-step__num">02</div>
-        <header class="plan-step__head"><h3>Promote HomeAPI + HomeUI dev→prod &amp; run migrations</h3><span class="pill pill--muted">deferred</span></header>
+        <header class="plan-step__head"><h3>Back up prod data before touching it</h3><span class="pill pill--muted">gated</span></header>
         <div class="plan-step__body">
-          <p>Promote both repos to prod via the normal CI deploy path (push/merge to <code class="inline">prod</code>). Apply prod DB migrations (incl. the ledger integrity migrations + the <code class="inline">v003</code> reverse-sync cron seed). Verify the <em>running</em> prod code actually updated (per the broken-deploy incident — don't trust a green deploy alone).</p>
+          <p>Invoicing data — take a restorable snapshot <em>before</em> any migration. <code class="inline">pg_dump</code> the prod <code class="inline">home_api</code> DB (at minimum the finance tables: <code class="inline">debt_transactions</code>, <code class="inline">persons</code>, <code class="inline">invoices</code>) to off-host storage. Confirm the dump is non-empty and restorable.</p>
           <ul class="acceptance">
-            <li class="acceptance__item">Prod HomeAPI + HomeUI on the new version; migrations applied cleanly (alembic head matches dev).</li>
-            <li class="acceptance__item">Prod host <code class="inline">.env</code> updated with <code class="inline">GOOGLE_DEPTS_SHEET_ID</code> + <code class="inline">OWNER_ORG_ID</code>; container restarted so it reads them.</li>
+            <li class="acceptance__item">Timestamped prod DB dump captured + verified; restore path documented.</li>
+            <li class="acceptance__item">Rollback noted: integrity migrations are reversible (down); worst case restore the dump.</li>
           </ul>
         </div>
-        <footer class="plan-step__foot">depends on 01 · unblocks 03, 04</footer>
+        <footer class="plan-step__foot">depends on 01 · unblocks 03</footer>
       </article>
 
       <article class="plan-step">
         <div class="plan-step__num">03</div>
-        <header class="plan-step__head"><h3>Enable reverse-sync cron in prod &amp; regenerate prod MCP</h3><span class="pill pill--muted">deferred</span></header>
+        <header class="plan-step__head"><h3>Promote HomeAPI + HomeUI dev→prod &amp; run migrations</h3><span class="pill pill--muted">gated</span></header>
         <div class="plan-step__body">
-          <p>Confirm the <code class="inline">cron_jobs</code> reverse-sync row is active in prod and ordered BEFORE the daily backup export. Regenerate the prod (server-side) MCP from the now-reproducible pipeline (workflows PR #11) — no hand-patching; it should reproduce against the new prod API shape.</p>
+          <p>Promote both repos to <code class="inline">prod</code> via the normal CI deploy path. Apply the migration batch. The creds-mount fix (#69) auto-applies — confirm it actually holds on prod after containers recreate (the relative-mount bug would otherwise re-break gsheets creds).</p>
           <ul class="acceptance">
-            <li class="acceptance__item">Prod cron import-then-export runs (or manual trigger succeeds) and Discord-notifies; ordering proven (import before backup).</li>
-            <li class="acceptance__item">Prod MCP regenerated from pipeline (not v0.64.x hand-patch); list_tools + a finance/ledger tool round-trip green against prod.</li>
+            <li class="acceptance__item">Prod HomeAPI + HomeUI on the new version; <strong>running code verified updated</strong> (not just a green deploy); alembic head == dev.</li>
+            <li class="acceptance__item">Prod host <code class="inline">.env</code> has <code class="inline">GOOGLE_DEPTS_SHEET_ID</code> + <code class="inline">OWNER_ORG_ID</code>; containers recreated &amp; healthy.</li>
+            <li class="acceptance__item"><strong>Creds-mount checkpoint:</strong> <code class="inline">/app/google.json</code> is a real file (not an empty dir) in the prod containers post-deploy.</li>
           </ul>
         </div>
-        <footer class="plan-step__foot">depends on 02 · unblocks 04</footer>
+        <footer class="plan-step__foot">depends on 02 · unblocks 04, 05</footer>
       </article>
 
       <article class="plan-step">
         <div class="plan-step__num">04</div>
-        <header class="plan-step__head"><h3>Verify all four goals live + update monitoring/versioning</h3><span class="pill pill--muted">deferred</span></header>
+        <header class="plan-step__head"><h3>Enable reverse-sync cron in prod &amp; regenerate prod MCP</h3><span class="pill pill--muted">gated</span></header>
         <div class="plan-step__body">
-          <p>Verify each goal in prod: (1) daily backup export, (2) manual-entry reverse-sync round-trip on the prod depts sheet (seed + tear down a test row, leave balances/sheet pristine), (3) per-person ledger overview/drill-down in the prod UI, (4) MCP from Gregor's client against prod. Update HomeCollector uptime + HomeAPI versioning if any contract surface changed.</p>
+          <p>Confirm the prod <code class="inline">cron_jobs</code> reverse-sync row is active and ordered BEFORE the daily backup (TZ now aligned). Regenerate the prod MCP from the reproducible pipeline (workflows #11) against the new prod API shape.</p>
           <ul class="acceptance">
-            <li class="acceptance__item">All four goals confirmed working live in prod; test probe data torn down.</li>
-            <li class="acceptance__item">HomeCollector uptime + HomeAPI versioning updated per <code class="inline">feedback_new_api_requirements.md</code> if contracts changed.</li>
-            <li class="acceptance__item">Report a prod-push summary back to Gregor.</li>
+            <li class="acceptance__item">Prod reverse-sync runs (or manual trigger) + Discord-notifies; import-before-backup ordering holds.</li>
+            <li class="acceptance__item">Prod MCP regenerated from pipeline (not the v0.64.x hand-patch); <code class="inline">list_tools</code> + a finance/ledger tool round-trip green against prod.</li>
           </ul>
         </div>
-        <footer class="plan-step__foot">depends on 02, 03 · unblocks —</footer>
+        <footer class="plan-step__foot">depends on 03 · unblocks 05</footer>
+      </article>
+
+      <article class="plan-step">
+        <div class="plan-step__num">05</div>
+        <header class="plan-step__head"><h3>Verify all goals live (incl. invoice correctness) + monitoring</h3><span class="pill pill--muted">gated</span></header>
+        <div class="plan-step__body">
+          <p>Verify each goal against prod, then update monitoring. Tear down any probe data; leave prod balances/sheets pristine.</p>
+          <ul class="acceptance">
+            <li class="acceptance__item"><strong>Invoice correctness:</strong> on prod data, invoice total == <code class="inline">max(0, net)</code> for sample persons incl. a net-zero and a net-credit case (the #77 invariant, live).</li>
+            <li class="acceptance__item">Backup export to the prod backup sheet; reverse-sync round-trip on the prod depts sheet (seed + tear down a test row); per-person ledger drill-down in the prod UI; MCP from Gregor's client against prod.</li>
+            <li class="acceptance__item">HomeCollector uptime + HomeAPI versioning updated per <code class="inline">feedback_new_api_requirements.md</code> if contracts changed; prod-push summary reported to Gregor.</li>
+          </ul>
+        </div>
+        <footer class="plan-step__foot">depends on 03, 04 · unblocks —</footer>
       </article>
     </section>
 
@@ -106,8 +122,9 @@
     <section id="execution-overview">
       <span class="eyebrow">Execution overview</span>
       <div class="wave"><div class="wave__label">Gate · do not start without explicit go</div><span class="pill pill--muted">hold conditions met?</span></div>
-      <div class="wave"><div class="wave__label">Wave 1 · sequential</div><span class="pill pill--accent">01 · pre-flight</span><span class="pill pill--accent">02 · promote + migrate</span></div>
-      <div class="wave"><div class="wave__label">Wave 2 · sequential</div><span class="pill pill--muted">03 · cron + prod MCP</span><span class="pill pill--muted">04 · verify + monitoring</span></div>
+      <div class="wave"><div class="wave__label">Wave 1 · prepare (sequential)</div><span class="pill pill--accent">01 · pre-flight + TZ fix</span><span class="pill pill--accent">02 · prod DB backup</span></div>
+      <div class="wave"><div class="wave__label">Wave 2 · promote (sequential)</div><span class="pill pill--accent">03 · promote + migrate + creds check</span></div>
+      <div class="wave"><div class="wave__label">Wave 3 · activate + verify (sequential)</div><span class="pill pill--muted">04 · cron + prod MCP</span><span class="pill pill--muted">05 · verify goals + monitoring</span></div>
     </section>
 
     <div class="section-divider"></div>
@@ -115,12 +132,12 @@
     <section id="post-execution">
       <span class="eyebrow">Post-execution checklist</span>
       <ul class="acceptance">
-        <li class="acceptance__item">Prod migrations applied cleanly; running code verified updated (not just a green deploy)</li>
-        <li class="acceptance__item">All four goals verified live in prod; probe data torn down</li>
-        <li class="acceptance__item">Prod MCP regenerated from pipeline (not hand-patched)</li>
-        <li class="acceptance__item">Server-side .env / config changes committed &amp; pushed (CI would overwrite manual edits)</li>
-        <li class="acceptance__item">HomeCollector uptime + HomeAPI versioning updated if contracts changed</li>
-        <li class="acceptance__item">Prod-push summary reported to Gregor</li>
+        <li class="acceptance__item">Prod DB backed up before migration; migrations applied cleanly; running code verified updated</li>
+        <li class="acceptance__item">Creds mount is a real file post-deploy; prod gsheets backup + reverse-sync working</li>
+        <li class="acceptance__item">Invoice total reconciles to net on live prod data (net-zero &amp; net-credit checked)</li>
+        <li class="acceptance__item">Prod MCP regenerated from pipeline; per-person UI + MCP verified</li>
+        <li class="acceptance__item">Server-side .env/config committed where applicable; probe data torn down</li>
+        <li class="acceptance__item">HomeCollector uptime + HomeAPI versioning updated if contracts changed; summary reported</li>
       </ul>
     </section>
   </main>
