@@ -77,8 +77,18 @@ until he confirms.
 
 For each service `<S>` in the order above:
 
+**2.5 Deliver env (before promote)**
+- For container services, ensure the prod env is current on antares BEFORE promote
+  (the container picks up env only on recreate, which promote triggers):
+  `validate-env.sh <S>` → `deliver-env.sh <S> prod`.
+- `validate-env.sh` is local-only and prints key NAMES only (never values). NO-GO if
+  the local `.env.prod` is incomplete vs `.env.example` or an env-specific key
+  (domain/host/sheet/DB) is identical to `.env.dev`. Fix the local file, do not edit
+  the server. `deliver-env.sh` copies local → server atomically (no in-place edits).
+- workflows / HomeStructure have no runtime container → skip.
+
 **3. Preflight**
-- Run: `preflight.sh <S>`
+- Run: `preflight.sh <S>` (also re-runs `validate-env.sh` for container services)
 - On NO-GO: stop entirely, update JSON status to `"blocked"`, report the specific failure.
   Do NOT proceed to the next service or to promote.
 - On GO: set `"step": "preflight", "status": "running"` in JSON, then continue.
