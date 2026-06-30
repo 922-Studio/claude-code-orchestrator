@@ -1,0 +1,15 @@
+{
+  "overall": "not_started",
+  "updated": "2026-06-30T00:00:00Z",
+  "note": null,
+  "backup_dir": null,
+  "services": [
+    {"name": "workflows",      "branch": "main", "step": "pending", "status": "pending", "link": null, "note": null},
+    {"name": "HomeStructure",  "branch": "main", "step": "pending", "status": "pending", "link": null, "note": null},
+    {"name": "HomeAuth",       "branch": "prod", "step": "pending", "status": "pending", "link": null, "note": null},
+    {"name": "HomeAPI",        "branch": "prod", "step": "pending", "status": "pending", "link": null, "note": null},
+    {"name": "HomeCollector",  "branch": "prod", "step": "pending", "status": "pending", "link": null, "note": null},
+    {"name": "HomeUI",         "branch": "prod", "step": "pending", "status": "pending", "link": null, "note": null},
+    {"name": "Drafter",        "branch": "prod", "step": "pending", "status": "pending", "link": null, "note": null}
+  ]
+}

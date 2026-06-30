@@ -1,0 +1,423 @@
+<!doctype html>
+<!-- View locally: cd orchestrator/dashboards && python3 -m http.server 8099 then open http://localhost:8099/prod-push-status.html -->
+<!-- NOTE: opening as file:// may block fetch() for the sibling JSON in some browsers (CORS). Use the python server above. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prod Push Status</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f8f9fa;
+      --surface:   #ffffff;
+      --border:    #e2e6ea;
+      --text:      #1a1d23;
+      --muted:     #6c757d;
+      --mono:      ui-monospace, "Cascadia Code", "Fira Code", Consolas, monospace;
+
+      --pending-bg:  #f1f3f5;
+      --pending-fg:  #6c757d;
+      --running-bg:  #dbeafe;
+      --running-fg:  #1d4ed8;
+      --green-bg:    #d1fae5;
+      --green-fg:    #065f46;
+      --blocked-bg:  #fee2e2;
+      --blocked-fg:  #991b1b;
+      --skip-bg:     #fef3c7;
+      --skip-fg:     #92400e;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 32px 24px;
+    }
+
+    /* ── Header ── */
+    .page-header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+    .page-header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .ts {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Overall state pill ── */
+    .state-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .state-not_started { background: var(--pending-bg); color: var(--pending-fg); }
+    .state-in_progress { background: var(--running-bg); color: var(--running-fg); }
+    .state-done        { background: var(--green-bg);   color: var(--green-fg); }
+    .state-blocked     { background: var(--blocked-bg); color: var(--blocked-fg); }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      margin-bottom: 32px;
+    }
+    .progress-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .progress-bar-outer {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      width: 100%;
+      max-width: 400px;
+    }
+    .progress-bar-inner {
+      height: 100%;
+      background: #10b981;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+
+    /* ── Two-column layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    /* ── Service list ── */
+    .services {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .service-row {
+      display: grid;
+      grid-template-columns: 140px 120px 1fr;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+    .svc-name {
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .svc-step {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .svc-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .status-pill .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .pill-pending { background: var(--pending-bg); color: var(--pending-fg); }
+    .pill-pending .dot { background: var(--pending-fg); }
+    .pill-running { background: var(--running-bg); color: var(--running-fg); }
+    .pill-running .dot { background: var(--running-fg); animation: pulse 1.2s infinite; }
+    .pill-green   { background: var(--green-bg);   color: var(--green-fg); }
+    .pill-green .dot   { background: var(--green-fg); }
+    .pill-blocked { background: var(--blocked-bg); color: var(--blocked-fg); }
+    .pill-blocked .dot { background: var(--blocked-fg); }
+    .pill-skipped { background: var(--skip-bg);    color: var(--skip-fg); }
+    .pill-skipped .dot { background: var(--skip-fg); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.35; }
+    }
+
+    .svc-link {
+      font-size: 11px;
+      color: var(--running-fg);
+      text-decoration: none;
+    }
+    .svc-link:hover { text-decoration: underline; }
+    .svc-note {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    /* ── Sidebar: flow reference ── */
+    .flow-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .flow-panel h2 {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .flow-service {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+    .flow-num {
+      font-size: 10px;
+      color: var(--muted);
+      width: 14px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .flow-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 10px 0;
+    }
+    .flow-steps {
+      font-size: 11px;
+    }
+    .flow-step-item {
+      display: flex;
+      gap: 8px;
+      padding: 2px 0;
+      color: var(--muted);
+    }
+    .flow-step-item .step-num { flex-shrink: 0; }
+
+    /* ── Status messages ── */
+    .status-msg {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 24px 0;
+    }
+    .backup-note {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      max-width: 560px;
+    }
+    .global-note {
+      font-size: 11px;
+      color: #92400e;
+      background: var(--skip-bg);
+      border: 1px solid #fcd34d;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 16px;
+      max-width: 700px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <h1>Prod Push</h1>
+    <span class="state-pill" id="overall-pill">—</span>
+    <span class="ts" id="last-updated"></span>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-label" id="progress-label">Loading…</div>
+    <div class="progress-bar-outer">
+      <div class="progress-bar-inner" id="progress-bar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div id="global-note-wrap"></div>
+  <div id="backup-note-wrap"></div>
+
+  <div class="layout">
+    <div>
+      <div class="services" id="services-list">
+        <div class="status-msg">Waiting for status file…</div>
+      </div>
+    </div>
+    <div class="flow-panel">
+      <h2>Service Order</h2>
+      <div id="flow-services"></div>
+      <div class="flow-divider"></div>
+      <h2>Once, up front</h2>
+      <div class="flow-steps">
+        <div class="flow-step-item"><span class="step-num">·</span> connectivity check</div>
+        <div class="flow-step-item"><span class="step-num">·</span> backup all DBs</div>
+      </div>
+      <div class="flow-divider"></div>
+      <h2>Per service</h2>
+      <div class="flow-steps">
+        <div class="flow-step-item"><span class="step-num">1.</span> preflight</div>
+        <div class="flow-step-item"><span class="step-num">2.</span> promote → CI</div>
+        <div class="flow-step-item"><span class="step-num">3.</span> activate (hook)</div>
+        <div class="flow-step-item"><span class="step-num">4.</span> postverify</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const STEPS_ORDERED = ["preflight","promote","activate","postverify","done"];
+
+  function statusClass(status) {
+    const m = { pending:"pill-pending", running:"pill-running", green:"pill-green", blocked:"pill-blocked", skipped:"pill-skipped", done:"pill-green" };
+    return m[status] || "pill-pending";
+  }
+
+  function statusLabel(status) {
+    const m = { pending:"pending", running:"running", green:"done", blocked:"BLOCKED", skipped:"skipped", done:"done" };
+    return m[status] || status;
+  }
+
+  function overallClass(overall) {
+    const m = { not_started:"state-not_started", in_progress:"state-in_progress", done:"state-done", blocked:"state-blocked" };
+    return m[overall] || "state-not_started";
+  }
+
+  function overallLabel(overall) {
+    const m = { not_started:"Not Started", in_progress:"In Progress", done:"Done", blocked:"Blocked" };
+    return m[overall] || overall;
+  }
+
+  function stepLabel(step) {
+    if (!step || step === "pending") return "—";
+    return step;
+  }
+
+  function render(data) {
+    // Overall pill
+    const pill = document.getElementById("overall-pill");
+    pill.className = "state-pill " + overallClass(data.overall);
+    pill.textContent = overallLabel(data.overall);
+
+    // Timestamp
+    if (data.updated) {
+      const d = new Date(data.updated);
+      document.getElementById("last-updated").textContent =
+        "updated " + d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", second:"2-digit"});
+    }
+
+    // Global note
+    const gnWrap = document.getElementById("global-note-wrap");
+    gnWrap.innerHTML = data.note
+      ? `<div class="global-note">${data.note}</div>`
+      : "";
+
+    // Backup note
+    const bnWrap = document.getElementById("backup-note-wrap");
+    bnWrap.innerHTML = data.backup_dir
+      ? `<div class="backup-note">Backup: <code>${data.backup_dir}</code></div>`
+      : "";
+
+    // Progress
+    const svcs = data.services || [];
+    const done = svcs.filter(s => s.status === "green" || s.status === "done" || s.step === "done").length;
+    const pct = svcs.length ? Math.round((done / svcs.length) * 100) : 0;
+    document.getElementById("progress-bar").style.width = pct + "%";
+    document.getElementById("progress-label").textContent =
+      `${done} / ${svcs.length} services complete`;
+
+    // Service rows
+    const list = document.getElementById("services-list");
+    list.innerHTML = svcs.map((svc, idx) => {
+      const cls = statusClass(svc.status);
+      const lbl = statusLabel(svc.status);
+      const link = svc.link
+        ? `<a class="svc-link" href="${svc.link}" target="_blank">CI run ↗</a>`
+        : "";
+      const note = svc.note
+        ? `<div class="svc-note">${svc.note}</div>`
+        : "";
+      return `
+        <div class="service-row">
+          <div>
+            <div class="svc-name">${idx + 1}. ${svc.name}</div>
+            <div class="svc-step">${svc.branch} · ${stepLabel(svc.step)}</div>
+            ${note}
+          </div>
+          <div></div>
+          <div class="svc-right">
+            ${link}
+            <span class="status-pill ${cls}"><span class="dot"></span>${lbl}</span>
+          </div>
+        </div>`;
+    }).join("") || `<div class="status-msg">No service data.</div>`;
+
+    // Flow sidebar
+    const flow = document.getElementById("flow-services");
+    flow.innerHTML = svcs.map((svc, idx) => {
+      const cls = statusClass(svc.status);
+      return `<div class="flow-service">
+        <span class="flow-num">${idx + 1}</span>
+        <span class="status-pill ${cls}" style="padding:1px 7px;font-size:10px">
+          <span class="dot"></span>
+        </span>
+        <span>${svc.name}</span>
+      </div>`;
+    }).join("");
+  }
+
+  function showError(msg) {
+    document.getElementById("overall-pill").className = "state-pill state-not_started";
+    document.getElementById("overall-pill").textContent = "—";
+    document.getElementById("last-updated").textContent = "";
+    document.getElementById("services-list").innerHTML =
+      `<div class="status-msg">${msg}</div>`;
+  }
+
+  async function fetchAndRender() {
+    try {
+      const res = await fetch("./prod-push-status.json?t=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      render(data);
+    } catch (e) {
+      showError("Waiting for status file… (" + e.message + ")");
+    }
+  }
+
+  fetchAndRender();
+  setInterval(fetchAndRender, 5000);
+</script>
+</body>
+</html>
