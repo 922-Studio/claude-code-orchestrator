@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: prod-push framework — issues &amp; improvements log</title>
+  <link rel="stylesheet" href="../pages-design-system.css" />
+</head>
+<body class="variant-studio" data-plan-cover="off">
+  <div class="bg-pattern" aria-hidden="true"></div><div class="blob blob-a" aria-hidden="true"></div><div class="blob blob-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="plan-cover">
+      <span class="eyebrow">2026-07-02 · HomeStructure/scripts/prod-push · live log</span>
+      <h1>Prod-push framework — issues &amp; improvements</h1>
+      <p class="lede">Living log filled DURING the first real prod push with the new framework. Every friction point, bug, wrong assumption, or rough edge goes here so the framework can be fixed afterward — the push itself is not blocked on polishing.</p>
+      <div class="scope-bar">
+        <div class="scope-item"><strong>Status</strong><span class="pill pill--info"><span class="pill__dot"></span>collecting</span></div>
+        <div class="scope-item"><strong>Filled by</strong><span>prod-push session</span></div>
+        <div class="scope-item"><strong>Framework</strong><code>HomeStructure/scripts/prod-push/</code></div>
+        <div class="scope-item"><strong>Fix track</strong><span>after the push</span></div>
+      </div>
+    </header>
+
+    <section id="how-to-log">
+      <span class="eyebrow">How to log an issue (executor)</span>
+      <ul>
+        <li>Add one <code class="inline">&lt;tr&gt;</code> to the Issues Log table below for every framework difficulty encountered.</li>
+        <li>Record: which <strong>script/step</strong>, <strong>service</strong>, what <strong>went wrong</strong> (exact error/behaviour), the <strong>workaround</strong> you used to keep going, and a <strong>proposed fix</strong>.</li>
+        <li>Severity: <span class="pill pill--error"><span class="pill__dot"></span>blocker</span> (had to stop / manual override) · <span class="pill pill--warning"><span class="pill__dot"></span>friction</span> (slowed down, worked around) · <span class="pill pill--muted">nit</span> (cosmetic/UX).</li>
+        <li>Do NOT fix the framework mid-push — log it and move on. Fixes happen after, off this log.</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="issues-log">
+      <span class="eyebrow">Issues log</span>
+      <table class="dataframe">
+        <thead>
+          <tr><th>#</th><th>Severity</th><th>Script / step</th><th>Service</th><th>What went wrong</th><th>Workaround</th><th>Proposed fix</th></tr>
+        </thead>
+        <tbody>
+          <!-- Executor: append one row per issue. Example row (delete once real ones exist): -->
+          <tr>
+            <td>—</td>
+            <td><span class="pill pill--muted">example</span></td>
+            <td><code class="inline">preflight.sh · 5b</code></td>
+            <td>HomeAPI</td>
+            <td>validate-env NO-GO because env is out of scope this push (no local .env.prod maintained here)</td>
+            <td>Treated as known; env owned by the env follow-up plan; proceeded</td>
+            <td>Make preflight env-validation a WARN (not NO-GO) or gate it behind a flag when env is managed separately</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="known-risks">
+      <span class="eyebrow">Known rough edges to watch (pre-identified — confirm/expand during the push)</span>
+      <ul class="acceptance">
+        <li class="acceptance__item"><strong>Env coupling in preflight:</strong> <code class="inline">preflight.sh</code> runs <code class="inline">validate-env.sh</code> per container service → NO-GO if no local <code class="inline">.env.prod</code>. Env is OUT OF SCOPE this push — expect this and log the friction (candidate fix: WARN-only / flag).</li>
+        <li class="acceptance__item"><strong>Backup workflow dispatch ref:</strong> <code class="inline">backup-prod-dbs.yml</code> may need <code class="inline">--ref dev</code> (or dev→main promote first) to be dispatchable if it is not on the default branch. Fallback: run <code class="inline">backup-all-dbs.sh</code> locally.</li>
+        <li class="acceptance__item"><strong>workflows/HomeStructure branch model:</strong> promote target is <code class="inline">main</code>, no CI deploy run to monitor — confirm <code class="inline">promote.sh</code> handles the skip cleanly in practice.</li>
+        <li class="acceptance__item"><strong>Version-changed guard coverage:</strong> HomeUI / Drafter / workflows have no <code class="inline">/version</code> — the broken-deploy guard does not protect them. Watch their postverify signal.</li>
+        <li class="acceptance__item"><strong>ssh alias:</strong> scripts default to <code class="inline">ANTARES_HOST=antares</code>; confirm the operator's ssh config resolves it (else export <code class="inline">ANTARES_HOST=lab@astro-antares</code>).</li>
+      </ul>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <section id="post-push">
+      <span class="eyebrow">After the push — turn this log into fixes</span>
+      <ul class="acceptance">
+        <li class="acceptance__item">Triage the Issues Log; open a framework-fix plan/PR against HomeStructure for the blockers + high-value friction.</li>
+        <li class="acceptance__item">Feed confirmed rough edges back into <code class="inline">prod-push-full.md</code> and the hooks.</li>
+        <li class="acceptance__item">Mark this log <span class="pill pill--success"><span class="pill__dot"></span>triaged</span> once every row has a fix decision.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
