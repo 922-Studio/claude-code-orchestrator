@@ -75,7 +75,7 @@
             <td>Drafter, HomeAuth, HomeCollector, HomeAPI</td>
             <td>Only HomeAPI has an env-rules file. Shared-infrastructure keys are flagged as divergence NO-GOs elsewhere: Drafter <code class="inline">HOMEAUTH_URL S3_PUBLIC_URL S3_ACCESS_KEY S3_SECRET_KEY</code>; cross-service <code class="inline">ALLURE_URL DB_USER OPENCLAW_BASE_URL PROMETHEUS_URL SERVER_HOST</code>; HomeAPI Discord channel IDs are identical dev/prod (Gregor to confirm intended).</td>
             <td>Judged each manually against live server values (single MinIO/Allure/Prometheus instance → same is correct).</td>
-            <td>Create env-rules files for the other 4 services with the confirmed allow_same sets; Gregor decides on Discord channel split.</td>
+            <td>Create env-rules files for the other 4 services with the confirmed allow_same sets. CONFIRMED by Gregor 2026-07-02 (post-push env audit): Discord *_CHANNEL_ID same in dev+prod is intended; HomeAuth ADMIN_EMAIL/ADMIN_PASSWORD shared is fine; INVOICE_* must be the SAME in dev+prod (synced). Audit also fixed: DATABASE_URL localhost drift in HomeAPI+HomeCollector prod files, Drafter IMAGE_TAG/IMAGE pin gaps, Drafter prod JWT placeholder → shared secret. Still open: delete Drafter's secret-bearing .env.sync-conflict file + S3-key rotation decision; dev HomeAPI GMAIL_RECIPIENT missing.</td>
           </tr>
           <tr>
             <td>5</td>
