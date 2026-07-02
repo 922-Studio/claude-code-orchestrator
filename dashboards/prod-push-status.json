@@ -1,15 +1,15 @@
 {
-  "overall": "not_started",
-  "updated": "2026-06-30T00:00:00Z",
-  "note": null,
-  "backup_dir": null,
+  "overall": "done",
+  "updated": "2026-07-02T13:25:00Z",
+  "note": "PUSH COMPLETE: 6/7 services promoted + postverify-green. Drafter DEFERRED by Gregor (pre-existing registry-413 via Cloudflare proxy, issue #29 — no :prod image can exist until fixed). Issues log: 29 entries, ready for triage.",
+  "backup_dir": "/home/lab/backups/prod-push/2026-07-02_062135",
   "services": [
-    {"name": "workflows",      "branch": "main", "step": "pending", "status": "pending", "link": null, "note": null},
-    {"name": "HomeStructure",  "branch": "main", "step": "pending", "status": "pending", "link": null, "note": null},
-    {"name": "HomeAuth",       "branch": "prod", "step": "pending", "status": "pending", "link": null, "note": null},
-    {"name": "HomeAPI",        "branch": "prod", "step": "pending", "status": "pending", "link": null, "note": null},
-    {"name": "HomeCollector",  "branch": "prod", "step": "pending", "status": "pending", "link": null, "note": null},
-    {"name": "HomeUI",         "branch": "prod", "step": "pending", "status": "pending", "link": null, "note": null},
-    {"name": "Drafter",        "branch": "prod", "step": "pending", "status": "pending", "link": null, "note": null}
+    {"name": "workflows",      "branch": "main", "step": "done", "status": "green", "link": null, "note": "main @ 8935e4a (ff after back-merge); no consumer pins @prod; no CI deploy run (library)."},
+    {"name": "HomeStructure",  "branch": "main", "step": "done", "status": "green", "link": "https://github.com/922-Studio/HomeStructure/actions/runs/28568979360", "note": "main @ 01d3311; Prometheus verified up; docs deploy green."},
+    {"name": "HomeAuth",       "branch": "prod", "step": "done", "status": "green", "link": "https://github.com/922-Studio/HomeAuth/actions/runs/28575411662", "note": "prod @ cd85ffd, v0.16.6→0.16.10 live via manual dispatch ([ci skip] suppressed push trigger); /auth/health 200, Traefik 200."},
+    {"name": "HomeAPI",        "branch": "prod", "step": "done", "status": "green", "link": "https://github.com/922-Studio/HomeAPI/actions/runs/28577440635", "note": "prod @ ca2a085, 0.64.9→0.75.2, alembic v004, ledger flag ON, cron 02:00 Berlin OK. MCP regen DONE manually (171 tools, 12 invoice; CI job needs 3 structural fixes — issue #26)."},
+    {"name": "HomeCollector",  "branch": "prod", "step": "done", "status": "green", "link": "https://github.com/922-Studio/HomeCollector/actions/runs/28578576754", "note": "prod @ f034ccc, 0.13.10→0.14.1, worker+beat live, 53 uptime checks stored post-deploy."},
+    {"name": "HomeUI",         "branch": "prod", "step": "done", "status": "green", "link": "https://github.com/922-Studio/HomeUI/actions/runs/28580183296", "note": "prod @ 3a81658 (v0.73.1) on :prod image; prod VITE URLs verified in assets; public 200. Fixed pre-existing IMAGE_TAG gap (prod had served :dev build)."},
+    {"name": "Drafter",        "branch": "prod", "step": "preflight", "status": "blocked", "link": "https://github.com/922-Studio/Drafter/actions/runs/28097748882", "note": "DEFERRED by Gregor: registry 413 via Cloudflare proxy on pnpm layers; dev CI red since 06-24; no drafter:prod image exists. Prod untouched; unblock via issue #29 routing fix, then promote separately."}
   ]
 }

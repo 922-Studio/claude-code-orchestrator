@@ -15,7 +15,7 @@
       <h1>Prod-push framework — issues &amp; improvements</h1>
       <p class="lede">Living log filled DURING the first real prod push with the new framework. Every friction point, bug, wrong assumption, or rough edge goes here so the framework can be fixed afterward — the push itself is not blocked on polishing.</p>
       <div class="scope-bar">
-        <div class="scope-item"><strong>Status</strong><span class="pill pill--info"><span class="pill__dot"></span>collecting</span></div>
+        <div class="scope-item"><strong>Status</strong><span class="pill pill--warning"><span class="pill__dot"></span>collected — 29 issues, awaiting triage</span></div>
         <div class="scope-item"><strong>Filled by</strong><span>prod-push session</span></div>
         <div class="scope-item"><strong>Framework</strong><code>HomeStructure/scripts/prod-push/</code></div>
         <div class="scope-item"><strong>Fix track</strong><span>after the push</span></div>
@@ -41,15 +41,266 @@
           <tr><th>#</th><th>Severity</th><th>Script / step</th><th>Service</th><th>What went wrong</th><th>Workaround</th><th>Proposed fix</th></tr>
         </thead>
         <tbody>
-          <!-- Executor: append one row per issue. Example row (delete once real ones exist): -->
           <tr>
-            <td>—</td>
-            <td><span class="pill pill--muted">example</span></td>
-            <td><code class="inline">preflight.sh · 5b</code></td>
+            <td>1</td>
+            <td><span class="pill pill--warning"><span class="pill__dot"></span>friction</span></td>
+            <td><code class="inline">validate-env.sh · env model</code></td>
+            <td>all container services</td>
+            <td>Local <code class="inline">.env.prod</code>/<code class="inline">.env.dev</code> are stale subsets of the server truth (HomeAPI local had 11 of 54 keys; HomeAuth missing all secrets). The untrack PRs (HomeAPI #79, HomeAuth #20, HomeCollector #47, HomeUI #143) are still OPEN, so the files are still git-tracked on origin/dev — local-as-truth was never bootstrapped. Any validation against local files produces false NO-GOs.</td>
+            <td>Orchestrator validated the SERVER env directly (key-name/hash compares, no values printed), rebuilt from server as base, delivered only additive deltas. Repo copies untouched (tracked → secret-commit risk).</td>
+            <td>Merge the 4 untrack PRs, then bootstrap local .env.prod/.env.dev from the server files once, then enforce local-as-truth. Until then validate-env should support a server-as-baseline mode.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><span class="pill pill--error"><span class="pill__dot"></span>blocker</span></td>
+            <td><code class="inline">env contract · .env.example</code></td>
             <td>HomeAPI</td>
-            <td>validate-env NO-GO because env is out of scope this push (no local .env.prod maintained here)</td>
-            <td>Treated as known; env owned by the env follow-up plan; proceeded</td>
-            <td>Make preflight env-validation a WARN (not NO-GO) or gate it behind a flag when env is managed separately</td>
+            <td><code class="inline">GOOGLE_DEPTS_SHEET_ID</code> was entirely ABSENT from the prod server .env and is also missing from <code class="inline">.env.example</code> — the contract can never catch it; only preflight's hardcoded key check would have (as a late NO-GO). Reverse-sync would have run against no/wrong sheet.</td>
+            <td>Added the documented PROD-Depts id (<code class="inline">1UczY2ev…</code>) to the server .env before promote (delta-delivery with .bak).</td>
+            <td>Add GOOGLE_DEPTS_SHEET_ID (and HOST_APP_DIR) to HomeAPI's .env.example contract; keep the hardcoded preflight check as belt-and-braces.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td><span class="pill pill--warning"><span class="pill__dot"></span>friction</span></td>
+            <td><code class="inline">validate-env.sh · completeness rule</code></td>
+            <td>all</td>
+            <td>"Present &amp; non-empty" false-positives on legitimately-empty prod keys: <code class="inline">CONTAINER_PREFIX</code> (empty in prod by design, dev uses <code class="inline">dev_</code>), all 8 <code class="inline">INVOICE_*</code> keys (empty in dev AND prod), Drafter <code class="inline">DISCORD_WEBHOOK_URL</code> (empty in both).</td>
+            <td>Treated empty-in-both-envs as acceptable; delivered INVOICE_* empty to match dev behavior.</td>
+            <td>Add an <code class="inline">allow_empty:</code> directive to env-rules, or downgrade empty-in-both-envs to WARN.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td><span class="pill pill--muted">nit</span></td>
+            <td><code class="inline">env-rules/&lt;Service&gt;</code></td>
+            <td>Drafter, HomeAuth, HomeCollector, HomeAPI</td>
+            <td>Only HomeAPI has an env-rules file. Shared-infrastructure keys are flagged as divergence NO-GOs elsewhere: Drafter <code class="inline">HOMEAUTH_URL S3_PUBLIC_URL S3_ACCESS_KEY S3_SECRET_KEY</code>; cross-service <code class="inline">ALLURE_URL DB_USER OPENCLAW_BASE_URL PROMETHEUS_URL SERVER_HOST</code>; HomeAPI Discord channel IDs are identical dev/prod (Gregor to confirm intended).</td>
+            <td>Judged each manually against live server values (single MinIO/Allure/Prometheus instance → same is correct).</td>
+            <td>Create env-rules files for the other 4 services with the confirmed allow_same sets; Gregor decides on Discord channel split.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td><span class="pill pill--muted">nit</span></td>
+            <td><code class="inline">backup-prod-dbs.yml · dispatch</code></td>
+            <td>—</td>
+            <td>Pre-identified rough edge did NOT bite: <code class="inline">gh workflow run … --ref dev</code> dispatched fine; all 7 DBs dumped non-empty in one run (~50s).</td>
+            <td>—</td>
+            <td>Document <code class="inline">--ref dev</code> in the runbook trigger snippet so nobody trips once main diverges.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td><span class="pill pill--error"><span class="pill__dot"></span>blocker</span></td>
+            <td><code class="inline">promote.sh · ff-merge</code></td>
+            <td>workflows</td>
+            <td>Promote assumes main is strictly behind dev, but workflows' main and dev have DIVERGED: 25 commits only on main (PR #4–#9 infra/CI chain merged straight to main) vs 5 only on dev (generate-mcp rework). <code class="inline">fatal: Not possible to fast-forward</code> → hard stop. The dev→prod branch model was never enforced for this repo.</td>
+            <td>Stopped; nothing pushed. Awaiting Gregor's decision on back-merge main→dev before re-promote.</td>
+            <td>Preflight should detect divergence (<code class="inline">rev-list --count dev..main</code> &gt; 0 → NO-GO with guidance) instead of failing mid-promote; decide + document the branch model for library repos like workflows.</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td><span class="pill pill--warning"><span class="pill__dot"></span>friction</span></td>
+            <td><code class="inline">all scripts · shebang</code></td>
+            <td>—</td>
+            <td>Scripts use <code class="inline">declare -A</code> (bash ≥4) but <code class="inline">#!/usr/bin/env bash</code> resolves to macOS stock bash 3.2 → immediate <code class="inline">declare: -A: invalid option</code> on any fresh Mac.</td>
+            <td>Installed bash 5.3 via Homebrew; invoked scripts explicitly with <code class="inline">/opt/homebrew/bin/bash</code>.</td>
+            <td>Add a bash-version guard at the top of <code class="inline">_lib.sh</code> with a clear message, and document the Homebrew-bash prerequisite in the runbook.</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td><span class="pill pill--muted">nit</span></td>
+            <td><code class="inline">preflight.sh · artifact-quota check</code></td>
+            <td>—</td>
+            <td>The GH billing endpoint it calls is retired (HTTP 410 "endpoint has been moved") and the script interpolates the JSON error body into the output: <code class="inline">storage used this month: ~{"message":…}0 MB</code>.</td>
+            <td>Ignored the garbled figure; quota risk assessed manually if tests go red.</td>
+            <td>Migrate to the new billing API (<code class="inline">gh.io/billing-api-updates-org</code>) and fail soft with "quota unknown" instead of interpolating errors.</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td><span class="pill pill--muted">nit</span></td>
+            <td><code class="inline">promote.sh · push</code></td>
+            <td>workflows</td>
+            <td>Push to main succeeded only via ruleset BYPASS: <code class="inline">remote: Bypassed rule violations for refs/heads/main: "must not contain merge commits", "Changes must be made through a pull request"</code>. The promote model (direct push, merge commits) structurally conflicts with the repo's branch protection; works only because the token has bypass rights.</td>
+            <td>Accepted the bypass (framework design is direct promote).</td>
+            <td>Decide: either exempt the promote actor in the ruleset explicitly, or route promotes through PRs; document whichever in the runbook.</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td><span class="pill pill--warning"><span class="pill__dot"></span>friction</span></td>
+            <td><code class="inline">postverify.sh:203</code></td>
+            <td>workflows (all container-less)</td>
+            <td>After printing "POST-VERIFY PASSED", crashes with <code class="inline">VERSION: unbound variable</code> under <code class="inline">set -u</code> for services with no container — exit code 1 despite 0 failed checks. Any automation keying on exit codes would false-block.</td>
+            <td>Read the check counters/banner instead of the exit code.</td>
+            <td><code class="inline">${VERSION:-}</code> at line 203 (and audit other optional vars under set -u).</td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td><span class="pill pill--warning"><span class="pill__dot"></span>friction</span></td>
+            <td><code class="inline">promote.sh · ff-merge</code></td>
+            <td>HomeStructure</td>
+            <td>Divergence hit BOTH main-target repos (2/2): main had 1 commit (PR #7 merge) not on dev, dev had 4. Unlike workflows this was conflict-free — promote.sh still hard-aborts because it can't distinguish "clean mergeable divergence" from real conflict. The pre-identified "main-branch model" rough edge is confirmed systemic for main-target repos.</td>
+            <td>Applied Gregor's service-1 decision: back-merge main→dev (clean auto-merge), push, re-promote.</td>
+            <td>promote.sh (or preflight) should auto-detect clean divergence via <code class="inline">merge-tree</code> and offer/perform a back-merge for main-target repos, or the runbook should mandate a pre-push branch-sync step.</td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td><span class="pill pill--error"><span class="pill__dot"></span>blocker</span></td>
+            <td><code class="inline">hooks/HomeStructure.sh · activate</code></td>
+            <td>HomeStructure</td>
+            <td>Hook checks <code class="inline">gh run list --branch main</code> for deploy-docs/deploy-monitoring, but both workflows trigger ONLY on push to <code class="inline">dev</code> — no main-branch run will ever exist. It reported GO from stale March runs while the actual dev-triggered deploy-docs run was red (mkdocs.yml mount failure). False-positive GO masking a real deploy failure.</td>
+            <td>Sub-agent cross-checked real run list and caught the red run; stopped the service.</td>
+            <td>Fix the hook to filter <code class="inline">--branch dev</code> (the branch these workflows deploy from) and to require a run NEWER than the promote timestamp, not just "latest green".</td>
+          </tr>
+          <tr>
+            <td>13</td>
+            <td><span class="pill pill--warning"><span class="pill__dot"></span>friction</span></td>
+            <td><code class="inline">postverify model · runner-workspace mounts</code></td>
+            <td>HomeStructure</td>
+            <td>Two infra failures discovered only because the runbook adds manual checks: (a) stray root-owned <code class="inline">mkdocs.yml</code> DIRECTORY in the antares runner-3 workspace blocks the docs bind mount; (b) Prometheus crash-looping since 06:14Z — config mount source missing from the runner-4 workspace (services mounting config from CI runner workspaces is the structural hazard, see project_broken_deploy_pipeline memory).</td>
+            <td>Root cause found: runners live on POLARIS, deploys use DOCKER_HOST=ssh→antares, relative bind mounts auto-vivify empty root-owned dirs on antares (non-deterministic across 4 runner paths). One-time backfill of all 4 runner paths on antares (mkdocs.yml, docs/, monitoring/prometheus/); Prometheus restarted (ready 200, targets scraping), docs rerun green. WILL GO STALE — not self-healing.</td>
+            <td>Architecture decision needed: bake files into images, OR add rsync workspace→antares step before remote compose, OR antares-local runner for these jobs. Also fix projects/homestructure.md (runners are on polaris). See incident_remote_daemon_bind_mounts memory.</td>
+          </tr>
+          <tr>
+            <td>14</td>
+            <td><span class="pill pill--error"><span class="pill__dot"></span>blocker</span></td>
+            <td><code class="inline">_lib.sh · service_container</code></td>
+            <td>HomeAuth (audit all)</td>
+            <td>Mapping says <code class="inline">home_auth_api</code> but the live prod container is <code class="inline">homeauth</code> (dev: <code class="inline">dev_homeauth</code>) — false NO-GO "container health: not-found" on a healthy service, and the same wrong name silently breaks the alembic-head check, promote's health/version guards, and the hooks. Runbook's service table carries the same wrong name.</td>
+            <td>Live-inventoried all container names via docker ps; applied a LOCAL-ONLY hotfix to _lib.sh mappings mid-push (exception to no-mid-push-fixes: chain cannot run otherwise). Not committed.</td>
+            <td>Post-push: PR the corrected mappings (verified against docker ps) to HomeStructure dev, fix the runbook service table, and add a preflight self-check that the mapped name exists in <code class="inline">docker ps</code> output with a hint listing near-matches.</td>
+          </tr>
+          <tr>
+            <td>15</td>
+            <td><span class="pill pill--error"><span class="pill__dot"></span>blocker</span></td>
+            <td><code class="inline">promote.sh · branch model</code></td>
+            <td>HomeAuth (likely more)</td>
+            <td>Divergence #3, first with REAL conflicts: prod has 7 direct commits (old "ci: migrate to registry-based deployment with Watchtower" pattern + auth-domain docs + bumps) never back-merged to dev; dev is 12 ahead with the NEW CI-owned deploy model. Conflicts: <code class="inline">.github/workflows/deploy.yml</code>, <code class="inline">docker-compose.deploy.yaml</code>, <code class="inline">version.txt</code>. Every repo the Watchtower retirement touched via direct prod commits may repeat this.</td>
+            <td>Stopped; nothing pushed. Awaiting decision; remaining prod-target repos being pre-audited for the same pattern.</td>
+            <td>Add a framework pre-push "branch reconciliation audit" step across all services (rev-list both ways + merge-tree) BEFORE starting the chain; policy: never commit directly to prod.</td>
+          </tr>
+          <tr>
+            <td>16</td>
+            <td><span class="pill pill--error"><span class="pill__dot"></span>blocker</span></td>
+            <td><code class="inline">promote.sh · CI trigger</code></td>
+            <td>HomeAuth (affects ALL prod-branch services)</td>
+            <td>The versioning workflow's bump commit (<code class="inline">chore: Update version… [ci skip]</code>) is usually dev's tip. When promote fast-forwards prod onto it, GitHub suppresses ALL push-triggered workflows platform-wide — the prod deploy silently never runs. Hits every promote whose incoming tip is a bare version bump.</td>
+            <td>Deploy triggered manually via <code class="inline">workflow_dispatch</code> on the prod ref; workaround adopted for all remaining services.</td>
+            <td>promote.sh should detect <code class="inline">[ci skip]</code> in the promoted HEAD (or detect "no new run after push") and fall back to an explicit <code class="inline">gh workflow run deploy.yml --ref prod</code> automatically.</td>
+          </tr>
+          <tr>
+            <td>17</td>
+            <td><span class="pill pill--error"><span class="pill__dot"></span>blocker</span></td>
+            <td><code class="inline">promote.sh · run-watch fallback</code></td>
+            <td>all</td>
+            <td>When no new CI run appears within 60s, the fallback grabs the MOST RECENT run of the workflow regardless of branch/SHA/age and reported a stale 2026-03-28 success as "CI deploy completed" — a false-positive green. Only the version-change guard exposed it.</td>
+            <td>Cross-checked run headSha manually; treated the guard's NO-GO as the truth.</td>
+            <td>Match the watched run by headSha (and createdAt &gt; push time); if none appears, fail loudly instead of adopting the latest run.</td>
+          </tr>
+          <tr>
+            <td>18</td>
+            <td><span class="pill pill--muted">nit</span></td>
+            <td><code class="inline">promote.sh · version guard hint</code></td>
+            <td>HomeAuth</td>
+            <td>Version probe returned <code class="inline">unknown → unknown</code> (service_version_url doesn't resolve for HomeAuth) and the printed remediation hint (<code class="inline">docker exec homeauth cat /app/version.txt</code>) errors — no such file in this container.</td>
+            <td>Judged deploy state via docker ps image + run list instead.</td>
+            <td>Fix HomeAuth's version URL mapping in _lib.sh and make the hint per-service; guard should distinguish "unknown" (probe broken) from "unchanged".</td>
+          </tr>
+          <tr>
+            <td>19</td>
+            <td><span class="pill pill--error"><span class="pill__dot"></span>blocker</span></td>
+            <td><code class="inline">_lib.sh:164 · ssh_antares_read()</code></td>
+            <td>all</td>
+            <td>ROOT CAUSE of most false alarms: <code class="inline">ssh "$ANTARES_HOST" "$@"</code> lets the remote shell re-split arguments, breaking every payload containing spaces — docker-inspect Go templates return "not-found", health probes "unreachable", version probes "unknown". Produced postverify's bogus 2/4 FAIL and activate's /auth/health false alarm on a fully healthy HomeAuth.</td>
+            <td>Every failing check manually re-verified via direct ssh with proper quoting (all green).</td>
+            <td>Quote the payload properly (e.g. <code class="inline">ssh "$ANTARES_HOST" "$(printf '%q ' "$@")"</code> or pass a single string); add a self-test to the connectivity gate.</td>
+          </tr>
+          <tr>
+            <td>20</td>
+            <td><span class="pill pill--warning"><span class="pill__dot"></span>friction</span></td>
+            <td><code class="inline">_lib.sh:107,119 · hooks/HomeAuth.sh:55</code></td>
+            <td>HomeAuth</td>
+            <td>Probe URL mappings wrong: in-container probes use the host-published port 8100 (container listens on 8000), and <code class="inline">service_version_url</code> uses <code class="inline">/version</code> while HomeAuth serves <code class="inline">/auth/version</code>. Compounds #19 (extends #18).</td>
+            <td>Manual probes at the correct port/path (host:8100 from outside, :8000 in-container, /auth/version).</td>
+            <td>Correct HomeAuth's port/path mappings; add a preflight assertion that the version URL answers on the CURRENT prod before promoting.</td>
+          </tr>
+          <tr>
+            <td>21</td>
+            <td><span class="pill pill--warning"><span class="pill__dot"></span>friction</span></td>
+            <td><code class="inline">promote.sh · working tree</code></td>
+            <td>HomeAPI</td>
+            <td>ff-merge aborts when the LOCAL checkout has untracked files that dev tracks (scripts/mcp/*) — error surfaces as misleading "prod has diverged from dev". promote.sh resets tracked state but never handles untracked collisions.</td>
+            <td>Verified files byte-identical to origin/dev, removed them, completed merge+push manually.</td>
+            <td>Run the merge in a temp worktree (never the operator's checkout), or add an untracked-collision pre-check with a clear message.</td>
+          </tr>
+          <tr>
+            <td>22</td>
+            <td><span class="pill pill--warning"><span class="pill__dot"></span>friction</span></td>
+            <td><code class="inline">hooks/HomeAPI.sh · cron check</code></td>
+            <td>HomeAPI</td>
+            <td>Hook queries a nonexistent <code class="inline">schedule</code> column (table has <code class="inline">cron_expression</code>) so the TZ check always errors; worse, its printed fix SQL uses the wrong column AND schedule <code class="inline">0 3</code>, contradicting v004's canonical <code class="inline">0 2</code> Europe/Berlin (import must precede the 03:00 backup). Blindly applying the hook's own remedy would have broken the ordering.</td>
+            <td>Verified directly via psql: 0 2 * * * Europe/Berlin, enabled — correct, nothing changed.</td>
+            <td>Fix column name + align the fix SQL with v004; add a test that the hook's SQL matches the migration's canonical seed.</td>
+          </tr>
+          <tr>
+            <td>23</td>
+            <td><span class="pill pill--muted">nit</span></td>
+            <td><code class="inline">hooks/HomeAPI.sh · token discovery</code></td>
+            <td>HomeAPI</td>
+            <td>Hook greps HOMEAPI_TOKEN/ORG_ID from an OpenClaw path/pattern that doesn't match reality — ledger-flag activation always falls back to manual.</td>
+            <td>Enabled via in-container PUT /api/settings/ledger-insert-queue (X-User-ID path) → 200; verified in DB.</td>
+            <td>Point the hook at the real OpenClaw env location or switch to the in-container endpoint method.</td>
+          </tr>
+          <tr>
+            <td>24</td>
+            <td><span class="pill pill--warning"><span class="pill__dot"></span>friction</span></td>
+            <td><code class="inline">postverify.sh · HomeAPI checks</code></td>
+            <td>HomeAPI</td>
+            <td>4/7 checks false-failed: healthcheck + version reads (ssh-quoting #19), ledger summary "unreachable" (actually 403 — probe lacks X-Org-ID header), worker "unhealthy: no-healthcheck" (container defines none; script assumes one).</td>
+            <td>All four manually re-verified green (healthy, 0.75.2, 200 with org header, celery ping pong).</td>
+            <td>Fix #19; send X-Org-ID in the ledger probe; treat "no-healthcheck" as running-check via celery ping instead.</td>
+          </tr>
+          <tr>
+            <td>25</td>
+            <td><span class="pill pill--error"><span class="pill__dot"></span>blocker</span></td>
+            <td><code class="inline">deploy.yml · generate-mcp job (runner infra)</code></td>
+            <td>HomeAPI</td>
+            <td>generate-mcp fails on EVERY run: broken venv at <code class="inline">/home/lab/tools/mcp-generator/.venv</code> on the runner host (python3.12-venv missing) — prod MCP artifacts stale since Mar 28, missing all new invoice/person/ledger endpoints.</td>
+            <td>Venv repair + job rerun executed as an in-push infra fix (API deploy itself unaffected).</td>
+            <td>Provision python3.12-venv on the runner host (DONE during push, durable); add a CI health probe for the generator venv; alert on stale MCP artifacts.</td>
+          </tr>
+          <tr>
+            <td>26</td>
+            <td><span class="pill pill--error"><span class="pill__dot"></span>blocker</span></td>
+            <td><code class="inline">HomeAPI deploy.yml · generate-mcp topology</code></td>
+            <td>HomeAPI</td>
+            <td>After the venv fix, generate-mcp still fails structurally: the job runs on POLARIS but health-checks/fetches <code class="inline">localhost:8080</code>, where only ANTARES serves the prod API (DOCKER_HOST ssh-bridge topology). Also <code class="inline">needs: push-prod</code> instead of <code class="inline">needs: deploy-prod</code> (deploy.yml:139) — races the actual deploy. MCP regen has therefore never worked since the polaris migration (artifacts stale since Mar 28).</td>
+            <td>One-off manual generation against the public prod URL, mirroring the job's inputs exactly; delivered to antares (backup kept), 171 tools incl. 12 invoice tools, stdio smoke test green. Bonus fixes: corrupted fastmcp install in antares's venv (force-reinstalled).</td>
+            <td>THREE fixes needed, not one: (a) point the health/openapi probe at the public prod URL or tunnel; (b) <code class="inline">needs: deploy-prod</code>; (c) polaris↔antares share NO filesystem — the job writes artifacts to the polaris runner, so add an explicit rsync/scp-to-antares delivery step (or antares-hosted runner). Post-push HomeAPI+workflows PR batch.</td>
+          </tr>
+          <tr>
+            <td>27</td>
+            <td><span class="pill pill--error"><span class="pill__dot"></span>blocker</span></td>
+            <td><code class="inline">env contract · IMAGE_TAG/IMAGE pinning</code></td>
+            <td>HomeUI, Drafter (pre-existing prod defect)</td>
+            <td>PROD WAS SERVING DEV BUILDS BEFORE THE PUSH: HomeUI's prod .env lacked <code class="inline">IMAGE_TAG</code> → compose default <code class="inline">:dev</code> → dev-baked VITE URLs live on lab.922-studio.com. Drafter's env pins <code class="inline">:prod</code> correctly but the RUNNING container was <code class="inline">:dev</code> (never recreated after the env fix). Caught only by the HomeUI asset-grep guard. IMAGE_TAG/IMAGE isn't in any .env.example contract, so validate-env can never catch it (this run's env review saw HomeUI's IMAGE_TAG as "only-in-local" and under-weighted it).</td>
+            <td>Delivered IMAGE_TAG=prod to HomeUI's server env (backup kept); redeploy dispatched. Drafter healed by its own promote recreate, verified post-deploy.</td>
+            <td>Add IMAGE_TAG/IMAGE to the env contracts + preflight key checks; add a postverify assertion for EVERY container service: running Config.Image tag must equal the expected prod tag.</td>
+          </tr>
+          <tr>
+            <td>28</td>
+            <td><span class="pill pill--muted">nit</span></td>
+            <td><code class="inline">hooks/HomeUI.sh · grep -P</code></td>
+            <td>HomeUI</td>
+            <td>Hook uses <code class="inline">grep -oP</code>, which macOS BSD grep doesn't support (<code class="inline">grep: invalid option -- P</code>) — the guard errors locally instead of evaluating.</td>
+            <td>Ran the asset grep manually over ssh (GNU grep on antares).</td>
+            <td>Use portable grep -E/sed, or run the grep remotely on antares where GNU grep exists (container BusyBox grep also lacks -P — needs grep -E throughout).</td>
+          </tr>
+          <tr>
+            <td>29</td>
+            <td><span class="pill pill--error"><span class="pill__dot"></span>blocker</span></td>
+            <td><code class="inline">registry push path (infra, pre-existing)</code></td>
+            <td>Drafter</td>
+            <td><code class="inline">registry.922-studio.com</code> resolves to CLOUDFLARE PROXY IPs; the ~100MB proxied-body limit 413s Drafter's large pnpm layer blobs. Every Drafter deploy red since 2026-06-24 (8+ runs, incl. the layer-split fix attempt #45); NO drafter:prod image exists (last dev image Apr 03). Known "registry 413" host-parity blocker, root cause now pinned. Blocks service 7/7.</td>
+            <td>Stopped before promote; Drafter prod untouched (healthy on stale :dev image per #27).</td>
+            <td>Gregor decision 2026-07-02: Drafter DEFERRED from this push. Fix options remain: grey-cloud the registry DNS (mind origin TLS), internal/direct push hostname from the polaris runner, or hard-cap layer sizes. Then re-run Drafter dev deploy → promote separately.</td>
           </tr>
         </tbody>
       </table>
