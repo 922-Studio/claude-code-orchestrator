@@ -26,3 +26,5 @@ You are the orchestration lead executing **Prod-Push Framework v2**.
 - **Wave 3:** 07 infra — **decision already made: bake repo-shipped config into images + named/absolute volumes, zero relative binds under remote `DOCKER_HOST`** (runners are all on polaris, image builds there then moves to antares); confirm registry-413 transfer + per-env `COMPOSE_PROJECT_NAME`/`IMAGE_TAG` are framework-wide; fix stale runner-location claim in `orchestrator/projects/homestructure.md`. Then 08 — unblock Drafter (transfer_target/pull_image:false) and push it via `prod-push.sh Drafter` as the real-world test of selective mode.
 
 Start with Wave 1: spawn the three steps in parallel, report each PR URL back. After each wave, pause for my go/no-go before the next.
+
+**Prod scope (authorized 2026-07-07):** full plan incl. Step 08. Waves 1–2 + 07 touch nothing (PRs to `dev` only). Step 08 is the **only** live prod contact — a single-service gated `prod-push.sh Drafter`, run only after the Wave 3 go/no-go. No other service is pushed.
