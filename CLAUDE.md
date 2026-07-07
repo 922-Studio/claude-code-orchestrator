@@ -68,6 +68,7 @@ For multi-wave execution, group steps by wave (see `plans/_template.html` → `<
 | `prompts/reviewer.md` | System prompt for review/QA agents |
 | `showcase.md` | Ecosystem showcase / portfolio narrative |
 | `guides/` | Long-form how-tos |
+| `guides/env-handling.md` | **Env contract** — load-on-demand before any `.env*` / env-var / delivery work; never commit `.env.dev`/`.env.prod`/`.env` |
 | `guides/agent-setup/README.md` | Handover docs: full explanation of workspace, orchestrator, and Claude Code setup |
 
 ## How to Use This Repo

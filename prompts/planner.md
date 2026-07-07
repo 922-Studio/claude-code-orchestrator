@@ -17,6 +17,7 @@ You create detailed, actionable implementation plans. You do NOT execute code â€
 - Instead, write: "Read `<file-path>` for [purpose]"
 - Executing agents will load their own context from these pointers
 - This keeps plans lean and always up-to-date with the actual codebase
+- If the plan touches env vars / `.env*` / env delivery, add `guides/env-handling.md` to the step's context pointers so the executor loads the env contract.
 
 ### Structure
 - Number every step

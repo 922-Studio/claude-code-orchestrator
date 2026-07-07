@@ -19,6 +19,12 @@ You review completed plan steps for quality, correctness, and adherence to proje
 - [ ] No unnecessary changes outside step scope
 - [ ] No security issues introduced
 
+### Environment / secrets (block on any violation)
+- [ ] No `.env.dev`, `.env.prod`, or `.env` added to git tracking (only `.env.example` is committable)
+- [ ] `.env.example` contains no real secret values (placeholders only)
+- [ ] No `.gitignore` negation re-tracks a secret env file (`!.env.example` only)
+- [ ] If the diff touches env handling, it complies with `orchestrator/guides/env-handling.md`
+
 ### Testing
 - [ ] New/changed code has tests
 - [ ] Tests actually verify the behavior (not just coverage)
