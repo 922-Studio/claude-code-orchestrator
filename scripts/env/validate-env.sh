@@ -24,6 +24,8 @@
 # Per-service exceptions live in env-rules/<Service> (optional):
 #   allow_same:  KEY1 KEY2     # legitimately identical in dev and prod
 #   must_differ: KEY3 KEY4     # env-specific but off-pattern; force NO-GO if same
+#   allow_empty: KEY5 KEY6     # legitimately empty in .env.prod (skip completeness NO-GO)
+# Multiple lines of the same directive accumulate.
 #
 # Exit 0 = GO, 1 = NO-GO. READ-ONLY.
 # =============================================================================
@@ -82,15 +84,16 @@ contract_keys() { env_keys "$1" ; }
 in_list() { local n="$1"; shift; local x; for x in "$@"; do [[ "$x" == "$n" ]] && return 0; done; return 1; }
 
 # ─── Load exceptions ──────────────────────────────────────────────────────────
-ALLOW_SAME=(); MUST_DIFFER=()
+ALLOW_SAME=(); MUST_DIFFER=(); ALLOW_EMPTY=()
 if [[ -f "$RULES_FILE" ]]; then
     while IFS= read -r line; do
         case "$line" in
-            allow_same:*)  read -r -a ALLOW_SAME  <<< "${line#allow_same:}" ;;
-            must_differ:*) read -r -a MUST_DIFFER <<< "${line#must_differ:}" ;;
+            allow_same:*)  read -r -a _rule  <<< "${line#allow_same:}";  ALLOW_SAME+=("${_rule[@]}") ;;
+            must_differ:*) read -r -a _rule <<< "${line#must_differ:}"; MUST_DIFFER+=("${_rule[@]}") ;;
+            allow_empty:*) read -r -a _rule <<< "${line#allow_empty:}"; ALLOW_EMPTY+=("${_rule[@]}") ;;
         esac
     done < "$RULES_FILE"
-    log_info "Loaded exceptions from env-rules/${SERVICE} (allow_same: ${#ALLOW_SAME[@]}, must_differ: ${#MUST_DIFFER[@]})"
+    log_info "Loaded exceptions from env-rules/${SERVICE} (allow_same: ${#ALLOW_SAME[@]}, must_differ: ${#MUST_DIFFER[@]}, allow_empty: ${#ALLOW_EMPTY[@]})"
 fi
 
 NOGO=0
@@ -102,7 +105,7 @@ while IFS= read -r key; do
     [[ -z "$key" ]] && continue
     if ! grep -qE "^${key}=" "$PROD_FILE"; then
         MISSING_KEYS+=("$key")
-    elif [[ -z "$(env_val "$PROD_FILE" "$key")" ]]; then
+    elif [[ -z "$(env_val "$PROD_FILE" "$key")" ]] && ! in_list "$key" "${ALLOW_EMPTY[@]:-}"; then
         EMPTY_KEYS+=("$key")
     fi
 done < <(contract_keys "$EXAMPLE_FILE")
