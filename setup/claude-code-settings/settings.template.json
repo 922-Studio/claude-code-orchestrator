@@ -1,0 +1,16 @@
+{
+  "model": "opus",
+  "effortLevel": "medium",
+  "theme": "dark",
+  "tui": "fullscreen",
+  "includeCoAuthoredBy": false,
+  "skipDangerousModePermissionPrompt": true,
+  "skipAutoPermissionPrompt": true,
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node \"__HOME__/.claude/statusline/ctx_monitor.js\""
+  }
+}

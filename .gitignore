@@ -1,11 +1,44 @@
 .DS_Store
-studio/
-execution/*.log
-execution/*.txt
 
-# Worktrees created by the universal worktree workflow
-.worktrees/
+# ── Machine-specific overlays (each user/machine writes their own) ──
+CLAUDE.local.md
+orchestrator.config.local.json
+.antigravitycli/
 
-# Local secrets mirror — NEVER commit
+# ── Ecosystem data — NEVER committed to the shareable framework ──
+registry.md
+server.md
+server-name-ideas.json
+projects/
+dashboards/
+ideas/
+
+# Plans are ecosystem work — keep only the template committed
+plans/*
+!plans/_template.html
+
+# Strategic notes are ecosystem-specific; how-to guides stay committed
+hub/plans/
+hub/learnings/
+hub/discussions/
+
+# Ecosystem-specific operational guides (infra hostnames / deploy specifics)
+guides/new-service-setup.md
+guides/prod-push-handover.md
+guides/local-dev-invoice.md
+
+# Transient session handovers
+.planning/
+
+# ── Local secrets mirror — NEVER commit ──
 secrets/
 .secrets/
+
+# Ecosystem-specific scripts + concrete env rules (tooling stays; data goes local)
+scripts/audit-homeui.sh
+scripts/env/env-rules/*
+
+# ── Worktrees + local logs/artifacts ──
+.worktrees/
+studio/
+execution/

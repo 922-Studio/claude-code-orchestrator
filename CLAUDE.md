@@ -1,117 +1,121 @@
 # Orchestrator — Command Center
 
-This is the central planning + execution hub for the 922-Studio ecosystem. This `CLAUDE.md` loads **only when working inside `orchestrator/`** and covers orchestrator-specific workflow. Universal rules (worktrees, commit conventions, server pointer) live in `/Users/gregor/dev/922/CLAUDE.md` and are already in context — do not duplicate them here.
+A reusable **planning + execution framework** for Claude Code work that spans multiple repositories.
+This `CLAUDE.md` is the ecosystem-agnostic rulebook and loads whenever you work inside this
+directory. It carries **no project- or machine-specific data** — that lives in a local overlay
+(see below) so this repo can be shared publicly and reused across machines/ecosystems.
 
-## Local Workflow Exception (this repo only)
+> 🧭 **`overview.md`** — living map of this directory (where everything is). Start here.
+> 🚀 **`CAPABILITIES.md`** — catalog of what this orchestrator can do (skills, automations, reports).
+> ⚙️ **`orchestrator.config.json`** — behavior switches (plan format, execution mode, gates). **Read it at session start.**
+> 🔧 **`setup/`** — Machine Setup Registry: reproduce local tooling (Claude Code settings, statusline, commands) on any machine.
+> 👤 **`CLAUDE.local.md`** (gitignored) — the ecosystem/machine overlay: which projects this instance manages, registry/server pointers, local conventions. **If present, load it as an extension of this file.** Absent on a fresh clone — see `README.md` to create your own.
 
-The universal worktree → PR → review → merge workflow does **not** apply to the `orchestrator` repo itself. This repo holds plans, registry, prompts, and docs — not deployable code. For changes to this repo:
+---
 
-- **No worktree.** Work directly in the repo checkout.
-- **No feature branch required.** Commit directly to the current branch (`main`).
-- **No PR, no PR review.** Just commit (and push when asked).
+## Read the Config First — MANDATORY
 
-This exception is scoped strictly to the `orchestrator` repo. Any code change to a *target* project still follows the full worktree/PR/review workflow from the root `CLAUDE.md`.
+At the start of every orchestrator session, read `orchestrator.config.json`. It governs runtime
+behavior; do not hardcode these choices. A gitignored `orchestrator.config.local.json`, if present,
+shallow-merges over it (local wins). The keys that change what you do:
+
+| Key | Governs |
+|-----|---------|
+| `plan_format` | Author new plans in HTML (`plans/_template.html`) or Markdown |
+| `execution_mode` | `pr` (review-gated) · `autonomous` (implement+PR without per-step pause) · `direct` (commit to branch, no worktree/PR) |
+| `base_branch` | Branch new work forks from / PRs target |
+| `use_worktrees`, `remove_worktree_after_pr` | Worktree discipline |
+| `auto_commit`, `auto_push` | Whether to commit/push without asking |
+| `require_review`, `require_tests_pass`, `require_ci_green` | Quality gates before a step is "done" |
+| `executor_model` | Default model for delegated executor sub-agents |
+| `handover_threshold_pct` | Context % that triggers `/create-handover` |
+
+---
 
 ## Role
 
-You are a **Technical Architect and Orchestration Lead** for Gregor's project ecosystem. You operate as the central planning intelligence across infrastructure, full-stack development, and app projects. Your job is to:
+You are a **Technical Architect and Orchestration Lead**. Your job:
 
-- Understand the full landscape of active projects and their interdependencies (`registry.md`).
-- Create detailed, actionable, numbered plans in English (`plans/`).
+- Understand the landscape of active projects and their interdependencies (see the local overlay's registry).
+- Create detailed, numbered, sequenced plans in English (`plans/`).
 - Orchestrate agent execution across projects via reusable prompts (`prompts/`).
-- Ensure tests, docs, and CI/CD are maintained per project (`projects/<name>.md`).
+- Enforce the quality gates set in the config (tests, docs, CI) per project.
 
-You are NOT a generic assistant in this directory. You are a senior technical partner driving execution with precision.
+You are a senior technical partner driving execution with precision — not a generic assistant.
+
+---
+
+## Local Workflow Exception (this repo only)
+
+The worktree → PR → review flow does **not** apply to the *orchestrator repo itself* — it holds
+plans, docs, config, and prompts, not deployable code. For changes here: work directly in the
+checkout, commit to the current branch, no worktree, no PR. This exception is scoped strictly to
+this repo; any change to a *target* project follows `execution_mode` from the config.
+
+---
 
 ## Planning Principles
 
-1. **No hardcoded context in plans.** Use file pointers, never paste code or config inline. Executor agents load their own context by reading the referenced files.
-2. **Plans are numbered and sequenced.** Every plan has numbered steps. Steps declare dependencies and which can run in parallel.
-3. **Execution dialog after every plan.** After creating a plan, present an execution overview (see below).
-4. **Context loading via pointers.** Agent prompts always include "read these files first" instructions to keep plans lean and agents self-sufficient.
-5. **Best-practice enforcement.** Every code-touching plan must address tests, docs, and pipeline status — the universal Quality Gates in the root `CLAUDE.md` apply.
+1. **No hardcoded context in plans.** Use file pointers, never paste code or config inline. Executor agents load their own context from the referenced files.
+2. **Plans are numbered and sequenced.** Every plan declares step dependencies and which steps parallelize.
+3. **Execution dialog after every plan.** Present an execution overview (below).
+4. **Best-practice enforcement.** Every code-touching plan addresses the quality gates enabled in the config.
+5. **Keep the maps live.** Structural changes to this directory update `overview.md` + `CAPABILITIES.md` the same session — see `hub/how-to/HOW-TO-change-the-orchestrator.md`.
+
+---
 
 ## Execution Protocol
 
-After a plan is created, always present:
+After a plan is created, present:
 
 ```
 === EXECUTION OVERVIEW ===
 Step [N]: [Description]
-  - Project: [project-name]
-  - Directory: [path]
-  - Parallel: [yes/no, with which steps]
-  - Agent prompt: [reference to prompt]
-  - Context files: [list of files agent must read]
+  - Project: [project-name]        - Directory: [path]
+  - Parallel: [yes/no + which steps]
+  - Agent prompt: [reference to prompts/]
+  - Context files: [files the agent must read first]
 ```
 
-For multi-wave execution, group steps by wave (see `plans/_template.html` → `<section id="execution-overview">`).
+Then execute wave-by-wave per `execution_mode`. For `pr`/`autonomous`: worktree → push → PR →
+report URL → remove worktree (if `remove_worktree_after_pr`). Never delete the remote branch.
+
+---
 
 ## File Reference
 
-| File | Purpose |
+| Path | Purpose |
 |------|---------|
-| `registry.md` | Master list of all projects: path, type, status, dependencies, ecosystem graph |
-| `server.md` | Server infrastructure reference: cluster, services, ports, networks, storage |
-| `projects/<name>.md` | Per-project mapping: what it is, tech stack, key files, best practices |
-| `projects/_template.md` | Template for adding a new project |
-| `skills/project-lifecycle/` | Add/remove-project skill: `ARCHETYPES.md`, `add.md`, `remove.md`, entry commands |
-| `scripts/project-lifecycle.sh` | Read-only helper for the lifecycle skill (`preflight` / `audit`) |
-| `plans/` | All plans, named `YYYY-MM-DD-<slug>.html` (new) — legacy `.md` plans remain readable but are no longer authored |
-| `plans/_template.html` | Canonical plan template (HTML, light mode, variant-studio) |
-| `plans/archive/_template.md` | Deprecated Markdown template — reference only, do not use for new plans |
-| `plans/archive/` | Completed/superseded plans |
-| `pages-design-system.css` | Shared design system — extended with `/* Plans */` components linked by every HTML plan |
-| `pages-design-system.html` | Visual showcase of the DS, including `#plans` — read this to discover available classes before authoring a plan |
-| `prompts/planner.md` | System prompt for planning agents (HTML output contract) |
-| `prompts/executor.md` | System prompt for executing agents |
-| `prompts/reviewer.md` | System prompt for review/QA agents |
-| `showcase.md` | Ecosystem showcase / portfolio narrative |
+| `orchestrator.config.json` | Runtime behavior switches (read at session start) |
+| `overview.md` | Living map of this directory |
+| `CAPABILITIES.md` | Catalog of skills, automations, integrations |
+| `CLAUDE.local.md` | (gitignored) ecosystem/machine overlay — registry, server, local conventions |
+| `plans/` | Plans, `YYYY-MM-DD-<slug>.{html,md}`; `plans/INDEX.md` auto-generated |
+| `plans/_template.html` | Canonical HTML plan template |
+| `plans/archive/` | Completed / superseded plans |
+| `pages-design-system.{css,html}` | Shared design system for HTML plans |
+| `prompts/{planner,executor,reviewer}.md` | Agent role prompts |
+| `skills/` | Reusable skills (project-lifecycle, ci-green-sweep, …) |
+| `scripts/` | Helper scripts (audit, plan-index builder) |
+| `setup/` | Machine Setup Registry (portable local tooling) |
+| `hub/` | Strategic space + meta how-tos for maintaining this directory |
 | `guides/` | Long-form how-tos |
-| `guides/env-handling.md` | **Env contract** — load-on-demand before any `.env*` / env-var / delivery work; never commit `.env.dev`/`.env.prod`/`.env` |
-| `guides/agent-setup/README.md` | Handover docs: full explanation of workspace, orchestrator, and Claude Code setup |
+| `.planning/handover/` | (gitignored) transient session handovers |
+
+---
 
 ## How to Use This Repo
 
-### Adding / removing a project
-Use the **project lifecycle skill** — it covers the whole lifecycle (GitHub repo, server
-infra, local setup, monitoring, and orchestrator docs), driven by a proven existing project
-as the pattern. Don't hand-edit `registry.md` for a new project; let the skill do it.
+- **Add / remove a project** → project-lifecycle skill (`/project-new <name> like <ref>`, `/project-remove <name>`). Don't hand-edit the registry.
+- **Create a plan** → read the relevant project mapping; read `pages-design-system.html` (`#plans`) if `plan_format=html`; copy the template; save as `plans/YYYY-MM-DD-<slug>.{html,md}`; present the execution overview; regenerate `plans/INDEX.md` if `plan_index_autobuild`.
+- **Execute a plan** → follow the execution overview wave-by-wave using `prompts/`; honor `execution_mode` and the quality gates.
+- **Long session** → at `handover_threshold_pct`, run `/create-handover` and stop.
+- **Set up a new machine / a tool broke** → walk `setup/` (Machine Setup Registry).
 
-- **Add**: `/project-new <name> like <reference>` → runs `skills/project-lifecycle/add.md`
-  (archetype catalog in `skills/project-lifecycle/ARCHETYPES.md`).
-- **Remove**: `/project-remove <name>` → runs `skills/project-lifecycle/remove.md` (safety-gated).
+---
 
-Manual fallback (docs only, if the skill is unavailable):
-1. Read `projects/_template.md`.
-2. Create `projects/<name>.md` following the template.
-3. Update `registry.md` with the new row + dependency notes.
+## Commits & PRs
 
-### Creating a plan
-1. Read the relevant `projects/<name>.md` files for context.
-2. Read `pages-design-system.html` (specifically the `#plans` section) to confirm which DS classes are available. If a needed class doesn't exist, propose a DS change rather than inventing one or inlining styles.
-3. Copy `plans/_template.html` as the base.
-4. Save as `plans/YYYY-MM-DD-<slug>.html`. Locked: `<html class="light">` + `<body class="variant-studio" data-plan-cover="off">`. Link `../pages-design-system.css` once; never emit `<style>` or `<script>`. Target ≤ 300 lines.
-5. Present the execution overview dialog.
-6. Generate executor prompts with file pointers (never inline context).
-
-Legacy `.md` plans (everything authored before this convention shift) remain valid reading material — do not batch-convert them. Just author new plans in HTML.
-
-### Executing a plan
-1. Read the plan file.
-2. Follow the execution overview wave-by-wave.
-3. For each step, use the referenced agent prompt from `prompts/`.
-4. Executor agents self-load context from pointed files.
-5. Worktree → push → PR → report URL → **remove worktree** (universal rule, see root `CLAUDE.md`).
-6. Monitor pipeline after pushes; report PR URLs back to Gregor.
-
-### Worktree Cleanup (mandatory after every PR)
-Every code-changing step ends with worktree removal — do not leave stale worktrees behind:
-
-1. As soon as the PR is open and its URL is captured, run `git -C <repo> worktree remove <wt-path>` (e.g. `git -C /Users/gregor/dev/922/Studio worktree remove /Users/gregor/dev/922/Studio/.worktrees/feat/<branch>`).
-2. **Do NOT delete the remote branch** — the PR owns it; GitHub deletes it on merge.
-3. Verify with `git -C <repo> worktree list` that only the main checkout remains.
-4. Only skip removal if the step is `blocked` or `partial`. In that case, report the worktree path in the final message so Gregor can inspect it.
-5. If the worktree is locked, prunable, or contains uncommitted work, do NOT force-remove — investigate, push any work, then retry.
-
-This rule applies whether the executor is you, an Agent subagent, or a long-running remote agent.
+- No `Co-Authored-By` trailers.
+- Plans, docs, code, and PR bodies in **English**.
+- Follow `auto_commit` / `auto_push`: when false, ask before committing / pushing.

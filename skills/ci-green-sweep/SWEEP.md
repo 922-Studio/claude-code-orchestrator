@@ -78,7 +78,7 @@ the goal by itself; say so.
 | `gh: command not found` (exit 127) in an E2E-trigger job | polaris parity | replace shell `gh workflow run` with `actions/github-script@v7` `createWorkflowDispatch`; set job `runs-on: ubuntu-latest` |
 | native build: `prebuild-install No prebuilt binaries (target=node-vNNN)` | node ABI | bump the CI `node_version` to one with prebuilts for the pinned dep (e.g. better-sqlite3 v12.x needs Node 22), or bump the dep |
 | smoke `docker compose config ... required variable X is missing` / `.env not found` | smoke env | pass `env_file_source: /home/lab/<svc>/.env` (branch-conditional for dev/prod) to the smoke-test job — it SCPs `.env` from antares before `compose config`. **NOT a host blocker.** |
-| deploy `cd: /home/lab/<svc>: No such file` | migration path | rewrite repo `deploy.sh` to operate in its own dir / `$GITHUB_WORKSPACE`; if compose uses `env_file: .env`, SCP it from `lab@astro-antares:/home/lab/<svc>/.env` first |
+| deploy `cd: /home/lab/<svc>: No such file` | migration path | rewrite repo `deploy.sh` to operate in its own dir / `$GITHUB_WORKSPACE`; if compose uses `env_file: .env`, SCP it from `<deploy-user>@<deploy-host>:/home/<user>/<svc>/.env` first |
 | vitest `Failed to load url` / `no tests` on some runners | workspace root | pin `root: path.resolve(__dirname,'.')` + absolute `setupFiles` in vite config |
 | vitest exits 1 though all tests pass | import-time side effect | guard module-load code (e.g. `createBrowserRouter`) behind `import.meta.env.VITEST` |
 

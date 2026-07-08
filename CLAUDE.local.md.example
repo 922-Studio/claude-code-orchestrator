@@ -1,0 +1,27 @@
+# Orchestrator — Local Overlay (TEMPLATE)
+
+> Copy this file to `CLAUDE.local.md` (gitignored) and fill it in for your ecosystem/machine.
+> It is loaded as an extension of `CLAUDE.md` and holds everything project- or machine-specific
+> so the committed framework stays generic. Delete the guidance comments once filled.
+
+## Ecosystem binding
+
+- **Workspace root:** `<path to the directory that holds all your repos>`
+- **Registry:** `registry.md` — table of every project (path, type, status, mapping). Local-only.
+- **Server infra:** `server.md` — cluster/hosts/access/topology. Local-only.
+- **Per-project mappings:** `projects/<name>.md`. Local-only.
+
+## Ecosystem conventions (override / extend orchestrator.config.json)
+
+- **Base branch:** `<dev | main>` — new work forks from and PRs target this.
+- **Worktree layout:** `<repo>/.worktrees/<branch>`, branch naming `feat/<plan-slug>`.
+- **Env / secrets policy:** `<how env files are handled; what is committed vs local>`
+- **Any per-ecosystem checklists** (e.g. register new services in monitoring/versioning).
+
+## Server access
+
+- `<ssh aliases, management scripts, docs location>`
+
+## Notes
+
+- Auto-memory index location, and anything else non-obvious a session should know.

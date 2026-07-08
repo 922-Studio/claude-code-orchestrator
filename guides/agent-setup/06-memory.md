@@ -31,7 +31,7 @@ To force a delete: "Forget that…" — Claude will find and remove the relevant
 
 | Type | What it stores | Example |
 |------|---------------|---------|
-| `user` | Role, skills, preferences | "Senior full-stack dev, astro-antares owner" |
+| `user` | Role, skills, preferences | "Senior full-stack dev, owns the prod cluster" |
 | `feedback` | Guidance on how to work together | "Don't mock the DB in tests — rule + why" |
 | `project` | Ongoing work, decisions, deadlines | "Merge freeze begins 2026-03-05" |
 | `reference` | Pointers to external systems | "Pipeline bugs tracked in Linear INGEST" |

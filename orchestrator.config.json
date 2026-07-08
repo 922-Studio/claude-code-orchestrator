@@ -1,0 +1,77 @@
+{
+  "_about": "Orchestrator behavior config — READ THIS AT THE START OF EVERY ORCHESTRATOR SESSION. These values govern how plans are authored and how code-changing work is executed. Each setting is an object {value, options?, description} so the file stays valid JSON while documenting itself. Machine- or ecosystem-specific overrides go in orchestrator.config.local.json (gitignored), which shallow-merges over this file (local wins).",
+
+  "plan_format": {
+    "value": "html",
+    "options": ["html", "md"],
+    "description": "Format for NEW plans. 'html' -> copy plans/_template.html and link pages-design-system.css. 'md' -> plain Markdown with a YAML frontmatter header (title/status/created/updated/goal). Existing plans of EITHER format remain readable regardless of this setting; do not batch-convert."
+  },
+
+  "execution_mode": {
+    "value": "pr",
+    "options": ["pr", "autonomous", "direct"],
+    "description": "How code-changing steps run. 'pr' = worktree + feature branch + push + open PR + report URL, pausing for human review between waves. 'autonomous' = same worktree/PR flow but the orchestrator implements, commits, pushes and opens the PR without pausing for per-step approval (still reports URLs). 'direct' = commit straight to the working branch with no worktree/PR (only for throwaway or local-only repos)."
+  },
+
+  "base_branch": {
+    "value": "dev",
+    "options": ["dev", "main"],
+    "description": "Branch that new work forks from and that PRs target. Override per-ecosystem in orchestrator.config.local.json (e.g. work repos may use 'main')."
+  },
+
+  "use_worktrees": {
+    "value": true,
+    "description": "When true, every code change happens in an isolated git worktree at <repo>/.worktrees/<branch>. Ignored when execution_mode = 'direct'."
+  },
+
+  "remove_worktree_after_pr": {
+    "value": true,
+    "description": "Remove the worktree as soon as the PR URL is captured. Never delete the remote branch (the PR owns it; GitHub deletes it on merge)."
+  },
+
+  "auto_commit": {
+    "value": false,
+    "description": "true = commit completed work without asking. false = stage changes and ask before committing."
+  },
+
+  "auto_push": {
+    "value": false,
+    "description": "true = push to origin without asking. false = ask before any push (pushing is an outward-facing action)."
+  },
+
+  "require_review": {
+    "value": true,
+    "description": "When true, a reviewer agent (prompts/reviewer.md) must pass before a step is marked complete."
+  },
+
+  "require_tests_pass": {
+    "value": true,
+    "description": "Quality gate: tests must pass (and new tests added when behavior changed) before a step is reported complete."
+  },
+
+  "require_ci_green": {
+    "value": true,
+    "description": "Quality gate: a pushed branch's CI must be green before reporting the step complete."
+  },
+
+  "executor_model": {
+    "value": "sonnet",
+    "options": ["sonnet", "opus", "haiku"],
+    "description": "Default model for delegated executor sub-agents. Escalate to 'opus' for high-complexity steps."
+  },
+
+  "plan_index_autobuild": {
+    "value": true,
+    "description": "Regenerate plans/INDEX.md via scripts/build-plan-index.py whenever plans are added, renamed, or change status."
+  },
+
+  "handover_threshold_pct": {
+    "value": 75,
+    "description": "Context-usage percent at which — after a natural stopping point — the orchestrator writes a handover (/create-handover) and stops."
+  },
+
+  "personal_overlay": {
+    "value": "CLAUDE.local.md",
+    "description": "Path (relative to repo root) to the gitignored ecosystem-specific instruction overlay loaded IN ADDITION to CLAUDE.md. Absent on a fresh clone — each user/machine writes their own; see README.md."
+  }
+}
