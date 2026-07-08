@@ -62,6 +62,8 @@ Untracking a file stops *future* commits but does **not** remove the secret from
 
 This is a coordinated operation owned by Gregor, tracked in a plan — not something to improvise inside an unrelated task. If you discover a leak, report it and point at the env-secrets follow-up plan.
 
+**GitHub residual after a scrub (`refs/pull/*`).** Rewriting every branch + tag does *not* fully purge GitHub: each past pull request keeps an immutable `refs/pull/<n>/head` ref pointing at the original (pre-scrub) commit, so those blobs stay reachable **by SHA** via the PR refs. Git cannot delete these refs (they're read-only server-side). To eliminate them you must either delete the PRs that reference them or open a GitHub Support request to GC unreachable objects. For the 2026-07-08 remediation this residual was **accepted** — the leaked content was config-only (no credentials) on private repos, so the exposure is negligible. If a *real secret* ever lands in history, rotation (not a scrub) is the actual fix, because this residual means a scrub alone can't be trusted to remove it from GitHub.
+
 ## Related
 
 - Root `CLAUDE.md` → Universal Rules (env pointer)
