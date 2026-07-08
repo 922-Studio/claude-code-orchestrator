@@ -116,6 +116,7 @@ report URL → remove worktree (if `remove_worktree_after_pr`). Never delete the
 
 ## Commits & PRs
 
+- **Commit/PR text = the change only.** Never mention plans, phases, waves, steps, or orchestration internals — describe what changed and why. Read `hub/how-to/HOW-TO-write-commits-and-prs.md` before writing any commit message or PR body.
 - No `Co-Authored-By` trailers.
 - Plans, docs, code, and PR bodies in **English**.
 - Follow `auto_commit` / `auto_push`: when false, ask before committing / pushing.
