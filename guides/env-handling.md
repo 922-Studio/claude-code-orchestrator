@@ -39,15 +39,19 @@ Beware the historical bug: some repos used `.gitignore` **negations** (`!.env.de
 4. Run `validate-env.sh <svc>` and confirm GO before delivery.
 5. When a new API needs env, remember the two-registry rule: add it to HomeCollector uptime + HomeAPI versioning (see the new-service guide).
 
-## The scripts (prod-push framework)
+## The scripts
 
-Location: `HomeStructure/scripts/prod-push/`
+Location: `orchestrator/scripts/env/` (operator-facing — Gregor runs env work from the orchestrator). A copy still lives in `HomeStructure/scripts/prod-push/` where `validate-env.sh` is wired into `preflight.sh`; retiring that copy is a separate HomeStructure PR.
 
-- **`validate-env.sh <svc>`** — checks local `.env.dev` ↔ `.env.prod` divergence and completeness vs `.env.example`. Prints **key names only**, never values. HARD NO-GO if env-specific keys (`*URL*`, `*HOST*`, `*DOMAIN*`, `*SHEET*`, `*DB*`, `*CORS*`, `*ORIGIN*`, `*WEBHOOK*`, `*CHANNEL*`, …) are identical dev↔prod; SOFT WARN for `*SECRET*`/`*PASSWORD*`/`*TOKEN*`/`*KEY*`. Wired into `preflight.sh`.
+- **`validate-env.sh <svc>`** — checks local `.env.dev` ↔ `.env.prod` divergence and completeness vs `.env.example`. Prints **key names only**, never values. HARD NO-GO if env-specific keys (`*URL*`, `*HOST*`, `*DOMAIN*`, `*SHEET*`, `*DB*`, `*CORS*`, `*ORIGIN*`, `*WEBHOOK*`, `*CHANNEL*`, …) are identical dev↔prod; SOFT WARN for `*SECRET*`/`*PASSWORD*`/`*TOKEN*`/`*KEY*`.
 - **`deliver-env.sh <svc> <env>`** — validates, then does an **atomic copy** of the local `.env.<env>` to the server (`.env.prod` → `/home/lab/<svc>/.env`, `.env.dev` → `/home/lab/dev/<svc>/.env`), perms `600`. Never edits in place.
-- **`env-rules/<Service>`** — per-service exceptions. `allow_same:` for legitimately-shared keys; `must_differ:` for off-pattern env-specific keys. See `env-rules/HomeAPI` as the template.
+- **`env-rules/<Service>`** — per-service exceptions. `allow_same:` for legitimately-shared keys; `must_differ:` for off-pattern env-specific keys. `HomeAPI` is the reference; the other four are starter files (confirm before relying on them).
 
 Run env delivery **before** a prod push so the container recreate picks up the correct env.
+
+## The central vault
+
+`/Users/gregor/dev/922/envs/` is a **local-only, never-pushed** git repo holding every service's env (local + server copies) plus reconciled canonical `.env.dev`/`.env.prod`. It is the reconciliation workbench and the backup of record — restore a repo's working copies from `envs/<Service>/canonical.env.<env>`. Never add a remote to it.
 
 ## When a secret has leaked (into git history)
 
