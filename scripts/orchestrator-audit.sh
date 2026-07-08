@@ -25,28 +25,41 @@ echo ""
 echo "=== ACTIVE PLANS ==="
 echo "Format: FILE | STATUS | CHECKS_DONE/TOTAL | LAST_COMMIT | GOAL"
 echo "------------------------------------------------------------------------"
-for f in "$REPO_DIR"/plans/*.md; do
+for f in "$REPO_DIR"/plans/*.md "$REPO_DIR"/plans/*.html; do
   [[ -f "$f" ]] || continue
   name=$(basename "$f")
-  [[ "$name" == "_template.md" ]] && continue
+  [[ "$name" == "_template.md" || "$name" == "_template.html" ]] && continue
 
-  # Status field — matches both "- **Status**: X" and "**Status**: X"
-  status=$(grep -m1 '^\(\- \)\{0,1\}\*\*Status' "$f" 2>/dev/null \
-    | sed 's/.*\*\*Status\*\*: *//' \
-    | tr -d '\r' \
-    || echo "(none)")
+  if [[ "$name" == *.md ]]; then
+    # Status field — matches both "- **Status**: X" and "**Status**: X"
+    status=$(grep -m1 '^\(\- \)\{0,1\}\*\*Status' "$f" 2>/dev/null \
+      | sed 's/.*\*\*Status\*\*: *//' \
+      | tr -d '\r' \
+      || echo "(none)")
 
-  # Goal line
-  goal=$(grep -m1 '^\- \*\*Goal\*\*\|^- Goal:\|^\*\*Goal' "$f" 2>/dev/null \
-    | sed 's/.*\*\*Goal\*\*[:\*]* *//' \
-    | sed 's/.*Goal: *//' \
-    | cut -c1-80 \
-    || echo "")
+    # Goal line
+    goal=$(grep -m1 '^\- \*\*Goal\*\*\|^- Goal:\|^\*\*Goal' "$f" 2>/dev/null \
+      | sed 's/.*\*\*Goal\*\*[:\*]* *//' \
+      | sed 's/.*Goal: *//' \
+      | cut -c1-80 \
+      || echo "")
 
-  # Checkbox stats: done = [x], total = [x] + [ ]
-  # grep -c exits 1 on no match but still prints "0"; use || true to avoid set -e exit
-  checks_done=$(grep -c '\- \[x\]' "$f" 2>/dev/null || true)
-  checks_open=$(grep -c '\- \[ \]' "$f" 2>/dev/null || true)
+    # Checkbox stats: done = [x], total = [x] + [ ]
+    # grep -c exits 1 on no match but still prints "0"; use || true to avoid set -e exit
+    checks_done=$(grep -c '\- \[x\]' "$f" 2>/dev/null || true)
+    checks_open=$(grep -c '\- \[ \]' "$f" 2>/dev/null || true)
+  else
+    # HTML plans: status/progress lives in the first "eyebrow" span (free text,
+    # e.g. "completed 2026-05-21", "COMPLETE — shipped ...", "GATED"). No fixed
+    # checkbox convention, so checks are left at 0/0 — read the file if undecided.
+    status=$(grep -m1 -o 'eyebrow">[^<]*' "$f" 2>/dev/null \
+      | sed 's/^eyebrow">//' \
+      || echo "(none)")
+    [[ -z "$status" ]] && status="(none)"
+    goal=""
+    checks_done=0
+    checks_open=0
+  fi
   checks_done=${checks_done:-0}
   checks_open=${checks_open:-0}
   checks_total=$(( checks_done + checks_open ))
