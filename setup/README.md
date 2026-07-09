@@ -32,10 +32,13 @@ so it ports across users/machines. Run **Verify** after each.
   with a `__HOME__` placeholder and `sed` it in on install.
 - **Never store secrets here.** Reference credential files by path; don't copy their contents.
 - Add every new setup to the Registry below and keep `overview.md` + `CAPABILITIES.md` in sync.
-- **Auto-adoption:** to have a setup apply itself on every `git pull`, ship an **idempotent
-  `setup/<id>/apply.sh`**. The `provision` reconciler discovers and runs it (auto-apply-all); it must
-  be safe to re-run (detect "already applied", write only on real change). No `apply.sh` → the setup
-  stays manual (install from its `SETUP.md`). See `setup/provision/SETUP.md`.
+- **Auto-adoption (versioned):** to make a setup land on machines automatically, ship a **migration**
+  at `setup/provision/migrations/NNNN-slug/apply.sh` (idempotent). Each machine's gitignored
+  `setup/local/version.txt` records the highest applied version; on every `git pull` the `provision`
+  runner executes migrations numbered above it, in order, and bumps the version. Need a Claude-side
+  step? add `prompt.md` beside the migration — it's queued and surfaced at session start. Keep the
+  install logic in the setup's own `setup/<id>/apply.sh` and let the migration call it. Full spec +
+  the "shipping an enhancement" checklist: `setup/provision/SETUP.md`.
 
 ### `SETUP.md` standard sections
 ```

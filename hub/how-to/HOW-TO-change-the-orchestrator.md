@@ -63,6 +63,32 @@ rule is the model: one pointer line in `CLAUDE.md`, all detail in `guides/env-ha
 
 ---
 
+## The third golden rule: ship machine-facing enhancements as versioned migrations
+
+If a change must **land on other machines** — a new hook, a settings.json tweak, a moved/renamed
+file, a tool that needs installing — don't rely on someone re-running an installer. Ship it as a
+**versioned migration** so it adopts itself on the next `git pull`. This is the orchestrator's
+counterpart to the ecosystem's `version.txt` migration model (see `setup/provision/SETUP.md`).
+
+**When this rule applies:** the change alters machine-local state outside the repo (git hooks,
+`~/.claude/settings.json`, `~/.local/bin`, launchd, a config the tooling reads). **When it doesn't:**
+pure in-repo edits (plans, docs, prompts, a skill's body) — those are live the moment they're pulled;
+no migration needed.
+
+**How to ship one:**
+1. `setup/provision/migrations/NNNN-slug/apply.sh` — `NNNN` = next after the highest present. Make it
+   **idempotent** (safe under `--force` / re-run). Prefer a thin wrapper calling the setup's own
+   `setup/<id>/apply.sh` so install logic stays co-located; use ad-hoc logic only for one-off moves.
+2. Optional `prompt.md` in the same folder for a **Claude-side** step (judgment/interactive) a shell
+   hook can't do — it's queued to `setup/local/provision-pending.md` and surfaced at session start.
+3. Commit. Each machine's `setup/local/version.txt` gates it; provisioning runs migrations above that
+   number, in order, stopping at the first failure (forward-only).
+
+Migrations run once per machine and are **never edited after release** — to change behavior, add the
+next-numbered migration. Treat them as an append-only ledger, like DB migrations.
+
+---
+
 ## Where things belong
 
 | Folder / file | For |
@@ -72,6 +98,7 @@ rule is the model: one pointer line in `CLAUDE.md`, all detail in `guides/env-ha
 | `hub/how-to/` | reusable guides like this one (committed) |
 | `hub/{plans,learnings,discussions}/` | strategic notes (gitignored) |
 | `setup/<id>/` | portable machine setups (SETUP.md + artifacts) |
+| `setup/provision/migrations/NNNN-slug/` | versioned adoption migrations (`apply.sh` + optional `prompt.md`) |
 | `prompts/`, `skills/`, `scripts/` | agent prompts, skills, helper scripts (committed framework) |
 | `projects/`, `registry.md`, `server.md` | ecosystem data (gitignored) |
 | `.planning/handover/` | transient session handovers (gitignored) |

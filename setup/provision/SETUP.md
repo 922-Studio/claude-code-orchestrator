@@ -1,65 +1,74 @@
-# SETUP — Auto-provisioning (adopt setup changes on pull)
+# SETUP — Auto-provisioning (versioned adoption of setup changes on pull)
 
-**id:** `provision` · **type:** git hook + reconciler (shell) · **platform:** any (needs `bash`, `git`, `python3`)
+**id:** `provision` · **type:** git hook + versioned migration runner (shell) · **platform:** any (needs `bash`, `git`, `python3`)
 
 ## What it does
-Makes the orchestrator **self-updating**: after every `git pull`, each setup's changes are applied
-automatically, so new features/"releases" land on a machine without manual install steps.
+Makes the orchestrator **self-updating** via a **versioned, forward-only migration** model — the same
+pattern the ecosystem's projects use (a `version.txt` you compare against). After every `git pull`,
+each migration numbered **greater than** the version this machine has applied is run in order, then
+the version is bumped. New features/"releases" adopt themselves with no manual step.
 
-- `provision.sh` is an **idempotent reconciler**. It discovers every `setup/<id>/apply.sh`
-  (committed + `setup/local/`) and runs each one (**auto-apply-all**), then (re)installs the git
-  hooks that re-trigger it.
-- It installs **`post-merge`** and **`post-rewrite`** git hooks into the orchestrator's
-  `.git/hooks/`, covering both merge-style and rebase-style (`pull.rebase`) pulls. `.git/hooks` is
-  not version-controlled, so provisioning owns and refreshes them on every run (self-heals their
-  content if a release changes the hook).
-
-**The contract:** a setup opts into auto-adoption by shipping an **idempotent `apply.sh`**. No
-`apply.sh` → nothing runs for that setup (it stays manual, per its own `SETUP.md`).
+- **Migrations** live at `setup/provision/migrations/NNNN-slug/apply.sh` — ordered, zero-padded.
+  Each is the versioned unit and must be **idempotent**.
+- **`setup/local/version.txt`** (gitignored, per-machine) holds the highest version applied here.
+  Missing/0 = fresh machine → all migrations run.
+- Migrations run **ascending** and **stop at the first failure** — `version.txt` only advances past
+  migrations that succeed, so a broken one can't be silently skipped (Alembic-style forward-only).
+- A migration folder may include **`prompt.md`** — a Claude-side step (judgment/interactive) that a
+  shell hook can't perform. When such a migration runs, provisioning **queues** a pointer into
+  `setup/local/provision-pending.md`; the **announce-pending** SessionStart hook prints that queue to
+  Claude at the next session (only when non-empty → zero standing token cost).
+- Triggers/plumbing it installs & self-heals each run: `.git/hooks/post-merge` +
+  `.git/hooks/post-rewrite` (merge- and rebase-pulls), and the announce-pending SessionStart hook.
 
 ## Where it lives
 | Path | Purpose |
 |---|---|
-| `setup/provision/provision.sh` | the reconciler (run manually, by install.sh, or by the git hooks) |
-| `setup/<id>/apply.sh` | per-setup idempotent installer (the adoption unit) |
-| `.git/hooks/post-merge`, `.git/hooks/post-rewrite` | auto-installed triggers (regenerated each run) |
-| `setup/local/.provision-state` | gitignored: last-provisioned commit + timestamp |
+| `setup/provision/provision.sh` | the versioned migration runner |
+| `setup/provision/migrations/NNNN-slug/apply.sh` | a versioned migration (idempotent) |
+| `setup/provision/migrations/NNNN-slug/prompt.md` | optional Claude-side step for that version |
+| `setup/provision/announce-pending.sh` | SessionStart hook that surfaces queued prompts |
+| `setup/local/version.txt` | gitignored: highest version applied on this machine |
+| `setup/local/provision-pending.md` | gitignored: queued prompt pointers |
 | `setup/local/provision.log` | gitignored: append-only run log |
-| `setup/local/provision.skip` | gitignored (optional): setup ids to exclude, one per line |
+| `.git/hooks/post-merge`, `post-rewrite` | auto-installed triggers (regenerated each run) |
 
 ## Install
-One-time bootstrap (also done by `install.sh`, and by the post-install prompt). From the repo root:
+One-time bootstrap (also done by `install.sh`). From the repo root:
 ```bash
-bash setup/provision/provision.sh          # installs the git hooks + applies everything now
+bash setup/provision/provision.sh        # installs hooks + announcer, runs all migrations, writes version.txt
 ```
 After this, every `git pull` into the orchestrator re-runs it automatically.
 
 ## Verify
 ```bash
-bash setup/provision/provision.sh --list       # what would be applied (respects provision.skip)
+bash setup/provision/provision.sh --list   # installed version + each migration's status (applied/PENDING[+prompt])
+cat setup/local/version.txt                # highest applied version here
 ls -l .git/hooks/post-merge .git/hooks/post-rewrite   # both present, executable
-cat setup/local/.provision-state               # commit=<sha> after a run
 ```
-End-to-end: pull a change that touches a setup and confirm its `apply.sh` effect landed (e.g. a new
-hook shows up in `~/.claude/settings.json`), and `setup/local/provision.log` has a fresh entry.
+End-to-end: pull a change that adds a migration and confirm its effect landed and `version.txt` rose.
 
-## Authoring a new auto-adopted setup
-1. Add `setup/<id>/apply.sh`, `chmod +x`. Make it **idempotent** — it runs on *every* pull.
-2. It should detect "already applied" and no-op (write only on real change; back up before edits).
-3. That's it — `provision.sh` discovers it automatically. To keep a setup manual, don't add `apply.sh`.
+## Shipping a new enhancement (the convention)
+Every orchestrator enhancement that needs to land on machines ships a migration:
+1. `mkdir setup/provision/migrations/NNNN-slug/` — `NNNN` = next number after the highest present.
+2. Add an **idempotent** `apply.sh` (thin wrapper calling a setup's own `apply.sh`, or ad-hoc logic
+   like moving a file / editing settings). It runs once per machine but must be safe under `--force`.
+3. If a Claude-side step is needed, add `prompt.md` in the same folder — it's queued + surfaced.
+4. Commit. On every machine's next pull, provisioning runs it and bumps `version.txt`.
 
 ## Fix / troubleshoot
 | Symptom | Remedy |
 |---|---|
-| Changes not adopted after pull | Was it a real merge/rebase (post-merge/post-rewrite fire only when the pull changes something)? Run `bash setup/provision/provision.sh` manually; check `setup/local/provision.log`. |
-| Hooks missing (fresh clone) | Run the Install one-liner once; it installs them. They can't ship in git (`.git/hooks` isn't tracked). |
-| A setup's apply keeps failing | See the `✗ <id> FAILED — …` line in `provision.log`; run its `apply.sh` directly to debug. |
-| Don't want a setup auto-applied | Add its id to `setup/local/provision.skip` (one per line). |
-| Provision runs on `git commit --amend` | Expected (post-rewrite). It's idempotent + fast; add noisy setups to `provision.skip` if needed. |
+| Changes not adopted after pull | Real merge/rebase? (hooks fire only when the pull changes something). Run `bash setup/provision/provision.sh`; check `setup/local/provision.log`. |
+| Hooks missing (fresh clone) | Run the Install one-liner once (git can't track `.git/hooks`). |
+| A migration failed | Provisioning stopped and did NOT advance `version.txt`. See the `✗ vN … FAILED` log line; fix the migration, re-run. |
+| Re-apply everything (self-heal) | `bash setup/provision/provision.sh --force` (re-runs all migrations; idempotent). |
+| Skip a machine to an older state | `echo <N> > setup/local/version.txt` (forward-only won't lower it during a run; edit manually to replay). |
+| Don't want the session announcer | Remove the `announce-pending` SessionStart entry from `~/.claude/settings.json`. |
 
 ## Uninstall
 ```bash
-rm -f .git/hooks/post-merge .git/hooks/post-rewrite    # stop auto-triggering
+rm -f .git/hooks/post-merge .git/hooks/post-rewrite      # stop auto-triggering
 ```
-Individual setups are undone via their own `SETUP.md` **Uninstall**. Removing an `apply.sh` stops
-that setup from being re-applied on future pulls.
+Remove the `announce-pending` SessionStart hook from `~/.claude/settings.json` if desired. Individual
+setups are undone via their own `SETUP.md`.
