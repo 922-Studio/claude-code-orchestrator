@@ -4,8 +4,8 @@
 
 ## What it does
 Custom Claude Code statusline showing, per session: **model** · **effort** · **context-window
-usage %** (color-coded as it fills) · **cost $** · **5h session-limit % + time-to-reset**
-(color-coded by quota consumed) · **cwd** · session id. Reads effort from
+usage %** (color-coded as it fills) · **cost $** · **session-limit % + time-to-reset**
+(the 5h window, color-coded by quota consumed) · **cwd** · session id. Reads effort from
 `~/.claude/settings.json`, context/cost from the transcript Claude Code passes on stdin, and the
 session-limit reset from `rate_limits.five_hour.{used_percentage,resets_at}` on stdin. The
 `rate_limits` block appears only for Pro/Max subscribers after the first API response of a session;

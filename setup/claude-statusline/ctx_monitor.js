@@ -70,7 +70,7 @@ function sessionLimitLabel() {
   const pct = Math.round(Number(fh.used_percentage) || 0);
   const secs = Number(fh.resets_at) - Math.floor(Date.now() / 1000);
   const c = limitColor(pct);
-  return `${c}5h limit ${pct}%\x1b[0m \x1b[90m· resets in ${fmtDur(secs)}\x1b[0m`;
+  return `${c}${pct}%\x1b[0m \x1b[90m· resets in ${fmtDur(secs)}\x1b[0m`;
 }
 const limitLabel = sessionLimitLabel();
 const limitSuffix = limitLabel ? ` | ${limitLabel}` : "";
