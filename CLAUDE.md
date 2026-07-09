@@ -77,8 +77,27 @@ Step [N]: [Description]
   - Context files: [files the agent must read first]
 ```
 
-Then execute wave-by-wave per `execution_mode`. For `pr`/`autonomous`: worktree → push → PR →
-report URL → remove worktree (if `remove_worktree_after_pr`). Never delete the remote branch.
+Then execute wave-by-wave per `execution_mode`, following the Worktree & PR Workflow below.
+
+---
+
+## Worktree & PR Workflow
+
+When `execution_mode` is `pr` or `autonomous`, every code change to a *target* repo runs in an
+isolated worktree and lands via PR:
+
+1. **Branch** off `base_branch`: `feat/<slug>` (or `feat/<slug>-step-<N>` for parallel work on one repo).
+2. **Worktree** at `<repo>/.worktrees/<branch>` (`use_worktrees`); do all edits, tests, and commits there.
+3. **Push**, monitor CI (`require_ci_green`), open the PR against `base_branch`, and report the URL.
+4. **Remove** the worktree once the URL is captured (`remove_worktree_after_pr`); never delete the remote branch.
+
+**Commit messages and PR titles/bodies describe the change only — never the orchestration.**
+- Say *what* changed and *why* — the story of the diff, meaningful to someone reading that repo alone.
+- **Never** include plan names or paths, the words *plan / phase / wave / step N / execution overview*, agent/orchestrator vocabulary, or internal sequencing. Plan-progress tracking stays in this repo's `plans/`, out of target-repo history.
+- Conventional style, English, no `Co-Authored-By`.
+  E.g. `feat: add per-player total-playtime stat to the stats hub` — **not** `feat: kicker-v6 wave 2 step 3`.
+
+`direct` mode: commit straight to the working branch, no worktree/PR (throwaway or local-only repos).
 
 ---
 
@@ -116,7 +135,6 @@ report URL → remove worktree (if `remove_worktree_after_pr`). Never delete the
 
 ## Commits & PRs
 
-- **Commit/PR text = the change only.** Never mention plans, phases, waves, steps, or orchestration internals — describe what changed and why. Read `hub/how-to/HOW-TO-write-commits-and-prs.md` before writing any commit message or PR body.
-- No `Co-Authored-By` trailers.
-- Plans, docs, code, and PR bodies in **English**.
+- **Naming + content:** see the Worktree & PR Workflow above — commit/PR text describes the change only, never orchestration internals.
+- No `Co-Authored-By` trailers. Plans, docs, code, and PR bodies in **English**.
 - Follow `auto_commit` / `auto_push`: when false, ask before committing / pushing.
