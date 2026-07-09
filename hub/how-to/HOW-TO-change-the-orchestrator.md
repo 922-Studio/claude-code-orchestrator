@@ -75,17 +75,24 @@ counterpart to the ecosystem's `version.txt` migration model (see `setup/provisi
 pure in-repo edits (plans, docs, prompts, a skill's body) — those are live the moment they're pulled;
 no migration needed.
 
+**How it's versioned:** the committed root `version.txt` (semver) is the released version — CI
+**patch-bumps** it on every push to `main` (`.github/workflows/version-bump.yml`), and a manual
+`version.txt` edit in a push is respected (that's how you do a minor/major). A migration activates on
+a machine once `version.txt ≥` its version and the machine hasn't already provisioned it.
+
 **How to ship one:**
-1. `setup/provision/migrations/NNNN-slug/apply.sh` — `NNNN` = next after the highest present. Make it
-   **idempotent** (safe under `--force` / re-run). Prefer a thin wrapper calling the setup's own
-   `setup/<id>/apply.sh` so install logic stays co-located; use ad-hoc logic only for one-off moves.
-2. Optional `prompt.md` in the same folder for a **Claude-side** step (judgment/interactive) a shell
-   hook can't do — it's queued to `setup/local/provision-pending.md` and surfaced at session start.
-3. Commit. Each machine's `setup/local/version.txt` gates it; provisioning runs migrations above that
-   number, in order, stopping at the first failure (forward-only).
+1. `setup/provision/migrations/X.Y.Z-slug/apply.sh` — `X.Y.Z` = the version it should **activate at**
+   (next patch of the current `version.txt` for routine changes; for a minor/major, bump `version.txt`
+   manually in the same push). Make it **idempotent** (safe under `--force`). Prefer a thin wrapper
+   calling the setup's own `setup/<id>/apply.sh`; ad-hoc logic only for one-off moves.
+2. Optional `prompt.md` in the same folder for a **Claude-side** step a shell hook can't do — it's
+   queued to `setup/local/provision-pending.md` and surfaced at session start.
+3. Commit + push. Each machine's `setup/local/.provisioned-version` (gitignored) tracks what it has
+   applied; provisioning runs migrations in `(provisioned, version.txt]`, in semver order, stopping at
+   the first failure (forward-only).
 
 Migrations run once per machine and are **never edited after release** — to change behavior, add the
-next-numbered migration. Treat them as an append-only ledger, like DB migrations.
+next-versioned migration. Treat them as an append-only ledger, like DB migrations.
 
 ---
 

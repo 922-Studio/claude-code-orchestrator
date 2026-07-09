@@ -32,13 +32,14 @@ so it ports across users/machines. Run **Verify** after each.
   with a `__HOME__` placeholder and `sed` it in on install.
 - **Never store secrets here.** Reference credential files by path; don't copy their contents.
 - Add every new setup to the Registry below and keep `overview.md` + `CAPABILITIES.md` in sync.
-- **Auto-adoption (versioned):** to make a setup land on machines automatically, ship a **migration**
-  at `setup/provision/migrations/NNNN-slug/apply.sh` (idempotent). Each machine's gitignored
-  `setup/local/version.txt` records the highest applied version; on every `git pull` the `provision`
-  runner executes migrations numbered above it, in order, and bumps the version. Need a Claude-side
-  step? add `prompt.md` beside the migration — it's queued and surfaced at session start. Keep the
-  install logic in the setup's own `setup/<id>/apply.sh` and let the migration call it. Full spec +
-  the "shipping an enhancement" checklist: `setup/provision/SETUP.md`.
+- **Auto-adoption (semver-versioned):** to make a setup land on machines automatically, ship a
+  **migration** at `setup/provision/migrations/X.Y.Z-slug/apply.sh` (idempotent), where `X.Y.Z` is the
+  version it activates at. The committed root `version.txt` is the released version (CI patch-bumps it;
+  manual edits win for minor/major); each machine's gitignored `setup/local/.provisioned-version`
+  tracks what it applied. On every `git pull` the `provision` runner executes migrations in
+  `(provisioned, version.txt]`, in semver order. Need a Claude-side step? add `prompt.md` beside the
+  migration — queued and surfaced at session start. Keep install logic in the setup's own
+  `setup/<id>/apply.sh` and let the migration call it. Full spec + checklist: `setup/provision/SETUP.md`.
 
 ### `SETUP.md` standard sections
 ```

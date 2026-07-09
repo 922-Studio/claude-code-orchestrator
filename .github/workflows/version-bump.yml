@@ -1,0 +1,59 @@
+name: version-bump
+
+# Patch-bump the committed root version.txt on every push to main, UNLESS the
+# push already changed version.txt (a manual version commit — respected, wins).
+# The bump commit carries [skip ci] so it doesn't re-trigger this workflow.
+#
+# version.txt is what the provisioning hook (setup/provision/) gates migrations
+# on: a migration at X.Y.Z activates on a machine once version.txt reaches X.Y.Z.
+# For a minor/major jump (e.g. to activate a 1.1.0 migration), push a manual
+# version.txt edit — CI will see it and skip the auto patch-bump.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: version-bump
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    # native skip for the bot's own bump commits
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Patch-bump version.txt (unless changed in this push)
+        run: |
+          set -euo pipefail
+
+          BEFORE="${{ github.event.before }}"
+          # branch-creation / unknown parent → fall back to previous commit
+          if printf '%s' "$BEFORE" | grep -qE '^0+$'; then
+            BEFORE="$(git rev-parse HEAD~1 2>/dev/null || echo '')"
+          fi
+          if [ -n "$BEFORE" ] && git diff --name-only "$BEFORE" "${{ github.sha }}" | grep -qx 'version.txt'; then
+            echo "version.txt changed in this push — respecting manual version, skipping auto-bump."
+            exit 0
+          fi
+
+          cur="$(tr -d '[:space:]' < version.txt 2>/dev/null || echo '')"
+          if ! printf '%s' "$cur" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then cur="0.0.0"; fi
+          IFS=. read -r MA MI PA <<< "$cur"
+          new="$MA.$MI.$((PA + 1))"
+          printf '%s\n' "$new" > version.txt
+          echo "bumped $cur -> $new"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.txt
+          git commit -m "chore: bump version to $new [skip ci]"
+          git push

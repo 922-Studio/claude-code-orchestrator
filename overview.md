@@ -7,6 +7,8 @@ Reusable planning + execution scaffold for Claude Code across many repos.
 orchestrator/
 │
 ├── 🧰 install.sh ............... interactive bootstrap for a new machine (+ migration)
+├── 🏷️  version.txt .............. committed released version (CI patch-bumps; gates provisioning)
+├── 🤖 .github/workflows/ ....... CI — version-bump on push to main
 ├── 📖 CLAUDE.md ................. the rules (ecosystem-agnostic)          → start here
 ├── ⚙️  orchestrator.config.json . behavior switches (read at session start)
 ├── 👤 CLAUDE.local.md .......... (gitignored) your ecosystem/machine overlay

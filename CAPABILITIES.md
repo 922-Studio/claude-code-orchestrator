@@ -42,7 +42,7 @@ Local tooling the orchestrator can install, verify, and fix on its own → `setu
 | 🍺 Daily Homebrew auto-upgrade (launchd) | `setup/brew-autoupgrade/` |
 | 🔄 Repo sync — pull every registry repo | `setup/repo-sync/` |
 | 🌿 Git freshness hooks — fetch+ff-pull before `worktree add`, safe pull at session start | `setup/git-freshness/` |
-| ♻️ Auto-provisioning — versioned migrations (`version.txt`) adopt setup changes on every pull via git post-merge/rewrite hooks; Claude-side steps queued as `prompt.md` | `setup/provision/` |
+| ♻️ Auto-provisioning — semver migrations gated by root `version.txt` (CI patch-bumps) adopt setup changes on every pull via git post-merge/rewrite hooks; Claude-side steps queued as `prompt.md` | `setup/provision/` |
 | 🔔 Periodic reminders — config-driven macOS notifications (launchd) | `setup/reminders/` |
 | 👤 Personal / machine-specific setups (gitignored) | `setup/local/` |
 

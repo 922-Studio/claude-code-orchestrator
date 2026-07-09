@@ -1,34 +1,39 @@
-# SETUP — Auto-provisioning (versioned adoption of setup changes on pull)
+# SETUP — Auto-provisioning (semver-versioned adoption of setup changes on pull)
 
-**id:** `provision` · **type:** git hook + versioned migration runner (shell) · **platform:** any (needs `bash`, `git`, `python3`)
+**id:** `provision` · **type:** git hook + CI version-bump + migration runner (shell) · **platform:** any (needs `bash`, `git`, `python3`)
 
 ## What it does
-Makes the orchestrator **self-updating** via a **versioned, forward-only migration** model — the same
-pattern the ecosystem's projects use (a `version.txt` you compare against). After every `git pull`,
-each migration numbered **greater than** the version this machine has applied is run in order, then
-the version is bumped. New features/"releases" adopt themselves with no manual step.
+Makes the orchestrator **self-updating** via a **semver, forward-only migration** model — the same
+`version.txt` pattern the ecosystem's projects use.
 
-- **Migrations** live at `setup/provision/migrations/NNNN-slug/apply.sh` — ordered, zero-padded.
-  Each is the versioned unit and must be **idempotent**.
-- **`setup/local/version.txt`** (gitignored, per-machine) holds the highest version applied here.
-  Missing/0 = fresh machine → all migrations run.
-- Migrations run **ascending** and **stop at the first failure** — `version.txt` only advances past
-  migrations that succeed, so a broken one can't be silently skipped (Alembic-style forward-only).
-- A migration folder may include **`prompt.md`** — a Claude-side step (judgment/interactive) that a
-  shell hook can't perform. When such a migration runs, provisioning **queues** a pointer into
-  `setup/local/provision-pending.md`; the **announce-pending** SessionStart hook prints that queue to
-  Claude at the next session (only when non-empty → zero standing token cost).
+- **`version.txt`** at the **repo root** is committed and holds the released version `X.Y.Z`. CI
+  **patch-bumps** it on every push to `main` (`.github/workflows/version-bump.yml`); a **manual**
+  `version.txt` edit in a push is respected (CI skips the auto-bump) — that's how you do a minor/major
+  bump, e.g. to activate a `1.1.0` migration.
+- **Migrations** live at `setup/provision/migrations/X.Y.Z-slug/apply.sh` — the `X.Y.Z` is the version
+  the migration **activates at**. Each must be **idempotent**.
+- **`setup/local/.provisioned-version`** (gitignored, per-machine) is the version this machine last
+  provisioned to. Missing = `0.0.0` (fresh machine).
+- On each pull the hook runs every migration with **`provisioned < X.Y.Z ≤ version.txt`**, in semver
+  order, **stopping at the first failure** (the marker only advances past successes). So a migration
+  merged early stays **dormant** until the released `version.txt` catches up to its version.
+- A migration folder may include **`prompt.md`** — a Claude-side step a shell hook can't do. When that
+  migration runs, provisioning **queues** a pointer into `setup/local/provision-pending.md`; the
+  **announce-pending** SessionStart hook surfaces it to Claude next session (only when non-empty →
+  zero standing token cost).
 - Triggers/plumbing it installs & self-heals each run: `.git/hooks/post-merge` +
   `.git/hooks/post-rewrite` (merge- and rebase-pulls), and the announce-pending SessionStart hook.
 
 ## Where it lives
 | Path | Purpose |
 |---|---|
-| `setup/provision/provision.sh` | the versioned migration runner |
-| `setup/provision/migrations/NNNN-slug/apply.sh` | a versioned migration (idempotent) |
-| `setup/provision/migrations/NNNN-slug/prompt.md` | optional Claude-side step for that version |
+| `version.txt` (repo root) | **committed** released version `X.Y.Z` (CI patch-bumps) |
+| `.github/workflows/version-bump.yml` | CI: patch-bump on push, respect manual edits |
+| `setup/provision/provision.sh` | the migration runner (semver-gated) |
+| `setup/provision/migrations/X.Y.Z-slug/apply.sh` | a migration, activates at `X.Y.Z` (idempotent) |
+| `setup/provision/migrations/X.Y.Z-slug/prompt.md` | optional Claude-side step for that version |
 | `setup/provision/announce-pending.sh` | SessionStart hook that surfaces queued prompts |
-| `setup/local/version.txt` | gitignored: highest version applied on this machine |
+| `setup/local/.provisioned-version` | gitignored: version this machine last provisioned to |
 | `setup/local/provision-pending.md` | gitignored: queued prompt pointers |
 | `setup/local/provision.log` | gitignored: append-only run log |
 | `.git/hooks/post-merge`, `post-rewrite` | auto-installed triggers (regenerated each run) |
@@ -36,34 +41,41 @@ the version is bumped. New features/"releases" adopt themselves with no manual s
 ## Install
 One-time bootstrap (also done by `install.sh`). From the repo root:
 ```bash
-bash setup/provision/provision.sh        # installs hooks + announcer, runs all migrations, writes version.txt
+bash setup/provision/provision.sh        # installs hooks + announcer, runs migrations ≤ version.txt, writes .provisioned-version
 ```
 After this, every `git pull` into the orchestrator re-runs it automatically.
 
 ## Verify
 ```bash
-bash setup/provision/provision.sh --list   # installed version + each migration's status (applied/PENDING[+prompt])
-cat setup/local/version.txt                # highest applied version here
+bash setup/provision/provision.sh --list   # released + provisioned version + each migration's status
+cat version.txt                            # released version (committed)
+cat setup/local/.provisioned-version       # what this machine has provisioned to
 ls -l .git/hooks/post-merge .git/hooks/post-rewrite   # both present, executable
 ```
-End-to-end: pull a change that adds a migration and confirm its effect landed and `version.txt` rose.
+End-to-end: pull a change that adds a migration whose version ≤ `version.txt` and confirm its effect
+landed and `.provisioned-version` rose.
 
 ## Shipping a new enhancement (the convention)
-Every orchestrator enhancement that needs to land on machines ships a migration:
-1. `mkdir setup/provision/migrations/NNNN-slug/` — `NNNN` = next number after the highest present.
+Every orchestrator change that must land on machines ships a migration:
+1. `mkdir setup/provision/migrations/X.Y.Z-slug/` — `X.Y.Z` = the version it should **activate at**.
+   For a normal patch, that's the next patch of the current `version.txt` (CI's auto-bump reaches it).
+   For a minor/major, do a **manual `version.txt` bump** in the same push so it activates.
 2. Add an **idempotent** `apply.sh` (thin wrapper calling a setup's own `apply.sh`, or ad-hoc logic
-   like moving a file / editing settings). It runs once per machine but must be safe under `--force`.
-3. If a Claude-side step is needed, add `prompt.md` in the same folder — it's queued + surfaced.
-4. Commit. On every machine's next pull, provisioning runs it and bumps `version.txt`.
+   like moving a file / editing settings). Safe under `--force`.
+3. If a Claude-side step is needed, add `prompt.md` in the same folder — queued + surfaced.
+4. Commit + push. CI reconciles `version.txt`; each machine's next pull runs migrations up to it.
+   **Never edit a released migration** — append the next-versioned one instead (append-only ledger).
 
 ## Fix / troubleshoot
 | Symptom | Remedy |
 |---|---|
 | Changes not adopted after pull | Real merge/rebase? (hooks fire only when the pull changes something). Run `bash setup/provision/provision.sh`; check `setup/local/provision.log`. |
+| Migration stuck at `future` | Its version > `version.txt`. Bump `version.txt` (CI patch, or a manual minor/major commit) to reach it. |
 | Hooks missing (fresh clone) | Run the Install one-liner once (git can't track `.git/hooks`). |
-| A migration failed | Provisioning stopped and did NOT advance `version.txt`. See the `✗ vN … FAILED` log line; fix the migration, re-run. |
-| Re-apply everything (self-heal) | `bash setup/provision/provision.sh --force` (re-runs all migrations; idempotent). |
-| Skip a machine to an older state | `echo <N> > setup/local/version.txt` (forward-only won't lower it during a run; edit manually to replay). |
+| A migration failed | Provisioning stopped; `.provisioned-version` did NOT advance past it. See the `✗ vX.Y.Z … FAILED` log line; fix the migration, re-run. |
+| Re-apply everything (self-heal) | `bash setup/provision/provision.sh --force` (re-runs all migrations ≤ `version.txt`; idempotent). |
+| Replay from an older state | `echo <X.Y.Z> > setup/local/.provisioned-version` then run (forward-only won't lower it during a run). |
+| CI bump loops / double-runs | The bump commit carries `[skip ci]`; ensure branch protection allows the `github-actions[bot]` push. |
 | Don't want the session announcer | Remove the `announce-pending` SessionStart entry from `~/.claude/settings.json`. |
 
 ## Uninstall
