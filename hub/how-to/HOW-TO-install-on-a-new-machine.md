@@ -44,6 +44,14 @@ Choose mode **2** (or step **9**) and give the path to the old orchestrator dire
 After migrating: review `CLAUDE.local.md`, `setup/local/`, and `plans/_imported-planning/`, then
 rebuild the index (`python3 scripts/build-plan-index.py`).
 
+## Finish setup in Claude Code (after the script)
+
+`install.sh` handles files and `~/.claude` routing; the ecosystem *content* (registry, `CLAUDE.local.md`
+details, MCP servers) needs a short conversation. Launch Claude Code **in this repo** and paste
+**`prompts/post-install-setup.md`** — it orients Claude, verifies the install, interviews you for the
+overlay, populates the registry, walks MCP/global-skill setup, follows through on a migration, and
+builds the live map. The installer prints this path at the end.
+
 ## Manual fallback
 If you'd rather not run the script, each piece is documented in its `setup/<id>/SETUP.md` and can be
 installed by hand from there.

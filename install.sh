@@ -184,7 +184,11 @@ menu() {
     3) custom ;;
     *) exit 0 ;;
   esac
-  h1 "Done"; info "Restart Claude Code to pick up settings/commands. See overview.md to explore."
+  h1 "Done"
+  info "Restart Claude Code to pick up settings/commands."
+  info "Then launch Claude Code in this repo and paste the post-install prompt to finish setup:"
+  c '1;36' "    prompts/post-install-setup.md"; echo
+  info "(orient · verify · fill CLAUDE.local.md · registry · MCP · build the map). Explore: overview.md"
 }
 
 custom() {
