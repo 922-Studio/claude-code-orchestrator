@@ -42,6 +42,7 @@ Local tooling the orchestrator can install, verify, and fix on its own → `setu
 | 🍺 Daily Homebrew auto-upgrade (launchd) | `setup/brew-autoupgrade/` |
 | 🔄 Repo sync — pull every registry repo | `setup/repo-sync/` |
 | 🌿 Git freshness hooks — fetch+ff-pull before `worktree add`, safe pull at session start | `setup/git-freshness/` |
+| ♻️ Auto-provisioning — git post-merge/rewrite hooks re-run every setup's idempotent `apply.sh`, so pulls self-adopt | `setup/provision/` |
 | 🔔 Periodic reminders — config-driven macOS notifications (launchd) | `setup/reminders/` |
 | 👤 Personal / machine-specific setups (gitignored) | `setup/local/` |
 

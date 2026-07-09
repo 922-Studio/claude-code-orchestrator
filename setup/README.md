@@ -32,6 +32,10 @@ so it ports across users/machines. Run **Verify** after each.
   with a `__HOME__` placeholder and `sed` it in on install.
 - **Never store secrets here.** Reference credential files by path; don't copy their contents.
 - Add every new setup to the Registry below and keep `overview.md` + `CAPABILITIES.md` in sync.
+- **Auto-adoption:** to have a setup apply itself on every `git pull`, ship an **idempotent
+  `setup/<id>/apply.sh`**. The `provision` reconciler discovers and runs it (auto-apply-all); it must
+  be safe to re-run (detect "already applied", write only on real change). No `apply.sh` → the setup
+  stays manual (install from its `SETUP.md`). See `setup/provision/SETUP.md`.
 
 ### `SETUP.md` standard sections
 ```
@@ -63,6 +67,7 @@ so it ports across users/machines. Run **Verify** after each.
 | Daily Homebrew auto-upgrade | `brew-autoupgrade` | launchd LaunchAgent | macOS | `setup/brew-autoupgrade/` | 🟡 optional |
 | Repo sync (all registry repos) | `repo-sync` | shell script | any | `setup/repo-sync/` | 🟡 optional |
 | Git freshness hooks (fresh code before worktree/investigation) | `git-freshness` | Claude Code hooks | any | `setup/git-freshness/` | 🟡 optional |
+| Auto-provisioning (adopt setup changes on every pull) | `provision` | git hook + reconciler | any | `setup/provision/` | 🟡 optional |
 | Periodic reminders (config-driven notifications) | `reminders` | launchd LaunchAgent | macOS | `setup/reminders/` | 🟡 optional |
 | *(personal setups)* | — | — | — | `setup/local/` (gitignored) | — |
 

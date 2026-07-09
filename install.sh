@@ -130,6 +130,14 @@ step_automations() { # optional machine automations
   else sk "skipped reminders"; fi
 }
 
+step_provision() { # git hooks that auto-adopt setup changes on every pull
+  h1 "Auto-provisioning (adopt setup changes on every pull)"
+  if yes "Install git hooks so future pulls auto-apply setup changes?"; then
+    ( cd "$ROOT" && bash setup/provision/provision.sh ) \
+      && ok "provisioning installed + applied" || sk "provision failed (see setup/provision/SETUP.md)"
+  else sk "skipped auto-provisioning"; fi
+}
+
 step_migrate() { # import from an old orchestrator
   h1 "Migrate from an existing orchestrator"
   local old; old="$(ask 'Path to the OLD orchestrator directory')"
@@ -168,7 +176,7 @@ step_migrate() { # import from an old orchestrator
   info "Review: CLAUDE.local.md, setup/local/, plans/_imported-planning/. Then rebuild the index."
 }
 
-run_all() { step_migrate_opt=""; step_overlay; step_config; step_cc_settings; step_statusline; step_commands; step_projects; step_map; step_automations; }
+run_all() { step_migrate_opt=""; step_overlay; step_config; step_cc_settings; step_statusline; step_commands; step_projects; step_map; step_automations; step_provision; }
 
 menu() {
   h1 "Claude Code Orchestrator — installer"
@@ -193,11 +201,11 @@ menu() {
 
 custom() {
   h1 "Custom — enter numbers separated by spaces"
-  echo "  1 overlay  2 config  3 cc-settings  4 statusline  5 commands  6 projects  7 map  8 automations  9 migrate"
+  echo "  1 overlay  2 config  3 cc-settings  4 statusline  5 commands  6 projects  7 map  8 automations  9 migrate  10 provision"
   local sel; sel="$(ask 'Steps')"
   for n in $sel; do case "$n" in
     1) step_overlay;; 2) step_config;; 3) step_cc_settings;; 4) step_statusline;;
-    5) step_commands;; 6) step_projects;; 7) step_map;; 8) step_automations;; 9) step_migrate;;
+    5) step_commands;; 6) step_projects;; 7) step_map;; 8) step_automations;; 9) step_migrate;; 10) step_provision;;
   esac; done
 }
 

@@ -46,6 +46,35 @@ function color(used) {
   if (used >= 300_000) return "\x1b[33m"; // yellow
   return "\x1b[32m"; // green
 }
+// Color the session-limit % by how much of the 5h quota is consumed.
+function limitColor(p) {
+  if (p >= 90) return "\x1b[31m"; // red
+  if (p >= 75) return "\x1b[38;5;208m"; // orange
+  if (p >= 50) return "\x1b[33m"; // yellow
+  return "\x1b[32m"; // green
+}
+// "1h04m" / "12m" from a seconds-until value.
+function fmtDur(sec) {
+  if (!Number.isFinite(sec) || sec <= 0) return "now";
+  const totalMin = Math.ceil(sec / 60);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return h > 0 ? `${h}h${String(m).padStart(2, "0")}m` : `${m}m`;
+}
+// Build the "5h limit N% · resets in Xh Ym" label from rate_limits.five_hour.
+// The rate_limits block only appears for Pro/Max after the first API response,
+// and each window may be independently absent — so degrade to "" silently.
+function sessionLimitLabel() {
+  const fh = input.rate_limits?.five_hour;
+  if (!fh || fh.resets_at == null) return "";
+  const pct = Math.round(Number(fh.used_percentage) || 0);
+  const secs = Number(fh.resets_at) - Math.floor(Date.now() / 1000);
+  const c = limitColor(pct);
+  return `${c}5h limit ${pct}%\x1b[0m \x1b[90m· resets in ${fmtDur(secs)}\x1b[0m`;
+}
+const limitLabel = sessionLimitLabel();
+const limitSuffix = limitLabel ? ` | ${limitLabel}` : "";
+
 const comma = (n) =>
   new Intl.NumberFormat("en-US").format(
     Math.max(0, Math.floor(Number(n) || 0))
@@ -142,7 +171,7 @@ function newestMainUsageByTimestamp() {
 const usage = newestMainUsageByTimestamp();
 if (!usage) {
   console.log(
-    `${name}${effortLabel} | \x1b[36mcontext window usage starts after your first question.\x1b[0m | cost: ${costUsd}\nsession: ${sessionId} | cwd: ${cwd}`
+    `${name}${effortLabel} | \x1b[36mcontext window usage starts after your first question.\x1b[0m | cost: ${costUsd}${limitSuffix}\nsession: ${sessionId} | cwd: ${cwd}`
   );
   process.exit(0);
 }
@@ -156,5 +185,5 @@ const usageCountLabel = `\x1b[33m(${comma(used)}/${comma(
 )})\x1b[0m`;
 
 console.log(
-  `${name}${effortLabel} | ${usagePercentLabel} - ${usageCountLabel} | cost: ${costUsd}\nsession: ${sessionId} | cwd: ${cwd}`
+  `${name}${effortLabel} | ${usagePercentLabel} - ${usageCountLabel} | cost: ${costUsd}${limitSuffix}\nsession: ${sessionId} | cwd: ${cwd}`
 );
