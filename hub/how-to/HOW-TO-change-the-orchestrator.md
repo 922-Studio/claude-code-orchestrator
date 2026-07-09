@@ -23,6 +23,46 @@ the tree diagram + lookup table. Keep them **maps, not documentation**: short la
 
 ---
 
+## The second golden rule: build load-on-demand by default
+
+Everything in the **always-loaded set** — `CLAUDE.md`, `CLAUDE.local.md`, the `MEMORY.md` index — is
+a tax paid on **every session, every turn, forever**, whether or not the session touches it. At ~100
+sessions/day, 1k standing tokens = 100k tokens/day of pure overhead. So the default for anything new
+is **load-on-demand**: a pointer, a skill, a script, or a guide that costs nothing until it's needed.
+
+Something earns a place in the always-loaded set **only** if it passes this test:
+
+> **Would a session that never does X still need to know this?**
+> **Yes** → it's a universal rule; it may load always. **No** → it's a pointer / skill / script / guide.
+
+This is the build-time counterpart to `/token-diet` (`skills/token-diet/`): token-diet *trims
+existing* standing overhead after the fact; this rule keeps new work from adding it in the first
+place. Apply it every time you add a rule, a capability, or a fact.
+
+### Where does a new thing belong?
+
+| You're adding… | Put it in | Loads | Why |
+|---|---|---|---|
+| A rule every session needs, ecosystem-agnostic | `CLAUDE.md` | always | passes the test; the shared rulebook |
+| Same, but ecosystem/machine-specific | `CLAUDE.local.md` | always (local) | keeps `CLAUDE.md` generic & shareable |
+| A **behavior choice** (format, mode, gate, model, branch) | `orchestrator.config.json` (+ `.local.json`) | read at session start | data, not prose — never encode choices in `CLAUDE.md` |
+| A procedure for **one task type** | `hub/how-to/HOW-TO-*.md` + 1-line pointer | when that task comes up | fails the test → pointer |
+| Long-form domain knowledge (env, server, a service) | `guides/*.md` + 1-line pointer | on demand | reference material, not a rule |
+| A repeatable, **named** multi-step operation | `skills/` (slash command) | when invoked | it's an *action* you re-run |
+| Deterministic, mechanical work | `scripts/*.{sh,py}` | when run | code beats prose for machines |
+| A durable fact for future sessions | auto-memory file + index line | recalled on relevance | only the one-line index entry is standing cost |
+
+**When you add a skill or command, its *name + description* joins the always-loaded catalog** (the
+body loads only on invoke). So keep that description tight and specific — it's the standing cost of
+the capability. Same for a memory's index line and a how-to's pointer: the pointer is the tax, the
+content is free until used.
+
+Never duplicate content across the always-loaded set and a guide — **link, don't copy**. If two
+files would state the same rule, keep one authoritative statement and point at it (the env-handling
+rule is the model: one pointer line in `CLAUDE.md`, all detail in `guides/env-handling.md`).
+
+---
+
 ## Where things belong
 
 | Folder / file | For |
@@ -43,16 +83,17 @@ topic, check `plans/` for an existing one and extend it rather than fork.
 
 ## Changing behavior (the config)
 
-Runtime behavior is data, not prose: edit `orchestrator.config.json` (plan format, execution mode,
-gates, models). Add a new switch there with a `description` — don't encode behavior choices in
-`CLAUDE.md`. Per-machine differences go in the gitignored `orchestrator.config.local.json`.
+Runtime behavior is **data, not prose**: add a switch to `orchestrator.config.json` with a
+`description` — never encode a behavior choice in `CLAUDE.md`. Per-machine overrides go in the
+gitignored `orchestrator.config.local.json` (shallow-merges, local wins).
 
-## Editing `CLAUDE.md` (the rulebook)
+## Editing the always-loaded set (`CLAUDE.md` / `CLAUDE.local.md`)
 
-It loads **every session**, so treat its size as a budget. Keep it to rules + the config pointer +
-map pointers. Push long procedures into a `hub/how-to/` doc and link with one line (this file is an
-example). Never duplicate content between `CLAUDE.md`, `overview.md`, and how-tos — link instead.
-Ecosystem-specific rules go in `CLAUDE.local.md`, never in the committed `CLAUDE.md`.
+Every byte here loads on every session — treat size as a budget (see *build load-on-demand by
+default* above). Before adding a line, run the test: **would a session that never does X still need
+it?** If no, it's a pointer to a how-to/guide/skill, not inline prose. Keep `CLAUDE.md` to universal
+rules + config pointer + map pointers; ecosystem/machine specifics go in `CLAUDE.local.md`. Link,
+never duplicate, across `CLAUDE.md` / `overview.md` / how-tos.
 
 ## Committed vs. gitignored
 

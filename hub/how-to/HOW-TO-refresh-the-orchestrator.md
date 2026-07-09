@@ -29,6 +29,12 @@ Per `HOW-TO-change-the-orchestrator.md`: make `overview.md` and `CAPABILITIES.md
 structure. Confirm `.gitignore` still covers every ecosystem/machine-specific area (nothing private
 sneaks into the committed set).
 
+## 4b. Check standing overhead didn't creep
+A refresh is the moment to catch load-on-demand violations that snuck into the always-loaded set
+(`CLAUDE.md` / `CLAUDE.local.md` / `MEMORY.md` index). If any of them grew, run **`/token-diet`**
+(`skills/token-diet/`) — it measures and walks the trim biggest-lever-first. The build-time rule
+that prevents this is *build load-on-demand by default* in `HOW-TO-change-the-orchestrator.md`.
+
 ## 5. Verify the committed set is clean
 ```bash
 git status --short
