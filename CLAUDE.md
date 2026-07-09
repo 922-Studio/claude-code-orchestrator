@@ -89,7 +89,11 @@ Then execute wave-by-wave per `execution_mode`, following the Worktree & PR Work
 When `execution_mode` is `pr` or `autonomous`, every code change to a *target* repo runs in an
 isolated worktree and lands via PR:
 
-1. **Branch** off `base_branch`: `feat/<slug>` (or `feat/<slug>-step-<N>` for parallel work on one repo).
+1. **Branch** off `base_branch`, forking from the **remote tip**, not a stale local ref: fetch first,
+   then create off `origin/<base_branch>` — e.g. `git -C <repo> fetch origin && git -C <repo> worktree
+   add <wt> -b feat/<slug> origin/<base_branch>` (`feat/<slug>-step-<N>` for parallel work on one repo).
+   The optional `git-freshness` hook (`setup/git-freshness/`) does the fetch + ff-pull automatically,
+   but forking off `origin/<base_branch>` is what guarantees freshness — do it regardless.
 2. **Worktree** at `<repo>/.worktrees/<branch>` (`use_worktrees`); do all edits, tests, and commits there.
 3. **Push**, monitor CI (`require_ci_green`), open the PR against `base_branch`, and **report the full PR URL back to Gregor as a clickable link the moment it exists — no step or wave is complete without it.**
 4. **Remove** the worktree once the URL is captured (`remove_worktree_after_pr`); never delete the remote branch.

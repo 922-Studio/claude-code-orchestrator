@@ -1,0 +1,14 @@
+{
+  "_about": "Local, GITIGNORED config for the git-freshness hooks (setup/git-freshness/). Copy this to setup/local/git-freshness.config.json and tune per machine. The hook SCRIPTS are shared/committed; THIS file is per-machine so everyone can use the capability while configuring it individually.",
+
+  "worktree_fetch": {
+    "enabled": true,
+    "_description": "PreToolUse hook: before `git worktree add`, fetch origin + ff-only pull the target repo so new branches fork off a fresh origin/<base>."
+  },
+
+  "session_fetch": {
+    "enabled": true,
+    "throttle_minutes": 30,
+    "_description": "SessionStart hook: pull every clean registry repo once per session (skipped if it ran within throttle_minutes). Set enabled=false to opt out of the session-start network pull."
+  }
+}
