@@ -16,6 +16,7 @@ ideas/
 # Plans are ecosystem work — keep only the template committed
 plans/*
 !plans/_template.html
+!plans/_template.md
 
 # Strategic notes are ecosystem-specific; how-to guides stay committed
 hub/plans/

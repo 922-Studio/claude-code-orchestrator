@@ -15,7 +15,7 @@ The core job: author sequenced plans and drive execution across many repos safel
 - **Reusable agent roles** — planner / executor / reviewer → `prompts/`
 
 ## 📋 Planning & handovers
-- **Plans** in HTML (design-system styled) or Markdown → `plans/` + `plans/_template.html`
+- **Plans** in HTML (design-system styled) or Markdown → `plans/` + `plans/_template.{html,md}`; each leads with a human-only summary and ends with a paste-ready kickoff prompt → `guides/plan-authoring.md`
 - **Auto-generated plan index** — one read = status of every plan, works for html *and* md → `plans/INDEX.md` (`python3 scripts/build-plan-index.py`)
 - **Session handovers** — pause/resume long work across context limits → `.planning/handover/` + `/create-handover`
 - **Cleanup / audit** — classify plans (keep/archive) via the orchestrator-cleanup skill → `scripts/orchestrator-audit.sh`
@@ -28,6 +28,7 @@ Reusable capabilities invoked as slash-commands (installed to `~/.claude/command
 - **`/ci-green-sweep`** — drive every repo's CI green via sub-agents → `skills/ci-green-sweep/`
 - **`/orchestrator-cleanup`** — audit & archive plans, prune deprecated files
 - **`/create-handover`** — structured session handoff
+- **`/token-diet`** — interactive per-session token-overhead cleanup (MCP servers, CLAUDE.md chain, memory, commands) → `skills/token-diet/`
 
 ## ⚙️ Machine setups & automations
 Local tooling the orchestrator can install, verify, and fix on its own → `setup/`
@@ -40,6 +41,7 @@ Local tooling the orchestrator can install, verify, and fix on its own → `setu
 | ⌨️ Orchestrator slash-commands install | `setup/orchestrator-commands/` |
 | 🍺 Daily Homebrew auto-upgrade (launchd) | `setup/brew-autoupgrade/` |
 | 🔄 Repo sync — pull every registry repo | `setup/repo-sync/` |
+| 🔔 Periodic reminders — config-driven macOS notifications (launchd) | `setup/reminders/` |
 | 👤 Personal / machine-specific setups (gitignored) | `setup/local/` |
 
 *Self-service:* say *"X stopped working"* → it finds the setup, runs Verify, applies Fix.

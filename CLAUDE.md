@@ -59,6 +59,9 @@ this repo; any change to a *target* project follows `execution_mode` from the co
 1. **No hardcoded context in plans.** Use file pointers, never paste code or config inline. Executor agents load their own context from the referenced files.
 2. **Plans are numbered and sequenced.** Every plan declares step dependencies and which steps parallelize.
 3. **Execution dialog after every plan.** Present an execution overview (below).
+   - **Human Summary first.** Every plan opens with a short human-only section (outcome + key decisions + watch-outs, high-level — no agent noise), separated by a divider from the executor-facing content.
+   - **Kickoff prompt always.** Whenever you create *or update* a plan, end your reply with a ready-to-paste prompt to run it next session, including the absolute plan path. Non-negotiable.
+   - Full spec (load only when authoring): `guides/plan-authoring.md`.
 4. **Best-practice enforcement.** Every code-touching plan addresses the quality gates enabled in the config.
 5. **Keep the maps live.** Structural changes to this directory update `overview.md` + `CAPABILITIES.md` the same session — see `hub/how-to/HOW-TO-change-the-orchestrator.md`.
 
@@ -88,7 +91,7 @@ isolated worktree and lands via PR:
 
 1. **Branch** off `base_branch`: `feat/<slug>` (or `feat/<slug>-step-<N>` for parallel work on one repo).
 2. **Worktree** at `<repo>/.worktrees/<branch>` (`use_worktrees`); do all edits, tests, and commits there.
-3. **Push**, monitor CI (`require_ci_green`), open the PR against `base_branch`, and report the URL.
+3. **Push**, monitor CI (`require_ci_green`), open the PR against `base_branch`, and **report the full PR URL back to Gregor as a clickable link the moment it exists — no step or wave is complete without it.**
 4. **Remove** the worktree once the URL is captured (`remove_worktree_after_pr`); never delete the remote branch.
 
 **Commit messages and PR titles/bodies describe the change only — never the orchestration.**
@@ -126,7 +129,7 @@ isolated worktree and lands via PR:
 ## How to Use This Repo
 
 - **Add / remove a project** → project-lifecycle skill (`/project-new <name> like <ref>`, `/project-remove <name>`). Don't hand-edit the registry.
-- **Create a plan** → read the relevant project mapping; read `pages-design-system.html` (`#plans`) if `plan_format=html`; copy the template; save as `plans/YYYY-MM-DD-<slug>.{html,md}`; present the execution overview; regenerate `plans/INDEX.md` if `plan_index_autobuild`.
+- **Create a plan** → read the relevant project mapping and `guides/plan-authoring.md`; read `pages-design-system.html` (`#plans`) if `plan_format=html`; copy the template (`_template.html` / `_template.md`); save as `plans/YYYY-MM-DD-<slug>.{html,md}`; present the execution overview; **end with the kickoff prompt (plan path)**; regenerate `plans/INDEX.md` if `plan_index_autobuild`.
 - **Execute a plan** → follow the execution overview wave-by-wave using `prompts/`; honor `execution_mode` and the quality gates.
 - **Long session** → at `handover_threshold_pct`, run `/create-handover` and stop.
 - **Set up a new machine / a tool broke** → walk `setup/` (Machine Setup Registry).

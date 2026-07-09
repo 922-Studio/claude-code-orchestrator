@@ -15,7 +15,7 @@ orchestrator/
 │
 ├── 📁 plans/ ................... the work — one file per plan (html or md)
 │        ├─ 📋 INDEX.md ......... auto-generated status of every plan (build-plan-index.py)
-│        ├─ 🧩 _template.html ... canonical plan template
+│        ├─ 🧩 _template.{html,md} canonical plan templates (human summary + kickoff prompt)
 │        └─ 🗄️  archive/ ........ completed / superseded plans (gitignored)
 │
 ├── 🗂️  projects/ ............... (gitignored) per-project mappings

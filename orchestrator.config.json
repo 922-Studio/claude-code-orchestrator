@@ -4,7 +4,7 @@
   "plan_format": {
     "value": "html",
     "options": ["html", "md"],
-    "description": "Format for NEW plans. 'html' -> copy plans/_template.html and link pages-design-system.css. 'md' -> plain Markdown with a YAML frontmatter header (title/status/created/updated/goal). Existing plans of EITHER format remain readable regardless of this setting; do not batch-convert."
+    "description": "Format for NEW plans. 'html' -> copy plans/_template.html and link pages-design-system.css. 'md' -> copy plans/_template.md (YAML frontmatter title/status/created/updated/goal). Both templates lead with a human-only summary and the plan flow ends with a kickoff prompt — see guides/plan-authoring.md. Existing plans of EITHER format remain readable regardless of this setting; do not batch-convert."
   },
 
   "execution_mode": {
