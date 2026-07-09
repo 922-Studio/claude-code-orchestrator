@@ -46,6 +46,13 @@ so it ports across users/machines. Run **Verify** after each.
 
 ---
 
+## Generic vs. personal setups
+
+- **Generic** setups (useful on any machine) live directly under `setup/<id>/` and are **committed**.
+- **Personal / machine- or ecosystem-specific** setups (e.g. a mail-housekeeping job, a work deploy
+  digest) live under **`setup/local/<id>/`**, which is **gitignored** — same `SETUP.md` conventions,
+  just kept out of the shared framework. The installer imports an old orchestrator's setups here.
+
 ## Registry
 
 | Setup | id | Type | Platform | Lives in | Status |
@@ -53,5 +60,12 @@ so it ports across users/machines. Run **Verify** after each.
 | Claude Code settings (model, effort, theme, permissions) | `claude-code-settings` | config file | any | `setup/claude-code-settings/` | ✅ active |
 | Context-monitor statusline | `claude-statusline` | Node statusline | any | `setup/claude-statusline/` | ✅ active |
 | Orchestrator slash-commands | `orchestrator-commands` | Claude Code commands | any | `setup/orchestrator-commands/` | ✅ active |
+| Daily Homebrew auto-upgrade | `brew-autoupgrade` | launchd LaunchAgent | macOS | `setup/brew-autoupgrade/` | 🟡 optional |
+| Repo sync (all registry repos) | `repo-sync` | shell script | any | `setup/repo-sync/` | 🟡 optional |
+| *(personal setups)* | — | — | — | `setup/local/` (gitignored) | — |
 
-*Status legend: ✅ active · 🟡 documented, not installed · 🔴 broken/needs attention*
+*Status legend: ✅ active · 🟡 documented/optional · 🔴 broken/needs attention*
+
+> One-shot bootstrap on a new machine: run **`bash install.sh`** from the repo root — it walks these
+> setups plus the overlay/config/projects/map, and can migrate from an old orchestrator. See
+> `hub/how-to/HOW-TO-install-on-a-new-machine.md`.

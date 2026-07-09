@@ -25,11 +25,17 @@ ecosystem and on any machine.
 
 ## Adopt it for your own ecosystem
 
-1. Clone the repo.
-2. Copy `CLAUDE.local.md.example` → `CLAUDE.local.md` (gitignored) and fill in your registry/server/conventions.
-3. Adjust `orchestrator.config.json` (or add a gitignored `orchestrator.config.local.json`) to taste.
-4. Walk `setup/` to install the local tooling (Claude Code settings, statusline, slash-commands) on the machine.
-5. Put your plans in `plans/`, project mappings in `projects/`, server notes in `server.md` — all gitignored by default.
+```bash
+git clone https://github.com/922-Studio/claude-code-orchestrator.git
+cd claude-code-orchestrator
+bash install.sh        # interactive: overlay, config, ~/.claude routing, projects, map, automations
+```
+
+`install.sh` walks you through the whole bootstrap (fresh install **or** migration from an older
+orchestrator) — see `hub/how-to/HOW-TO-install-on-a-new-machine.md`. It creates the gitignored
+`CLAUDE.local.md` (your registry/server/conventions) and `orchestrator.config.local.json`, wires up
+Claude Code settings/statusline/commands in `~/.claude`, and builds the plan index. Prefer to do it
+by hand? Each piece is documented in its `setup/<id>/SETUP.md`.
 
 ## What is intentionally NOT tracked
 

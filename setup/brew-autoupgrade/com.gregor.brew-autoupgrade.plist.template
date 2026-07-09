@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.gregor.brew-autoupgrade</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/zsh</string>
+        <string>__HOME__/.local/bin/brew-autoupgrade.sh</string>
+    </array>
+
+    <!-- 07:00 local time. launchd uses the Mac's local timezone. -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>7</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- If the Mac was asleep/off at 07:00, launchd runs the job once on the
+         next wake/login. RunAtLoad stays false so it does not fire on every
+         login, only on the missed-schedule catch-up. -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>__HOME__/Library/Logs/brew-autoupgrade.launchd.out</string>
+    <key>StandardErrorPath</key>
+    <string>__HOME__/Library/Logs/brew-autoupgrade.launchd.err</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+</dict>
+</plist>

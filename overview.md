@@ -6,6 +6,7 @@ Reusable planning + execution scaffold for Claude Code across many repos.
 ```
 orchestrator/
 │
+├── 🧰 install.sh ............... interactive bootstrap for a new machine (+ migration)
 ├── 📖 CLAUDE.md ................. the rules (ecosystem-agnostic)          → start here
 ├── ⚙️  orchestrator.config.json . behavior switches (read at session start)
 ├── 👤 CLAUDE.local.md .......... (gitignored) your ecosystem/machine overlay
@@ -43,7 +44,8 @@ orchestrator/
 | 🧹 clean up / refresh this directory | `hub/how-to/HOW-TO-refresh-the-orchestrator.md` |
 | 🏗️ reshape this directory's structure | `hub/how-to/HOW-TO-change-the-orchestrator.md` |
 | ⏸️ continue last session | `.planning/handover/` |
-| 🔧 a setup broke, or set up a new machine | `setup/` |
+| 🧰 set up a new machine (or migrate one) | `install.sh` · `hub/how-to/HOW-TO-install-on-a-new-machine.md` |
+| 🔧 a setup broke | `setup/` |
 | 🚀 see what it can do | `CAPABILITIES.md` |
 | 📖 the rules | `CLAUDE.md` (+ `CLAUDE.local.md`) |
 

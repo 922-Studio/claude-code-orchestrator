@@ -30,6 +30,10 @@ guides/local-dev-invoice.md
 # Transient session handovers
 .planning/
 
+# Personal / machine-specific setups (generic ones stay committed under setup/)
+setup/local/*
+!setup/local/.gitkeep
+
 # ── Local secrets mirror — NEVER commit ──
 secrets/
 .secrets/

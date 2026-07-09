@@ -34,12 +34,16 @@ Local tooling the orchestrator can install, verify, and fix on its own → `setu
 
 | Capability | Lives in |
 |---|---|
+| 🧰 One-shot new-machine installer (+ migration from an old orchestrator) | `install.sh` |
 | 🎛️ Claude Code settings (model, effort, theme, permissions) | `setup/claude-code-settings/` |
 | 📊 Context-monitor statusline (model \| effort \| context% \| cost) | `setup/claude-statusline/` |
 | ⌨️ Orchestrator slash-commands install | `setup/orchestrator-commands/` |
+| 🍺 Daily Homebrew auto-upgrade (launchd) | `setup/brew-autoupgrade/` |
+| 🔄 Repo sync — pull every registry repo | `setup/repo-sync/` |
+| 👤 Personal / machine-specific setups (gitignored) | `setup/local/` |
 
 *Self-service:* say *"X stopped working"* → it finds the setup, runs Verify, applies Fix.
-New machine → it reinstalls from each `SETUP.md`.
+New machine → `bash install.sh`, or reinstall any single piece from its `SETUP.md`.
 
 ---
 
