@@ -124,6 +124,10 @@ step_automations() { # optional machine automations
     chmod +x setup/repo-sync/repo-sync.sh; mkdir -p ~/.local/bin
     ln -sf "$ROOT/setup/repo-sync/repo-sync.sh" ~/.local/bin/repo-sync; ok "repo-sync linked"
   else sk "skipped repo-sync"; fi
+  if yes "Install periodic reminders (launchd, macOS; incl. weekly /token-diet nudge)?"; then
+    ( cd "$ROOT" && ORCH_ROOT="$ROOT" bash setup/reminders/install.sh ) \
+      && ok "reminders installed" || sk "reminders failed (see setup/reminders/SETUP.md)"
+  else sk "skipped reminders"; fi
 }
 
 step_migrate() { # import from an old orchestrator

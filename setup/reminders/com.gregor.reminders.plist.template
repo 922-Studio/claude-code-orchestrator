@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.gregor.reminders</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/zsh</string>
+        <string>__HOME__/.local/bin/claude-remind.sh</string>
+    </array>
+
+    <!-- Daily check time. Baked from reminders.config.json (check_hour/check_minute) at install;
+         launchd uses the Mac's local timezone. Which reminders actually fire on a given day is
+         decided by remind.sh from the config's per-reminder frequency. -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>__CHECK_HOUR__</integer>
+        <key>Minute</key>
+        <integer>__CHECK_MINUTE__</integer>
+    </dict>
+
+    <!-- If the Mac was asleep/off at the scheduled time, launchd runs the job once on the next
+         wake/login. remind.sh's per-reminder "last fired today" guard prevents double-firing. -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>__HOME__/Library/Logs/claude-reminders.launchd.out</string>
+    <key>StandardErrorPath</key>
+    <string>__HOME__/Library/Logs/claude-reminders.launchd.err</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+</dict>
+</plist>

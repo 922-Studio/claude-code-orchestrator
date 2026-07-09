@@ -1,0 +1,33 @@
+{
+  "_about": "Local, gitignored reminder registry for the launchd-driven macOS reminder system. Copy this to setup/local/reminders.config.json (the installer does this automatically if it's absent) and edit it there — that path is gitignored, so timing + entries stay machine-local. Re-run setup/reminders/install.sh after changing check_hour/check_minute (they are baked into the launchd plist); changes to the reminders[] list take effect on the next daily run with no reinstall.",
+
+  "check_hour": 9,
+  "check_minute": 0,
+
+  "reminders": [
+    {
+      "id": "token-diet",
+      "title": "Weekly Claude Token Diet",
+      "message": "Trim per-session overhead: open an orchestrator session and run /token-diet.",
+      "frequency": "weekly",
+      "weekday": "Mon",
+      "enabled": true
+    },
+    {
+      "id": "example-monthly",
+      "title": "Example monthly reminder",
+      "message": "This is what a monthly entry looks like — delete or edit it.",
+      "frequency": "monthly",
+      "day": 1,
+      "enabled": false
+    },
+    {
+      "id": "example-interval",
+      "title": "Example every-N-days reminder",
+      "message": "Fires every 10 days counted from when it last fired.",
+      "frequency": "interval",
+      "every_days": 10,
+      "enabled": false
+    }
+  ]
+}

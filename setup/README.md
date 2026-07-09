@@ -62,6 +62,7 @@ so it ports across users/machines. Run **Verify** after each.
 | Orchestrator slash-commands | `orchestrator-commands` | Claude Code commands | any | `setup/orchestrator-commands/` | ✅ active |
 | Daily Homebrew auto-upgrade | `brew-autoupgrade` | launchd LaunchAgent | macOS | `setup/brew-autoupgrade/` | 🟡 optional |
 | Repo sync (all registry repos) | `repo-sync` | shell script | any | `setup/repo-sync/` | 🟡 optional |
+| Periodic reminders (config-driven notifications) | `reminders` | launchd LaunchAgent | macOS | `setup/reminders/` | 🟡 optional |
 | *(personal setups)* | — | — | — | `setup/local/` (gitignored) | — |
 
 *Status legend: ✅ active · 🟡 documented/optional · 🔴 broken/needs attention*
