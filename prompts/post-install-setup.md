@@ -25,7 +25,18 @@ Confirm and report a ✓/✗ table:
 Fix anything ✗ by re-running the matching `setup/<id>/SETUP.md` Install step. If I need to restart
 Claude Code for settings/commands to take effect, tell me.
 
-## Phase 2 — Ecosystem overlay (`CLAUDE.local.md`)
+## Phase 2 — Orchestrator config (local settings)
+Ensure `orchestrator.config.local.json` exists and reflects how I want this machine to behave (it
+shallow-merges over `orchestrator.config.json`, local wins). If it's missing (e.g. a migrate/custom
+install skipped it), create it. Read the `description` of each switch in `orchestrator.config.json`,
+then walk me through and confirm the ones that commonly differ per machine/ecosystem:
+- `plan_format` (html/md), `execution_mode` (pr/autonomous/direct), `base_branch` (dev/main)
+- gates: `require_review`, `require_tests_pass`, `require_ci_green`
+- `auto_commit` / `auto_push`, `use_worktrees`, `executor_model`, `handover_threshold_pct`
+Only write the keys I want to override into the `.local.json` (as `{ "key": { "value": … } }`);
+leave the rest inheriting the committed defaults. Show me the final merged effective config.
+
+## Phase 3 — Ecosystem overlay (`CLAUDE.local.md`)
 Interview me for this machine's ecosystem, then write/refine `CLAUDE.local.md` (keep it lean —
 ecosystem-specific rules only; generic rules already live in `CLAUDE.md`):
 - Workspace root (where all repos live) and the ecosystem name
@@ -35,25 +46,25 @@ ecosystem-specific rules only; generic rules already live in `CLAUDE.md`):
 If this was a migration, the file may already be seeded from the old `CLAUDE.md` — review it with me
 and **trim** it to ecosystem specifics rather than starting over.
 
-## Phase 3 — Projects & registry
+## Phase 4 — Projects & registry
 - If `registry.md` is empty/skeleton: discover local repos under the workspace root (`ls`, check for
   `.git`), show me the list, and for each I confirm, add a row and create `projects/<name>.md` from
   the mapping template. For a full lifecycle setup use the `/project-new <name> like <ref>` skill.
 - If migrated: verify the imported `registry.md` paths exist on THIS machine; flag any missing.
 
-## Phase 4 — Per-machine integrations (not installed by the repo)
+## Phase 5 — Per-machine integrations (not installed by the repo)
 - **MCP servers** (e.g. Gmail/Teams/Jira/Tempo, or whatever I rely on): list what this machine
   should have, check current ones (`claude mcp list`), and walk me through adding the missing ones.
   These are machine-local auth — the repo can't ship them.
 - **Global skills/plugins** I use that aren't in `skills/`: ask which I need; if any, help me install
   them into `~/.claude` (or fold reusable ones into the repo's `skills/` + the commands installer).
 
-## Phase 5 — Migration follow-through (only if migrated)
+## Phase 6 — Migration follow-through (only if migrated)
 Walk `setup/local/`, `plans/_imported-planning/`, and imported `hub/` notes with me: keep, reshape
 into the flat `plans/YYYY-MM-DD-<slug>` convention, or discard. Reinstall any personal `setup/local/<id>`
 via its `SETUP.md`.
 
-## Phase 6 — Build the map & finish
+## Phase 7 — Build the map & finish
 - `python3 scripts/build-plan-index.py` → `plans/INDEX.md`
 - Confirm `overview.md` still matches reality; update if this bootstrap changed the structure.
 - Commit orchestrator changes (this is the Local Workflow Exception repo — direct commit; per
