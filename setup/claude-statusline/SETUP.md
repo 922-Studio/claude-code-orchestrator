@@ -20,7 +20,9 @@ so a saved change appears on the next turn — no restart, no regeneration.
 | `config.js` | Load / merge / save the per-directory config (non-destructive) |
 | `server.js` | Local control-panel server (zero deps) |
 | `panel.html` | The interactive checkbox UI |
+| `open-panel.sh` | Launcher — starts the server (idempotent) + opens the browser scoped to a dir |
 | `segments.config.json` | The saved config (created on first Apply; **absent = all defaults**) |
+| `~/.claude/commands/edit-stl.md` | `/edit-stl` slash command → opens the panel for the current dir |
 
 Canonical copies live next to this file in `setup/claude-statusline/`.
 
@@ -47,7 +49,9 @@ existing overrides are untouched. Saves merge **per key** and preserve unrecogni
 SRC="$(pwd)/setup/claude-statusline"        # run from the orchestrator root
 DST="$HOME/.claude/statusline"
 mkdir -p "$DST"
-cp "$SRC"/{ctx_monitor.js,segments.js,config.js,server.js,panel.html} "$DST/"
+cp "$SRC"/{ctx_monitor.js,segments.js,config.js,server.js,panel.html,open-panel.sh} "$DST/"
+chmod +x "$DST/open-panel.sh"
+cp "$SRC/edit-stl.md" "$HOME/.claude/commands/edit-stl.md"   # the /edit-stl command
 
 # Wire it in (if not already done by claude-code-settings):
 node -e '
@@ -60,8 +64,12 @@ node -e '
 ```
 
 ## Use the control panel
+From a Claude Code session, just run **`/edit-stl`** — it opens the panel in the browser
+pre-scoped to the session's directory (starting the server if needed). Or manually:
 ```bash
 node ~/.claude/statusline/server.js        # prints http://127.0.0.1:4790
+# or, scoped to a directory + auto-open:
+bash ~/.claude/statusline/open-panel.sh /abs/path/to/project
 ```
 Open the URL. Pick **This directory** (paste the absolute path you run Claude Code in) or
 **Global default**, tick the segments you want, watch the live preview, press **Apply**. The

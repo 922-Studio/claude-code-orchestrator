@@ -15,6 +15,7 @@
 // ============================================================================
 
 const fs = require("fs");
+const { execFileSync } = require("child_process");
 
 // --- ANSI palette -----------------------------------------------------------
 const A = {
@@ -41,6 +42,8 @@ const SEGMENTS = [
   { id: "limit",   label: "5h session limit",    description: "Pro/Max 5h-window quota % + time to reset.",             default: true,  line: 1, order: 50 },
   { id: "session", label: "Session id",          description: "The Claude Code session UUID.",                          default: true,  line: 2, order: 10 },
   { id: "cwd",     label: "Working directory",   description: "Current working directory (home-relative).",             default: true,  line: 2, order: 20 },
+  { id: "branch",  label: "Git branch",          description: "Current branch of the repo in the working directory.",    default: true,  line: 2, order: 30 },
+  { id: "uptime",  label: "Session uptime",      description: "Elapsed time since this session started.",                default: true,  line: 2, order: 40 },
 ];
 
 // ============================================================================
@@ -67,7 +70,8 @@ function buildContext(input) {
   const cwdParent = slash >= 0 ? cwdRaw.slice(0, slash + 1) : "";
   const cwdBase = slash >= 0 ? cwdRaw.slice(slash + 1) : cwdRaw;
 
-  const usage = newestMainUsageByTimestamp(input.transcript_path);
+  const scan = scanTranscript(input.transcript_path);
+  const usage = scan.usage;
   const used = usedTotal(usage);
   const pct = CONTEXT_WINDOW > 0 ? Math.round((used * 1000) / CONTEXT_WINDOW) / 10 : 0;
 
@@ -76,11 +80,18 @@ function buildContext(input) {
     ? { pct: Math.round(Number(fh.used_percentage) || 0), secs: Number(fh.resets_at) - nowSecs() }
     : null;
 
+  // Elapsed since the session's first transcript entry.
+  const uptimeSecs = Number.isFinite(scan.firstTs) ? Math.floor(Date.now() / 1000) - Math.floor(scan.firstTs / 1000) : null;
+
+  const cwdAbs = String(input.cwd ?? input.workspace?.current_dir ?? "");
+  const branch = gitBranch(cwdAbs);
+
   return {
     sessionId: String(input.session_id ?? ""),
     name, effort, CONTEXT_WINDOW, costUsd,
     cwdParent, cwdBase,
     usage, used, pct, limit,
+    uptimeSecs, branch,
   };
 }
 
@@ -109,6 +120,10 @@ function renderSegment(id, ctx) {
       return `session: ${A.grey}${ctx.sessionId}${A.reset}`;
     case "cwd":
       return `cwd: ${A.blue}${ctx.cwdParent}${A.brightCyan}${ctx.cwdBase}${A.reset}`;
+    case "uptime":
+      return ctx.uptimeSecs == null ? "" : `up: ${A.grey}${fmtDur(ctx.uptimeSecs)}${A.reset}`;
+    case "branch":
+      return ctx.branch ? `${A.green}⎇ ${ctx.branch}${A.reset}` : "";
     default:
       return "";
   }
@@ -129,6 +144,8 @@ function sampleContext() {
     cwdBase: "orchestrator",
     usage: {}, used: 63_500, pct: 31.8,
     limit: { pct: 47, secs: 2 * 3600 + 12 * 60 },
+    uptimeSecs: 1 * 3600 + 47 * 60,
+    branch: "feat/statusline-panel",
   };
 }
 
@@ -183,18 +200,20 @@ function usedTotal(u) {
   );
 }
 
-// Newest main-context assistant usage by timestamp (skips sidechains,
-// synthetic messages, api errors, and "no response requested" turns).
-function newestMainUsageByTimestamp(transcript) {
-  if (!transcript) return null;
+// One read of the transcript → { usage, firstTs }:
+//  - usage : newest main-context assistant usage by timestamp (skips
+//    sidechains, synthetic messages, api errors, "no response requested").
+//  - firstTs: earliest timestamp of any entry (session start), in ms.
+function scanTranscript(transcript) {
+  const out = { usage: null, firstTs: Infinity };
+  if (!transcript) return out;
   let lines;
   try {
     lines = fs.readFileSync(transcript, "utf8").split(/\r?\n/);
   } catch {
-    return null;
+    return out;
   }
   let latestTs = -Infinity;
-  let latestUsage = null;
   for (let i = lines.length - 1; i >= 0; i--) {
     const line = lines[i].trim();
     if (!line) continue;
@@ -204,6 +223,10 @@ function newestMainUsageByTimestamp(transcript) {
     } catch {
       continue;
     }
+    const ts = Date.parse(j?.timestamp);
+    const t = Number.isFinite(ts) ? ts : -Infinity;
+    if (Number.isFinite(ts) && ts < out.firstTs) out.firstTs = ts;
+
     const u = j.message?.usage;
     const synthetic = /synthetic/.test(String(j?.message?.model ?? "").toLowerCase());
     const noResp =
@@ -218,16 +241,30 @@ function newestMainUsageByTimestamp(transcript) {
       j?.message?.role !== "assistant"
     )
       continue;
-    const ts = Date.parse(j?.timestamp);
-    const t = Number.isFinite(ts) ? ts : -Infinity;
     if (t > latestTs) {
       latestTs = t;
-      latestUsage = u;
-    } else if (t === latestTs && usedTotal(u) > usedTotal(latestUsage)) {
-      latestUsage = u;
+      out.usage = u;
+    } else if (t === latestTs && usedTotal(u) > usedTotal(out.usage)) {
+      out.usage = u;
     }
   }
-  return latestUsage;
+  return out;
+}
+
+// Current branch of the repo at `dir`, or "" if not a repo / detached / error.
+// Cheap enough to run per render; hard-capped so a slow FS can't stall the bar.
+function gitBranch(dir) {
+  if (!dir) return "";
+  try {
+    const b = execFileSync("git", ["-C", dir, "symbolic-ref", "--quiet", "--short", "HEAD"], {
+      timeout: 250,
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+    }).trim();
+    return b;
+  } catch {
+    return ""; // not a repo, or detached HEAD
+  }
 }
 
 module.exports = { SEGMENTS, buildContext, renderSegment, sampleContext, renderBar };

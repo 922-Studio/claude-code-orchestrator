@@ -204,6 +204,10 @@ dirInput.addEventListener("input", () => { clearTimeout(dirTimer); dirTimer = se
 $("#applyBtn").addEventListener("click", apply);
 $("#resetBtn").addEventListener("click", resetScope);
 
+// Prefill the directory when opened as ?dir=/abs/path (used by /edit-stl).
+const qsDir = new URLSearchParams(location.search).get("dir");
+if (qsDir) dirInput.value = qsDir;
+
 loadState();
 </script>
 </body>
