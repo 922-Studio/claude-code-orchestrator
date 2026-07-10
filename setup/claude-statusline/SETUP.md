@@ -4,8 +4,9 @@
 
 ## What it does
 Custom Claude Code statusline showing, per session: **model** · **effort** · **context-window
-usage** · **cost $** · **5h session-limit % + reset** · **session id** · **cwd** · **git branch** ·
-**session uptime** (wall clock) · **active time** (engaged time, idle gaps >5m excluded).
+usage** · **cost $** · **5h session-limit % + reset** · **versions** (Claude Code + orchestrator
+`version.txt`) · **session id** · **cwd** · **git branch** · **session uptime** (wall clock) ·
+**active time** (engaged time, idle gaps >5m excluded).
 
 Every one of those is a toggleable **segment**. Which segments show is driven by a config file,
 resolved **per working directory**: no config → everything on (the historical default). Some
@@ -25,6 +26,7 @@ turn — no restart, no regeneration.
 | `panel.html` | The interactive checkbox UI |
 | `open-panel.sh` | Launcher — starts the server (idempotent) + opens the browser scoped to a dir |
 | `segments.config.json` | The saved config (created on first Apply; **absent = all defaults**) |
+| `orch-root` | Pointer to the orchestrator checkout, written by `apply.sh`; the `versions` segment reads `<orch-root>/version.txt` live |
 | `~/.claude/commands/edit-stl.md` | `/edit-stl` slash command → opens the panel for the current dir |
 
 Canonical copies live next to this file in `setup/claude-statusline/`.
@@ -58,6 +60,7 @@ mkdir -p "$DST"
 cp "$SRC"/{ctx_monitor.js,segments.js,config.js,server.js,panel.html,open-panel.sh} "$DST/"
 chmod +x "$DST/open-panel.sh"
 cp "$SRC/edit-stl.md" "$HOME/.claude/commands/edit-stl.md"   # the /edit-stl command
+printf '%s\n' "$(cd "$SRC/../.." && pwd)" > "$DST/orch-root"  # for the versions segment
 
 # Wire it in (if not already done by claude-code-settings):
 node -e '

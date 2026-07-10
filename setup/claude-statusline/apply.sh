@@ -10,6 +10,7 @@
 set -u
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ORCH="$(cd "$DIR/../.." && pwd)"
 DST="$HOME/.claude/statusline"
 CMDS="$HOME/.claude/commands"
 SETTINGS="$HOME/.claude/settings.json"
@@ -18,7 +19,10 @@ mkdir -p "$DST" "$CMDS"
 cp "$DIR"/{ctx_monitor.js,segments.js,config.js,server.js,panel.html,open-panel.sh} "$DST/"
 chmod +x "$DST/open-panel.sh" 2>/dev/null || true
 cp "$DIR/edit-stl.md" "$CMDS/edit-stl.md"
-echo "statusline: modules + /edit-stl installed into ~/.claude"
+# Pointer to this checkout so the statusline can read version.txt live (the
+# 'versions' segment). Refreshed each run, so a moved repo self-heals.
+printf '%s\n' "$ORCH" > "$DST/orch-root"
+echo "statusline: modules + /edit-stl installed into ~/.claude (orch-root → $ORCH)"
 
 # Wire statusLine only if the user has none yet (fresh machine). If present,
 # leave it — claude-code-settings owns the canonical value.
