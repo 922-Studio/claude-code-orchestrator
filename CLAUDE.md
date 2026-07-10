@@ -63,7 +63,7 @@ this repo; any change to a *target* project follows `execution_mode` from the co
    - **Kickoff prompt always.** Whenever you create *or update* a plan, end your reply with a ready-to-paste prompt to run it next session, including the absolute plan path. Non-negotiable.
    - Full spec (load only when authoring): `guides/plan-authoring.md`.
 4. **Best-practice enforcement.** Every code-touching plan addresses the quality gates enabled in the config.
-5. **Keep the maps live & ship migrations.** Structural changes to this directory update `overview.md` + `CAPABILITIES.md` the same session. Any change that must **land on other machines** (git hooks, `~/.claude` settings, installed tools/configs) ships a **versioned provisioning migration** (`setup/provision/migrations/<X.Y.Z>-slug/apply.sh`, idempotent; optional `prompt.md`) so it auto-adopts on pull — pure in-repo edits (docs, plans, prompts, skill bodies) don't. Full spec: `hub/how-to/HOW-TO-change-the-orchestrator.md` → `setup/provision/SETUP.md`.
+5. **Keep the maps live.** Structural changes to this directory update `overview.md` + `CAPABILITIES.md` the same session; changes that must **land on other machines** (hooks, `~/.claude` settings, installed tools) ship a **provisioning migration** so they auto-adopt on pull. How (both): `hub/how-to/HOW-TO-change-the-orchestrator.md`.
 
 ---
 
