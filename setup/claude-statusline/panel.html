@@ -25,8 +25,12 @@
   label.seg input { margin-top: 3px; width: 17px; height: 17px; accent-color: var(--accent); flex: none; }
   .seg .name { font-weight: 600; }
   .seg .desc { color: var(--muted); font-size: 12.5px; }
+  .seg .body { display: flex; flex-direction: column; gap: 2px; }
   .seg .from { font-size: 11px; color: var(--muted); margin-left: auto; align-self: center; white-space: nowrap; }
   .from.override { color: var(--accent2); }
+  select.variant { margin-top: 7px; align-self: flex-start; background: #0c0d10; color: var(--fg);
+    border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; font-size: 12.5px; cursor: pointer; }
+  select.variant:disabled { opacity: .4; cursor: default; }
 
   .preview { background: #0c0d10; border: 1px solid var(--line); border-radius: 9px; padding: 14px 16px;
     font: 13px/1.7 "SFMono-Regular", ui-monospace, "JetBrains Mono", Menlo, monospace; white-space: pre-wrap; word-break: break-word; min-height: 46px; }
@@ -88,7 +92,8 @@
 <script>
 let STATE = null;          // /api/state payload
 let scope = "dir";         // "dir" | "defaults"
-let checks = {};           // segId -> bool (current UI state)
+let checks = {};           // segId -> bool (current UI enable state)
+let variantSel = {};       // segId -> variantId (current UI variant state)
 
 const $ = (s) => document.querySelector(s);
 const dirInput = $("#dirInput");
@@ -97,12 +102,23 @@ function currentScopeKey() {
   return scope === "defaults" ? "defaults" : dirInput.value.trim();
 }
 
+// The saved scope object ({enabled,variants}) for the current scope, or null.
+function scopeObj() {
+  const cfg = STATE.config;
+  if (scope === "defaults") return cfg.defaults || null;
+  const key = currentScopeKey();
+  return (key && cfg.directories[key]) || null;
+}
+
 // Where each effective value comes from, for the "override / default" tag.
 function sourceOf(id) {
-  const cfg = STATE.config;
-  const key = currentScopeKey();
-  if (scope === "dir" && key && cfg.directories[key] && id in cfg.directories[key]) return "override";
-  if (id in (cfg.defaults || {})) return scope === "defaults" ? "override" : "global";
+  const so = scopeObj();
+  const en = so && so.enabled || {};
+  const va = so && so.variants || {};
+  const setHere = id in en || id in va;
+  if (setHere) return scope === "defaults" ? "override" : "override";
+  const d = STATE.config.defaults || {};
+  if (id in (d.enabled || {}) || id in (d.variants || {})) return scope === "defaults" ? "override" : "global";
   return "default";
 }
 
@@ -111,12 +127,14 @@ async function loadState() {
   const r = await fetch("/api/state?dir=" + dir);
   STATE = await r.json();
   $("#cfgpath").textContent = STATE.configPath;
-  // seed checks from the effective config for this scope
-  const eff = scope === "defaults"
-    ? { ...STATE.registryDefaults, ...STATE.config.defaults }
-    : STATE.effective;
+  // STATE.effective is {enabled, variants} already resolved for this scope
+  const eff = STATE.effective;
   checks = {};
-  for (const s of STATE.segments) checks[s.id] = eff[s.id] !== false;
+  variantSel = {};
+  for (const s of STATE.segments) {
+    checks[s.id] = eff.enabled[s.id] !== false;
+    if (s.variants) variantSel[s.id] = eff.variants[s.id] || s.defaultVariant;
+  }
   renderSegs();
   renderPreview();
 }
@@ -127,16 +145,29 @@ function renderSegs() {
   for (const s of STATE.segments) {
     const src = sourceOf(s.id);
     const tag = src === "override" ? "set here" : src === "global" ? "from global" : "default";
+    let variantHtml = "";
+    if (s.variants && s.variants.length) {
+      const opts = s.variants.map((v) => `<option value="${v.id}" ${variantSel[s.id] === v.id ? "selected" : ""}>${v.label}</option>`).join("");
+      variantHtml = `<select class="variant" data-id="${s.id}" ${checks[s.id] ? "" : "disabled"}>${opts}</select>`;
+    }
     const lab = document.createElement("label");
     lab.className = "seg";
     lab.innerHTML =
       `<input type="checkbox" ${checks[s.id] ? "checked" : ""} data-id="${s.id}">` +
-      `<span><span class="name">${s.label}</span><br><span class="desc">${s.description}</span></span>` +
+      `<span class="body"><span class="name">${s.label}</span><br><span class="desc">${s.description}</span>${variantHtml}</span>` +
       `<span class="from ${src === "override" ? "override" : ""}">${tag}</span>`;
     lab.querySelector("input").addEventListener("change", (e) => {
       checks[s.id] = e.target.checked;
+      const sel = lab.querySelector("select.variant");
+      if (sel) sel.disabled = !e.target.checked;
       renderPreview();
     });
+    const sel = lab.querySelector("select.variant");
+    if (sel) {
+      // don't let clicking the dropdown toggle the surrounding label's checkbox
+      sel.addEventListener("click", (e) => e.preventDefault());
+      sel.addEventListener("change", (e) => { variantSel[s.id] = e.target.value; renderPreview(); });
+    }
     el.appendChild(lab);
   }
 }
@@ -145,8 +176,9 @@ function renderPreview() {
   const lines = {};
   for (const s of [...STATE.segments].sort((a, b) => a.line - b.line || a.order - b.order)) {
     if (!checks[s.id]) continue;
-    if (!s.sampleHtml) continue;
-    (lines[s.line] ||= []).push(s.sampleHtml);
+    const html = s.sampleHtmlByVariant ? s.sampleHtmlByVariant[variantSel[s.id]] : s.sampleHtml;
+    if (!html) continue;
+    (lines[s.line] ||= []).push(html);
   }
   const html = Object.keys(lines).sort().map((l) => lines[l].join(' <span style="color:#8b93a0">|</span> ')).join("<br>");
   $("#preview").innerHTML = html || '<span style="color:#8b93a0">(all segments hidden)</span>';
@@ -162,11 +194,15 @@ function toast(msg, err) {
 async function apply() {
   const key = currentScopeKey();
   if (scope === "dir" && !key) return toast("Enter a directory path first", true);
-  const overrides = {};
-  for (const s of STATE.segments) overrides[s.id] = !!checks[s.id];
+  const enabled = {};
+  const variants = {};
+  for (const s of STATE.segments) {
+    enabled[s.id] = !!checks[s.id];
+    if (s.variants) variants[s.id] = variantSel[s.id];
+  }
   const r = await fetch("/api/apply", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ scope: scope === "defaults" ? "defaults" : undefined, dir: scope === "dir" ? key : undefined, overrides }),
+    body: JSON.stringify({ scope: scope === "defaults" ? "defaults" : undefined, dir: scope === "dir" ? key : undefined, enabled, variants }),
   });
   const j = await r.json();
   if (!j.ok) return toast(j.error || "Apply failed", true);

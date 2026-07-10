@@ -24,8 +24,8 @@ try {
 }
 
 const cwd = String(input.cwd ?? input.workspace?.current_dir ?? "");
-const enabled = loadEffectiveConfig(cwd);
+const { enabled, variants } = loadEffectiveConfig(cwd);
 const ctx = buildContext(input);
 
-const bar = renderBar(enabled, ctx);
+const bar = renderBar(enabled, variants, ctx);
 if (bar) console.log(bar);

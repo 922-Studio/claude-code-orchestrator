@@ -4,13 +4,16 @@
 
 ## What it does
 Custom Claude Code statusline showing, per session: **model** · **effort** · **context-window
-usage %** · **cost $** · **5h session-limit % + reset** · **session id** · **cwd**.
+usage** · **cost $** · **5h session-limit % + reset** · **session id** · **cwd** · **git branch** ·
+**session uptime** (wall clock) · **active time** (engaged time, idle gaps >5m excluded).
 
 Every one of those is a toggleable **segment**. Which segments show is driven by a config file,
-resolved **per working directory**: no config → everything on (the historical default). A small
-**control panel** (a local web page) lets you tick segments on/off globally or for a specific
-directory, and **Apply** writes the config. `ctx_monitor.js` re-reads the config on every render,
-so a saved change appears on the next turn — no restart, no regeneration.
+resolved **per working directory**: no config → everything on (the historical default). Some
+segments also offer **display modes** — the context segment can show `%`, `number`, `number/max`,
+`% + number`, or `% + number + max`. A small **control panel** (a local web page) lets you tick
+segments on/off and pick their mode, globally or for a specific directory; **Apply** writes the
+config. `ctx_monitor.js` re-reads the config on every render, so a saved change appears on the next
+turn — no restart, no regeneration.
 
 ## Files
 | Path (`~/.claude/statusline/`) | Purpose |
@@ -29,20 +32,23 @@ Canonical copies live next to this file in `setup/claude-statusline/`.
 ## Config format (`segments.config.json`)
 ```json
 {
-  "version": 1,
-  "defaults":    { "session": false },
-  "directories": { "/abs/path/to/project": { "limit": false, "cwd": true } }
+  "version": 2,
+  "defaults":    { "enabled": { "session": false }, "variants": {} },
+  "directories": {
+    "/abs/path/to/project": { "enabled": { "limit": false }, "variants": { "context": "pct" } }
+  }
 }
 ```
-Effective value for a segment, most-specific first:
-`directory override → global default override → registry default (segments.js)`.
+Each scope carries two maps: `enabled` (show/hide) and `variants` (display mode). Effective value,
+most-specific first: `directory override → global default override → registry default (segments.js)`.
 Directory match is **longest-prefix**, so a parent path cascades to its children unless a child
-overrides. A segment missing at every level falls through to its registry default.
+overrides. Anything missing at every level falls through to the registry default.
 
-**Why old configs never break:** adding a new segment only means a new entry in `segments.js`.
-Pre-existing configs simply don't mention it, so it resolves to its registry default (on) —
-existing overrides are untouched. Saves merge **per key** and preserve unrecognised keys, and a
-`version` + `migrate()` in `config.js` handles any future structural change.
+**Why old configs never break:** adding a new segment (or variant) only means a new entry in
+`segments.js`. Pre-existing configs simply don't mention it, so it resolves to its registry default
+(on) — existing overrides are untouched. Saves merge **per key**; `config.js`'s `migrate()` lifts
+old **v1** flat `{segId:bool}` configs into the v2 `{enabled,variants}` shape without losing a single
+enable choice (and only rewrites the file when you actually save a change).
 
 ## Install
 ```bash

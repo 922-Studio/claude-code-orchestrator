@@ -72,21 +72,32 @@ function statePayload() {
     configPath: CONFIG_PATH,
     registryDefaults: registryDefaults(),
     config: loadConfig(),
-    segments: SEGMENTS.map((s) => ({
-      id: s.id,
-      label: s.label,
-      description: s.description,
-      default: s.default,
-      line: s.line,
-      order: s.order,
-      // per-segment sample so the panel can show/hide without a round-trip
-      sampleHtml: ansiToHtml(renderSegment(s.id, sample)),
-    })),
+    segments: SEGMENTS.map((s) => {
+      const out = {
+        id: s.id,
+        label: s.label,
+        description: s.description,
+        default: s.default,
+        line: s.line,
+        order: s.order,
+      };
+      if (s.variants && s.variants.length) {
+        out.variants = s.variants;
+        out.defaultVariant = s.defaultVariant;
+        // one sample per variant so the panel previews the chosen mode with no round-trip
+        out.sampleHtmlByVariant = {};
+        for (const v of s.variants) out.sampleHtmlByVariant[v.id] = ansiToHtml(renderSegment(s.id, sample, v.id));
+        out.sampleHtml = out.sampleHtmlByVariant[s.defaultVariant] ?? "";
+      } else {
+        out.sampleHtml = ansiToHtml(renderSegment(s.id, sample));
+      }
+      return out;
+    }),
   };
 }
 
-function renderPreview(enabledMap) {
-  return ansiToHtml(renderBar(enabledMap, sampleContext()));
+function renderPreview(eff) {
+  return ansiToHtml(renderBar(eff.enabled, eff.variants, sampleContext()));
 }
 
 // --- http -------------------------------------------------------------------
@@ -115,23 +126,24 @@ const server = http.createServer(async (req, res) => {
       const dir = url.searchParams.get("dir") || "";
       const p = statePayload();
       p.dir = dir;
-      p.effective = dir ? loadEffectiveConfig(dir) : registryDefaults();
+      // "" cwd resolves to registry+global-defaults (i.e. the "Global default" scope)
+      p.effective = loadEffectiveConfig(dir);
       return send(res, 200, p);
     }
     if (req.method === "POST" && url.pathname === "/api/apply") {
       const body = await readBody(req);
       const scope = body.scope === "defaults" ? "defaults" : String(body.dir || "").trim();
       if (!scope) return send(res, 400, { ok: false, error: "missing dir/scope" });
-      const cfg = applyOverride(scope, body.overrides || {});
-      const eff = scope === "defaults" ? { ...registryDefaults(), ...cfg.defaults } : loadEffectiveConfig(scope);
-      return send(res, 200, { ok: true, config: cfg, effective: eff, previewHtml: renderPreview(eff) });
+      applyOverride(scope, { enabled: body.enabled || {}, variants: body.variants || {} });
+      const eff = loadEffectiveConfig(scope === "defaults" ? "" : scope);
+      return send(res, 200, { ok: true, config: loadConfig(), effective: eff, previewHtml: renderPreview(eff) });
     }
     if (req.method === "POST" && url.pathname === "/api/reset") {
       const body = await readBody(req);
       const scope = body.scope === "defaults" ? "defaults" : String(body.dir || "").trim();
       if (!scope) return send(res, 400, { ok: false, error: "missing dir/scope" });
       const cfg = clearDirectory(scope);
-      const eff = scope === "defaults" ? registryDefaults() : loadEffectiveConfig(scope);
+      const eff = loadEffectiveConfig(scope === "defaults" ? "" : scope);
       return send(res, 200, { ok: true, config: cfg, effective: eff, previewHtml: renderPreview(eff) });
     }
     return send(res, 404, { ok: false, error: "not found" });

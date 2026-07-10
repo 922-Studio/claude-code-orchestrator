@@ -9,6 +9,9 @@
 // ctx_monitor.js reads it to render the actual bar. To add a new segment:
 //   1. add an entry to SEGMENTS (id, label, description, default, line, order)
 //   2. add a `render` case in renderSegment() and a sample in sampleContext()
+// A segment may also declare `variants` (a list of {id,label}) + `defaultVariant`
+// to offer display modes (e.g. context: % vs number vs number/max). renderSegment
+// receives the chosen variant id.
 // Existing user configs that predate the new segment simply don't mention it,
 // so it falls through to its registry `default` — old configs keep working and
 // nothing is destroyed. See config.js for the merge rules.
@@ -37,13 +40,22 @@ const A = {
 const SEGMENTS = [
   { id: "model",   label: "Model name",          description: "The active model (e.g. Opus).",                         default: true,  line: 1, order: 10 },
   { id: "effort",  label: "Effort level",        description: "Reasoning effort from settings.json (if set).",         default: true,  line: 1, order: 20 },
-  { id: "context", label: "Context-window usage",description: "% of the context window used + token count.",           default: true,  line: 1, order: 30 },
+  { id: "context", label: "Context-window usage",description: "How much of the context window is used.",              default: true,  line: 1, order: 30,
+    defaultVariant: "pct_num_max",
+    variants: [
+      { id: "pct",         label: "% only" },
+      { id: "num",         label: "number only" },
+      { id: "num_max",     label: "number / max" },
+      { id: "pct_num",     label: "% + number" },
+      { id: "pct_num_max", label: "% + number + max" },
+    ] },
   { id: "cost",    label: "Session cost ($)",    description: "Total USD spent this session.",                          default: true,  line: 1, order: 40 },
   { id: "limit",   label: "5h session limit",    description: "Pro/Max 5h-window quota % + time to reset.",             default: true,  line: 1, order: 50 },
   { id: "session", label: "Session id",          description: "The Claude Code session UUID.",                          default: true,  line: 2, order: 10 },
   { id: "cwd",     label: "Working directory",   description: "Current working directory (home-relative).",             default: true,  line: 2, order: 20 },
   { id: "branch",  label: "Git branch",          description: "Current branch of the repo in the working directory.",    default: true,  line: 2, order: 30 },
-  { id: "uptime",  label: "Session uptime",      description: "Elapsed time since this session started.",                default: true,  line: 2, order: 40 },
+  { id: "uptime",  label: "Session uptime",      description: "Wall-clock time since this session started.",             default: true,  line: 2, order: 40 },
+  { id: "active",  label: "Active time",         description: "Time actually worked in-session (idle gaps >5m excluded).",default: true,  line: 2, order: 50 },
 ];
 
 // ============================================================================
@@ -80,8 +92,10 @@ function buildContext(input) {
     ? { pct: Math.round(Number(fh.used_percentage) || 0), secs: Number(fh.resets_at) - nowSecs() }
     : null;
 
-  // Elapsed since the session's first transcript entry.
+  // Elapsed since the session's first transcript entry (wall clock).
   const uptimeSecs = Number.isFinite(scan.firstTs) ? Math.floor(Date.now() / 1000) - Math.floor(scan.firstTs / 1000) : null;
+  // Active engagement: sum of inter-entry gaps, excluding idle stretches.
+  const activeSecs = scan.activeSecs;
 
   const cwdAbs = String(input.cwd ?? input.workspace?.current_dir ?? "");
   const branch = gitBranch(cwdAbs);
@@ -91,25 +105,37 @@ function buildContext(input) {
     name, effort, CONTEXT_WINDOW, costUsd,
     cwdParent, cwdBase,
     usage, used, pct, limit,
-    uptimeSecs, branch,
+    uptimeSecs, activeSecs, branch,
   };
 }
 
 // ============================================================================
-// renderSegment(id, ctx) — the ANSI string for one segment, or "" to omit it.
-// A segment renders "" when it has nothing to show (e.g. limit before the first
-// API response); the renderer then skips it and collapses the separators.
+// renderSegment(id, ctx, variant) — the ANSI string for one segment, or "" to
+// omit it. `variant` is the chosen display mode id for segments that declare
+// `variants` (ignored otherwise). A segment renders "" when it has nothing to
+// show (e.g. limit before the first API response); the renderer then skips it
+// and collapses the separators.
 // ============================================================================
-function renderSegment(id, ctx) {
+function renderSegment(id, ctx, variant) {
   switch (id) {
     case "model":
       return ctx.name ? `${A.magenta}${ctx.name}${A.reset}` : "";
     case "effort":
       return ctx.effort ? `effort: ${A.cyan}${ctx.effort}${A.reset}` : "";
-    case "context":
+    case "context": {
       if (!ctx.usage) return `${A.brightCyan}context window usage starts after your first question.${A.reset}`;
-      return `${ctxColor(ctx.used)}context used ${ctx.pct.toFixed(1)}%${A.reset} - ` +
-             `${A.yellow}(${comma(ctx.used)}/${comma(ctx.CONTEXT_WINDOW)})${A.reset}`;
+      const pct = `${ctxColor(ctx.used)}context used ${ctx.pct.toFixed(1)}%${A.reset}`;
+      const num = `${A.yellow}(${comma(ctx.used)})${A.reset}`;
+      const numMax = `${A.yellow}(${comma(ctx.used)}/${comma(ctx.CONTEXT_WINDOW)})${A.reset}`;
+      switch (variant) {
+        case "pct":     return pct;
+        case "num":     return num;
+        case "num_max": return numMax;
+        case "pct_num": return `${pct} - ${num}`;
+        case "pct_num_max":
+        default:        return `${pct} - ${numMax}`;
+      }
+    }
     case "cost":
       return `cost: ${A.red}$${ctx.costUsd.toFixed(2)}${A.reset}`;
     case "limit":
@@ -122,6 +148,8 @@ function renderSegment(id, ctx) {
       return `cwd: ${A.blue}${ctx.cwdParent}${A.brightCyan}${ctx.cwdBase}${A.reset}`;
     case "uptime":
       return ctx.uptimeSecs == null ? "" : `up: ${A.grey}${fmtDur(ctx.uptimeSecs)}${A.reset}`;
+    case "active":
+      return ctx.activeSecs == null ? "" : `active: ${A.grey}${fmtDur(ctx.activeSecs)}${A.reset}`;
     case "branch":
       return ctx.branch ? `${A.green}⎇ ${ctx.branch}${A.reset}` : "";
     default:
@@ -145,16 +173,19 @@ function sampleContext() {
     usage: {}, used: 63_500, pct: 31.8,
     limit: { pct: 47, secs: 2 * 3600 + 12 * 60 },
     uptimeSecs: 1 * 3600 + 47 * 60,
+    activeSecs: 58 * 60,
     branch: "feat/statusline-panel",
   };
 }
 
-// --- render the full bar from an effective-enabled map ----------------------
-function renderBar(enabled, ctx) {
+// --- render the full bar from effective enable + variant maps ---------------
+function renderBar(enabled, variants, ctx) {
+  variants = variants || {};
   const byLine = {};
   for (const seg of [...SEGMENTS].sort((a, b) => a.line - b.line || a.order - b.order)) {
     if (enabled[seg.id] === false) continue;
-    const s = renderSegment(seg.id, ctx);
+    const variant = variants[seg.id] || seg.defaultVariant;
+    const s = renderSegment(seg.id, ctx, variant);
     if (!s) continue;
     (byLine[seg.line] ??= []).push(s);
   }
@@ -200,12 +231,18 @@ function usedTotal(u) {
   );
 }
 
-// One read of the transcript → { usage, firstTs }:
+// Gaps longer than this (seconds) between consecutive transcript entries count
+// as idle (you stepped away) and are excluded from "active" time.
+const ACTIVE_IDLE_GAP = 300;
+
+// One read of the transcript → { usage, firstTs, activeSecs }:
 //  - usage : newest main-context assistant usage by timestamp (skips
 //    sidechains, synthetic messages, api errors, "no response requested").
 //  - firstTs: earliest timestamp of any entry (session start), in ms.
+//  - activeSecs: sum of inter-entry gaps ≤ ACTIVE_IDLE_GAP (engaged time), or
+//    null if the transcript has no usable timestamps.
 function scanTranscript(transcript) {
-  const out = { usage: null, firstTs: Infinity };
+  const out = { usage: null, firstTs: Infinity, activeSecs: null };
   if (!transcript) return out;
   let lines;
   try {
@@ -214,6 +251,7 @@ function scanTranscript(transcript) {
     return out;
   }
   let latestTs = -Infinity;
+  const stamps = [];
   for (let i = lines.length - 1; i >= 0; i--) {
     const line = lines[i].trim();
     if (!line) continue;
@@ -225,7 +263,10 @@ function scanTranscript(transcript) {
     }
     const ts = Date.parse(j?.timestamp);
     const t = Number.isFinite(ts) ? ts : -Infinity;
-    if (Number.isFinite(ts) && ts < out.firstTs) out.firstTs = ts;
+    if (Number.isFinite(ts)) {
+      if (ts < out.firstTs) out.firstTs = ts;
+      stamps.push(ts);
+    }
 
     const u = j.message?.usage;
     const synthetic = /synthetic/.test(String(j?.message?.model ?? "").toLowerCase());
@@ -247,6 +288,15 @@ function scanTranscript(transcript) {
     } else if (t === latestTs && usedTotal(u) > usedTotal(out.usage)) {
       out.usage = u;
     }
+  }
+  if (stamps.length >= 2) {
+    stamps.sort((a, b) => a - b);
+    let active = 0;
+    for (let k = 1; k < stamps.length; k++) {
+      const gap = (stamps[k] - stamps[k - 1]) / 1000;
+      if (gap > 0 && gap <= ACTIVE_IDLE_GAP) active += gap;
+    }
+    out.activeSecs = Math.round(active);
   }
   return out;
 }
