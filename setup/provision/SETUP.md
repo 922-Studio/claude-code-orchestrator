@@ -23,6 +23,11 @@ Makes the orchestrator **self-updating** via a **semver, forward-only migration*
   zero standing token cost).
 - Triggers/plumbing it installs & self-heals each run: `.git/hooks/post-merge` +
   `.git/hooks/post-rewrite` (merge- and rebase-pulls), and the announce-pending SessionStart hook.
+- **Discovery, zero standing cost:** the migration convention is *not* in `CLAUDE.md`. Migration
+  `1.0.7` installs a `PostToolUse` hook (`migration-reminder.sh`) that fires **only** when `Edit`/
+  `Write` touches a machine-facing path (`setup/**` non-`.md`, or `.github/workflows/`) and injects a
+  once-per-session reminder to ship a migration — so the guidance loads exactly when the orchestrator
+  is actively edited, never on other sessions.
 
 ## Where it lives
 | Path | Purpose |
@@ -33,6 +38,7 @@ Makes the orchestrator **self-updating** via a **semver, forward-only migration*
 | `setup/provision/migrations/X.Y.Z-slug/apply.sh` | a migration, activates at `X.Y.Z` (idempotent) |
 | `setup/provision/migrations/X.Y.Z-slug/prompt.md` | optional Claude-side step for that version |
 | `setup/provision/announce-pending.sh` | SessionStart hook that surfaces queued prompts |
+| `setup/provision/migration-reminder.sh` | PostToolUse hook: reminds to ship a migration when a machine-facing file is edited (once/session) |
 | `setup/local/.provisioned-version` | gitignored: version this machine last provisioned to |
 | `setup/local/provision-pending.md` | gitignored: queued prompt pointers |
 | `setup/local/provision.log` | gitignored: append-only run log |
