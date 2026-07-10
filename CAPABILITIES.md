@@ -44,6 +44,7 @@ Local tooling the orchestrator can install, verify, and fix on its own → `setu
 | 🌿 Git freshness hooks — fetch+ff-pull before `worktree add`, safe pull at session start | `setup/git-freshness/` |
 | ♻️ Auto-provisioning — semver migrations gated by root `version.txt` (CI patch-bumps) adopt setup changes on every pull via git post-merge/rewrite hooks; Claude-side steps queued as `prompt.md` | `setup/provision/` |
 | 🔔 Periodic reminders — config-driven macOS notifications (launchd) | `setup/reminders/` |
+| 🧵 Session log — record session id + cwd on every session start so a closed tab / crash / reboot can be resumed via `claude --resume`; list with `recent.sh` | `setup/session-log/` |
 | 👤 Personal / machine-specific setups (gitignored) | `setup/local/` |
 
 *Self-service:* say *"X stopped working"* → it finds the setup, runs Verify, applies Fix.

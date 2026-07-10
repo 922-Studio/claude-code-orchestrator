@@ -73,6 +73,7 @@ so it ports across users/machines. Run **Verify** after each.
 | Git freshness hooks (fresh code before worktree/investigation) | `git-freshness` | Claude Code hooks | any | `setup/git-freshness/` | 🟡 optional |
 | Auto-provisioning (adopt setup changes on every pull) | `provision` | git hook + reconciler | any | `setup/provision/` | 🟡 optional |
 | Periodic reminders (config-driven notifications) | `reminders` | launchd LaunchAgent | macOS | `setup/reminders/` | 🟡 optional |
+| Session log (record session ids for crash/close recovery) | `session-log` | Claude Code hook | any | `setup/session-log/` | 🟡 optional |
 | *(personal setups)* | — | — | — | `setup/local/` (gitignored) | — |
 
 *Status legend: ✅ active · 🟡 documented/optional · 🔴 broken/needs attention*
