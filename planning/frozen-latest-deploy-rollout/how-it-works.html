@@ -1,0 +1,368 @@
+<title>Frozen/Latest Rollout — How It Works</title>
+
+<style>
+  :root {
+    --bg: #f4f8fc;
+    --surface: #ffffff;
+    --surface-2: #eaf1f8;
+    --border: #d7e2ee;
+    --text: #101826;
+    --text-dim: #51617a;
+    --accent: #0891a8;
+    --accent-2: #3457d5;
+    --good: #1a9c58;
+    --good-bg: #e6f7ee;
+    --warn: #a06a00;
+    --warn-bg: #fdf1d9;
+    --critical: #c81e3a;
+    --critical-bg: #fde9ec;
+    --chip: #7385a6;
+    --chip-bg: #eef2f8;
+    --shadow: 0 1px 2px rgba(16, 24, 38, 0.06), 0 8px 24px rgba(16, 24, 38, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a0f1a; --surface: #121b2c; --surface-2: #1a2540; --border: #253253;
+      --text: #e6ecf5; --text-dim: #93a3bf; --accent: #4fd6e0; --accent-2: #86a3ff;
+      --good: #45dd8f; --good-bg: #10331f; --warn: #f2bd52; --warn-bg: #3a2c0c;
+      --critical: #ff6b7f; --critical-bg: #3a131b; --chip: #93a3bf; --chip-bg: #1a2540;
+      --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 12px 28px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a0f1a; --surface: #121b2c; --surface-2: #1a2540; --border: #253253;
+    --text: #e6ecf5; --text-dim: #93a3bf; --accent: #4fd6e0; --accent-2: #86a3ff;
+    --good: #45dd8f; --good-bg: #10331f; --warn: #f2bd52; --warn-bg: #3a2c0c;
+    --critical: #ff6b7f; --critical-bg: #3a131b; --chip: #93a3bf; --chip-bg: #1a2540;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 12px 28px rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f8fc; --surface: #ffffff; --surface-2: #eaf1f8; --border: #d7e2ee;
+    --text: #101826; --text-dim: #51617a; --accent: #0891a8; --accent-2: #3457d5;
+    --good: #1a9c58; --good-bg: #e6f7ee; --warn: #a06a00; --warn-bg: #fdf1d9;
+    --critical: #c81e3a; --critical-bg: #fde9ec; --chip: #7385a6; --chip-bg: #eef2f8;
+    --shadow: 0 1px 2px rgba(16,24,38,0.06), 0 8px 24px rgba(16,24,38,0.05);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", "SF Pro Text", ui-sans-serif, system-ui, sans-serif;
+    font-size: 15px; line-height: 1.65; -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", "Consolas", monospace; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  header.page-head {
+    display: flex; flex-direction: column; gap: 10px;
+    padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 32px;
+  }
+  .eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+  .dek { color: var(--text-dim); font-size: 0.98rem; max-width: 76ch; margin: 0; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 6px; font-size: 0.82rem; color: var(--text-dim); }
+  .meta-row span.mono { color: var(--text); }
+
+  section { margin-bottom: 44px; }
+  h2.section-label {
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--accent-2); margin: 0 0 6px; display: flex; align-items: center; gap: 8px;
+  }
+  h2.section-label .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 6px; background: var(--surface-2);
+    color: var(--text-dim); font-size: 0.7rem; font-weight: 800;
+  }
+  p.section-note { color: var(--text-dim); font-size: 0.9rem; margin: 0 0 16px; max-width: 78ch; }
+
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Flow diagram */
+  .flow {
+    display: flex; flex-direction: column; gap: 0;
+    border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    background: var(--surface); box-shadow: var(--shadow);
+  }
+  .flow-step {
+    display: grid; grid-template-columns: 40px 1fr; gap: 14px;
+    padding: 16px 18px; border-bottom: 1px solid var(--border); position: relative;
+  }
+  .flow-step:last-child { border-bottom: none; }
+  .flow-step .badge {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--accent);
+    color: var(--surface); display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.82rem; flex: none;
+  }
+  .flow-step .flow-body h4 { margin: 0 0 4px; font-size: 0.94rem; font-weight: 700; }
+  .flow-step .flow-body p { margin: 0; font-size: 0.86rem; color: var(--text-dim); }
+  .flow-step .flow-body .file-ref {
+    display: inline-block; margin-top: 6px; font-size: 0.78rem;
+    background: var(--surface-2); color: var(--accent-2); padding: 2px 8px; border-radius: 6px;
+  }
+  .flow-step .flow-body .pr-tag {
+    display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; margin-left: 6px;
+    font-size: 0.74rem; font-weight: 700; background: var(--chip-bg); color: var(--chip); padding: 2px 8px; border-radius: 100px;
+  }
+
+  /* Component boxes for architecture */
+  .arch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .arch-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; box-shadow: var(--shadow);
+  }
+  .arch-box h4 { margin: 0 0 6px; font-size: 0.88rem; font-weight: 700; color: var(--accent-2); }
+  .arch-box p { margin: 0; font-size: 0.82rem; color: var(--text-dim); }
+  .arch-box .path { font-size: 0.76rem; margin-top: 6px; display: block; }
+
+  /* Tables */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); font-size: 0.85rem; min-width: 640px; }
+  thead th {
+    text-align: left; font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-dim); font-weight: 700; padding: 11px 13px; background: var(--surface-2);
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  tbody td { padding: 11px 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+  td.mono-cell { font-family: ui-monospace, "SF Mono", "Cascadia Code", monospace; font-weight: 600; white-space: nowrap; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 700;
+    padding: 3px 9px; border-radius: 100px; white-space: nowrap;
+  }
+  .pill.good { background: var(--good-bg); color: var(--good); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); }
+  .pill.critical { background: var(--critical-bg); color: var(--critical); }
+  .pill.neutral { background: var(--chip-bg); color: var(--chip); }
+
+  .callout {
+    background: var(--surface-2); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+    border-radius: 8px; padding: 14px 16px; font-size: 0.88rem; color: var(--text);
+  }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.critical { border-left-color: var(--critical); }
+  .callout strong { color: var(--accent-2); }
+  .callout.warn strong { color: var(--warn); }
+  .callout.critical strong { color: var(--critical); }
+
+  footer {
+    border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-dim);
+    font-size: 0.82rem; display: flex; flex-direction: column; gap: 6px;
+  }
+  footer .path { font-family: ui-monospace, "SF Mono", "Cascadia Code", monospace; }
+</style>
+
+<div class="wrap">
+
+  <header class="page-head">
+    <div class="eyebrow">DocBits · Deploy Infrastructure · Mechanism Reference</div>
+    <h1>Frozen/Latest Rollout — How It Works</h1>
+    <p class="dek">A walkthrough of what actually happens, file by file, when a deploy moves through the frozen/latest release-channel split — and which PR built which piece. Companion to the <span class="mono">overview.html</span> status board; that page tells you where things stand, this page tells you why.</p>
+    <div class="meta-row">
+      <span>Traced against: <span class="mono">/Users/gregor/dev/DevOps</span> (live repo source, 2026-07-13)</span>
+      <span>Epic: <span class="mono">DOCB-13488</span></span>
+    </div>
+  </header>
+
+  <section>
+    <h2 class="section-label"><span class="num">0</span>The idea in one paragraph</h2>
+    <p class="section-note">
+      Every environment used to be a single moving target — merge to <span class="mono">dev</span>, and whatever's on <span class="mono">dev</span> updates immediately. "Frozen" adds a second, parallel version of each environment (<span class="mono">dev-frozen</span>, <span class="mono">stage-frozen</span>, later <span class="mono">sandbox-frozen</span>) that only updates when someone deliberately dispatches a deploy or promotion — a pinned lane sitting next to the moving one, same cluster, its own namespace per channel, a different Helm values overlay, and a dedicated node pool. Nothing about the application code changes for most services; it's entirely a deploy-orchestration layer bolted onto the existing pipeline.
+    </p>
+  </section>
+
+  <section>
+    <h2 class="section-label"><span class="num">1</span>The four building blocks</h2>
+    <p class="section-note">All in the <span class="mono">DevOps</span> repo. Every other repo just triggers into this.</p>
+    <div class="arch-grid">
+      <div class="arch-box">
+        <h4>registry.yaml</h4>
+        <p>One entry per service. Declares which components (api/celery/beats…) exist, and a <span class="mono">release-channels</span> block saying which components are allowed on which environment. This is the enforcement point — <span class="mono">registry.py</span> refuses to deploy anything not declared here.</p>
+        <span class="path mono">services/registry.yaml</span>
+      </div>
+      <div class="arch-box">
+        <h4>environment-meta</h4>
+        <p>Maps an environment name (e.g. <span class="mono">dev-frozen</span>) to region, cluster, namespace, <span class="mono">deploy-mode</span> (<span class="mono">pinned</span> vs moving), and <span class="mono">base-env</span> (which normal environment it overlays on top of).</p>
+        <span class="path mono">services/registry.yaml (environment-meta block)</span>
+      </div>
+      <div class="arch-box">
+        <h4>3-layer Helm overlay</h4>
+        <p>Every deploy layers <span class="mono">base.yaml</span> → <span class="mono">values/&lt;base-env&gt;.yaml</span> → <span class="mono">values/&lt;channel-env&gt;.yaml</span>, last file wins per key. The frozen file is a small delta (node pool, <span class="mono">RELEASE_CHANNEL</span> env var), not a full duplicate.</p>
+        <span class="path mono">services/&lt;svc&gt;/&lt;component&gt;/values/*.yaml</span>
+      </div>
+      <div class="arch-box">
+        <h4>deploy-branches.yaml</h4>
+        <p>Declares which service repos get a frozen trigger at all. A generator script writes the actual <span class="mono">on.push.branches</span> block into each service repo's own workflow, since Actions can't read external config at trigger-eval time.</p>
+        <span class="path mono">services/deploy-branches.yaml</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-label"><span class="num">2</span>Flow A — merging to a service's <span class="mono">dev-frozen</span> branch</h2>
+    <p class="section-note">From a developer's merge to a running, correctly-configured pod. Nine steps.</p>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="badge">1</div>
+        <div class="flow-body">
+          <h4>Trigger is centrally declared, then mirrored into the service repo</h4>
+          <p><span class="mono">deploy-branches.yaml</span> says whether a service gets a frozen branch trigger at all (<span class="mono">add-frozen: true/false</span>). <span class="mono">sync-build-deploy-triggers.py</span> writes that into the service repo's own <span class="mono">build-deploy.yaml</span> — GitHub Actions needs the branch pattern physically in the workflow file, it can't be resolved dynamically.</p>
+          <span class="file-ref mono">scripts/sync-build-deploy-triggers.py</span>
+          <span class="pr-tag">DevOps#381</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="badge">2</div>
+        <div class="flow-body">
+          <h4>Merge fires the service repo's build-deploy workflow</h4>
+          <p>The migration gate's first half lives here: any branch ending in <span class="mono">-frozen</span> skips the inline DB-migration validation job outright.</p>
+          <span class="file-ref mono">&lt;service-repo&gt;/.github/workflows/build-deploy.yaml — if: !endsWith(github.ref_name, '-frozen')</span>
+          <span class="pr-tag">DocBits_FTP_Import#139 (reference pattern)</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="badge">3</div>
+        <div class="flow-body">
+          <h4>Service repo calls into DevOps's deploy orchestrator</h4>
+          <p><span class="mono">resolve-version</span> job runs <span class="mono">registry.py --repo &lt;repo&gt; --env dev-frozen</span>, reads that environment's meta (<span class="mono">deploy-mode: pinned, base-env: dev, channel: frozen</span>), emits it as job outputs.</p>
+          <span class="file-ref mono">DevOps/.github/workflows/deploy.yml</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="badge">4</div>
+        <div class="flow-body">
+          <h4>Migration gate, second half — structural, not per-service</h4>
+          <p>Every migration-applying job (<span class="mono">validate-chain-eu</span>, <span class="mono">apply-migration-eu/us</span>) gates on <span class="mono">deploy_mode != 'pinned'</span>. Frozen environments skip migrations because they're pinned, full stop — no special-casing per service needed.</p>
+          <span class="file-ref mono">deploy.yml — jobs.apply-migration-eu/us.if</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="badge">5</div>
+        <div class="flow-body">
+          <h4>Release-channel enforcement</h4>
+          <p><span class="mono">enforce_release_channel()</span> fails loudly if the service has no <span class="mono">release-channels</span> entry for this environment; otherwise only the declared components deploy — anything else is silently excluded (surfaced as <span class="mono">release_channel_excluded_components</span> in the run output).</p>
+          <span class="file-ref mono">registry.py — enforce_release_channel()</span>
+          <span class="pr-tag">DevOps#385</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="badge">6</div>
+        <div class="flow-body">
+          <h4>Helm deploy — 3-layer overlay applied</h4>
+          <p><span class="mono">_helm-deploy.yml</span> runs <span class="mono">helm upgrade --install</span> layering <span class="mono">base.yaml → values/dev.yaml → values/dev-frozen.yaml</span>. The frozen file only needs to override what actually differs.</p>
+          <span class="file-ref mono">DevOps/.github/workflows/_helm-deploy.yml</span>
+          <span class="pr-tag">DevOps#380</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="badge">7</div>
+        <div class="flow-body">
+          <h4>ConfigMap pre-flight check</h4>
+          <p>Before the Helm upgrade, checks the expected ConfigMap already exists via <span class="mono">kubectl get configmap</span> — fails fast with a readable error instead of a pod crash-looping through the whole <span class="mono">--wait</span> timeout if <span class="mono">envs</span>'s ConfigMap-sync hasn't caught up yet.</p>
+          <span class="file-ref mono">_helm-deploy.yml — "ConfigMap pre-flight (EU/US)"</span>
+          <span class="pr-tag">DevOps#403, #414-416</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="badge">8</div>
+        <div class="flow-body">
+          <h4>Node-pool placement</h4>
+          <p>The frozen values delta sets <span class="mono">nodeSelector: doks.digitalocean.com/node-pool: dev-stage-frozen</span> — added after frozen pods were found competing with regular dev/stage traffic on the shared pool.</p>
+          <span class="file-ref mono">values/dev-frozen.yaml — nodeSelector</span>
+          <span class="pr-tag">DevOps#418</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="badge">9</div>
+        <div class="flow-body">
+          <h4>Image tag is pinned, not resolved from a moving ref</h4>
+          <p>Because <span class="mono">dev-frozen</span> is <span class="mono">deploy-mode: pinned</span>, <span class="mono">resolve-version</span> <em>requires</em> an explicit <span class="mono">image-tag</span> input — no git-tag/source-env fallback. A pinned channel can never silently drift onto whatever <span class="mono">dev</span> currently happens to be running.</p>
+          <span class="file-ref mono">deploy.yml — resolve-version (pinned path)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-label"><span class="num">3</span>Flow B — promoting dev-frozen → stage-frozen</h2>
+    <p class="section-note">No rebuild. The whole point of "frozen" is that a promotion redeploys the exact same image that's already proven itself, not a new build off a moving branch.</p>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="badge">1</div>
+        <div class="flow-body">
+          <h4>Deliberately manual, not nightly</h4>
+          <p><span class="mono">promote-dev-frozen-to-stage-frozen.yml</span> is <span class="mono">workflow_dispatch</span>-only. The workflow's own header comment explains why: auto-promoting whatever happens to be sitting in dev-frozen every night defeats the purpose of a channel that's supposed to only move on deliberate hotfixes.</p>
+          <span class="file-ref mono">DevOps/.github/workflows/promote-dev-frozen-to-stage-frozen.yml</span>
+          <span class="pr-tag">DevOps#386</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="badge">2</div>
+        <div class="flow-body">
+          <h4>Resolve live tags off the cluster, not off git</h4>
+          <p>Calls <span class="mono">deploy-all-services.yml</span> with <span class="mono">read_live_tag_from: dev-frozen</span>. <span class="mono">resolve-live-tags.py</span> reads each service's currently-running image tag directly out of the live <span class="mono">dev-frozen</span> namespace.</p>
+          <span class="file-ref mono">.github/scripts/resolve-live-tags.py</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="badge">3</div>
+        <div class="flow-body">
+          <h4>Same tag, redeployed to stage-frozen</h4>
+          <p>Those tags feed back into <span class="mono">deploy.yml</span> as explicit <span class="mono">image-tag</span> inputs targeting <span class="mono">stage-frozen</span> — same overlay mechanism (<span class="mono">base → stage → stage-frozen</span>), same dedicated node pool, EU only (stage has no US leg).</p>
+          <span class="pr-tag">DevOps#387 (US token fix for this exact leg)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-label"><span class="num">4</span>What <span class="mono">RELEASE_CHANNEL=frozen</span> actually does today</h2>
+    <div class="callout warn">
+      <strong>This is the part that isn't templated yet — read this before assuming it works uniformly.</strong>
+      <p style="margin-top:8px;">The env var itself is nothing special: it's a plain line hardcoded into each service's own <span class="mono">values/dev-frozen.yaml</span> delta (<span class="mono">env: [{name: RELEASE_CHANNEL, value: "frozen"}]</span>) — <span class="mono">registry.py</span> doesn't inject it generically. Right now, <strong>only <span class="mono">doc2-api</span> actually reads it</strong> at the application level (<span class="mono">DocBits_API/config.py</span>, feeding <span class="mono">org_channel_resolver.py</span>'s routing logic) — every other service just carries the label without acting on it.</p>
+      <p style="margin-top:8px;">Celery queue isolation for the templated services (extraction, barcode, ocr, pomatch, docnet) works completely differently: a hardcoded <span class="mono">command: [--queues=frozen-&lt;service&gt;-...]</span> override baked straight into each service's own values file — not driven by <span class="mono">RELEASE_CHANNEL</span> at all. <span class="mono">registry.yaml</span>'s <span class="mono">queue-prefix-var</span> field exists but is explicitly reserved/unused — doc2-api's Step 4 cutover is the first place it's meant to be wired up.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-label"><span class="num">5</span>Where each piece came from</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Mechanism piece</th><th>Introduced by</th></tr></thead>
+        <tbody>
+          <tr><td>environment-meta, release-channels schema, registry.py enforcement, pinned deploy-mode gate</td><td class="mono-cell">DevOps#380, #385</td></tr>
+          <tr><td>Trigger-sync generator + deploy-branches.yaml</td><td class="mono-cell">DevOps#381</td></tr>
+          <tr><td>Automated dev-frozen ↔ stage-frozen promotion, resolve-live-tags</td><td class="mono-cell">DevOps#386</td></tr>
+          <tr><td>US-leg token fix for promotion</td><td class="mono-cell">DevOps#387</td></tr>
+          <tr><td>6 more services (docnet, auth, operator, ideas, fulltext, email_import) onboarded</td><td class="mono-cell">DevOps#388–392, #394</td></tr>
+          <tr><td>ConfigMap pre-flight name resolution (+ one revert/re-land cycle)</td><td class="mono-cell">DevOps#403, #414/#415/#416</td></tr>
+          <tr><td>Helm-deploy job-name matching fix</td><td class="mono-cell">DevOps#417</td></tr>
+          <tr><td>Node-pool scheduling onto dev-stage-frozen</td><td class="mono-cell">DevOps#418</td></tr>
+          <tr><td>doc2-api migration-gate stopgap</td><td class="mono-cell">DocBits_API#10174</td></tr>
+          <tr><td>Per-service dev-frozen trigger + inline migration-skip (reference + mirrors)</td><td class="mono-cell">DocBits_FTP_Import#139, then #288/#362/#254/#73/#1667, PO-Matching direct commit</td></tr>
+          <tr><td>ConfigMap-sync path patterns for all three frozen channels</td><td class="mono-cell">envs#179, #180</td></tr>
+          <tr><td>sandbox-frozen onboarding (registry.yaml side landed on main; trigger side incomplete for autoacc)</td><td class="mono-cell">DevOps#393–413</td></tr>
+          <tr><td>operator-celery/fulltext-celery isolation attempt — unmerged, live pods run ahead of this landing on main</td><td class="mono-cell">DevOps#419–421 (branch state, see overview.html risks)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-label"><span class="num">6</span>Two on-disk facts worth knowing</h2>
+    <div class="callout">
+      <p><strong>Auto-accounting-service's trigger config is stale on <span class="mono">main</span>.</strong> <span class="mono">deploy-branches.yaml</span> still says <span class="mono">add-frozen: false, needs-scaffold: true</span> for it, but <span class="mono">registry.yaml</span>'s <span class="mono">release-channels</span> already declares it fully onboarded and it's live in the cluster with real image tags. The trigger-sync file was never re-run after the onboarding PR merged — cosmetic drift in the DevOps repo itself, not just in the orchestrator's docs.</p>
+    </div>
+    <div class="callout" style="margin-top:10px;">
+      <p><strong><span class="mono">DocBits_Fulltext_AI</span> is real, not a typo.</strong> It exists as its own <span class="mono">deploy-branches.yaml</span> entry (<span class="mono">add-frozen: false, needs-scaffold: true</span>), distinct from <span class="mono">DocBits_FullText</span>. What it is and whether it needs onboarding is still an open question — not resolved by this pass.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div>Companion page: <span class="path">planning/frozen-latest-deploy-rollout/overview.html</span> — current status, open risks, Jira reconciliation.</div>
+    <div>Traced directly against <span class="path">/Users/gregor/dev/DevOps</span> source on 2026-07-13 — file paths and PR numbers above are citations, not paraphrase.</div>
+  </footer>
+
+</div>
