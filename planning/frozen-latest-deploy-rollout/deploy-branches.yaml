@@ -1,0 +1,96 @@
+# ─────────────────────────────────────────────────────────────────────────
+# deploy-branches.yaml — canonical source of truth for which branches trigger
+# each service's build-deploy workflow, and which region(s) each branch targets.
+#
+# WHY A FILE + GENERATOR (not runtime-read):
+#   GitHub Actions evaluates `on.push.branches` from the workflow file's static
+#   YAML *before* any job runs — it CANNOT be populated from an external file at
+#   trigger time. So this file is the single source of truth, and
+#   `scripts/sync-build-deploy-triggers.py` (DevOps) materializes the static
+#   `on.push.branches` block + the `region` expression into each service's
+#   build-deploy.yaml. Editing a service's triggers = edit here, re-run sync,
+#   open the per-repo PR. Never hand-edit the generated block.
+#
+# REGION SEMANTICS:
+#   Frozen exists in BOTH eu and us. Every *-frozen branch therefore maps to
+#   region: all (deploy.yml fans out to validate/apply/helm for eu AND us).
+#   Non-frozen mappings preserve each service's existing behavior verbatim.
+#
+# STATUS: proposed draft for Wave 0.6. Lives in planning/ until reviewed;
+#   the real file lands at DevOps:services/deploy-branches.yaml via PR.
+# ─────────────────────────────────────────────────────────────────────────
+
+# Reusable branch groups. A service references a group or lists branches inline.
+branch-groups:
+  # Every environment that has a frozen counterpart. Adding a future channel
+  # (e.g. *-canary) is a one-line edit here — see PLAN §4 generic-channel goal.
+  frozen: [dev-frozen, stage-frozen]
+
+# region rules are matched top-to-bottom; first match wins. `all` = eu + us.
+region-rules:
+  - match: [dev, sandbox]        # existing behavior — unchanged
+    region: all
+  - match: [dev-frozen, stage-frozen]
+    region: all                  # frozen is eu+us (§3.9)
+  - match: ["*"]                 # everything else
+    region: eu
+
+services:
+  # dir = the service's registry.yaml `dir`; repo = GitHub repo under FELLOWPRO.
+  # `add-frozen: true` means the sync script appends branch-groups.frozen to the
+  # service's existing trigger list. Services onboard wave-by-wave (PLAN §5).
+
+  - repo: DocBits_FTP_Import        # Wave 1 pilot
+    trigger-branches: [dev]
+    add-frozen: true
+
+  - repo: DocBits_OCR               # Wave 2
+    trigger-branches: [dev, demo, preprod, prodv2, prod]
+    add-frozen: true
+  - repo: DocBits_BarCode           # Wave 2
+    trigger-branches: [dev, demo, preprod, prodv2, prod]
+    add-frozen: true
+  - repo: DocBits_Extraction-Service  # Wave 2
+    trigger-branches: [dev]
+    add-frozen: true
+  - repo: DocBits_PO-Matching       # Wave 2 — NOTE: no build-deploy workflow today; scaffold first
+    trigger-branches: [dev]
+    add-frozen: true
+    needs-scaffold: true
+
+  - repo: DocBits_Email_Import      # Wave 3a
+    trigger-branches: [dev]
+    add-frozen: true
+  - repo: DocFlow                   # Wave 3b (gated on RedBeat topology)
+    trigger-branches: [dev]
+    add-frozen: true
+
+  - repo: DocBits_FullText          # Wave 4 (fulltext-beat blocked on beats ticket)
+    trigger-branches: [dev]
+    add-frozen: true
+
+  - repo: DocBits_API               # Wave 5 — currently bespoke (build-deploy-ruiz.yaml on `ruiz`); see §7 cutover
+    trigger-branches: [dev]
+    add-frozen: true
+    bespoke-today: true
+
+  - repo: DocBits_DocNet            # Wave 6 (docnet-beats blocked, discord-bot excluded)
+    trigger-branches: [dev]
+    add-frozen: true
+
+  # On-demand — listed for completeness, not scheduled. Auth/Operator/
+  # auto-accounting have no build-deploy workflow yet (scaffold when onboarded).
+  - repo: DocBits_Auth
+    trigger-branches: [dev]
+    add-frozen: false
+  - repo: DocBits_Operator
+    trigger-branches: [dev]
+    add-frozen: false
+    needs-scaffold: true
+  - repo: auto-accounting-service
+    trigger-branches: [dev]
+    add-frozen: false
+    needs-scaffold: true
+  - repo: DocBits_Fulltext_AI
+    trigger-branches: [dev]
+    add-frozen: false
