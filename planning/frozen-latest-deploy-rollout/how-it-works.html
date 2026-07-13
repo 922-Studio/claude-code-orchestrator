@@ -152,6 +152,17 @@
     font-size: 0.82rem; display: flex; flex-direction: column; gap: 6px;
   }
   footer .path { font-family: ui-monospace, "SF Mono", "Cascadia Code", monospace; }
+
+  /* Design-quality verdict cards */
+  .verdict-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .verdict-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 8px;
+  }
+  .verdict-card .verdict-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .verdict-card h4 { margin: 0; font-size: 0.98rem; font-weight: 800; }
+  .verdict-card p { margin: 0; font-size: 0.85rem; color: var(--text-dim); }
+  .pill.big { font-size: 0.76rem; padding: 4px 11px; }
 </style>
 
 <div class="wrap">
@@ -357,6 +368,66 @@
     </div>
     <div class="callout" style="margin-top:10px;">
       <p><strong><span class="mono">DocBits_Fulltext_AI</span> is real, not a typo.</strong> It exists as its own <span class="mono">deploy-branches.yaml</span> entry (<span class="mono">add-frozen: false, needs-scaffold: true</span>), distinct from <span class="mono">DocBits_FullText</span>. What it is and whether it needs onboarding is still an open question — not resolved by this pass.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-label"><span class="num">7</span>Design-quality assessment</h2>
+    <p class="section-note">Four questions worth asking of any deploy mechanism, answered against what's actually in the repo today — not the aspiration.</p>
+
+    <div class="verdict-grid">
+      <div class="verdict-card">
+        <div class="verdict-head"><h4>Scalable?</h4><span class="pill good big">Mostly yes</span></div>
+        <p>One structural exception (doc2-api) and one capability gap (celery isolation) keep it from being fully so.</p>
+      </div>
+      <div class="verdict-card">
+        <div class="verdict-head"><h4>Parametrized?</h4><span class="pill warn big">Partially</span></div>
+        <p>Environment identity is; two specific behaviors (RELEASE_CHANNEL, queue prefixing) are hand-pasted instead.</p>
+      </div>
+      <div class="verdict-card">
+        <div class="verdict-head"><h4>Generic?</h4><span class="pill warn big">Core is, 2 exceptions aren't</span></div>
+        <p>The orchestration plumbing is fully shared. doc2-api's pipeline and celery isolation both sidestep it.</p>
+      </div>
+      <div class="verdict-card">
+        <div class="verdict-head"><h4>Single Source of Truth?</h4><span class="pill critical big">Aspired to, violated 3x</span></div>
+        <p><span class="mono">registry.yaml</span> actively enforces itself — but reality has already diverged from it in three places.</p>
+      </div>
+    </div>
+
+    <h3 style="font-size:0.92rem; margin: 20px 0 8px;">Scalable? — where the pattern holds, and where it doesn't</h3>
+    <p class="section-note" style="margin-bottom:10px;">
+      Onboarding a new service is a fixed, 4-touch-point recipe that's already been run 13 times: a <span class="mono">registry.yaml</span> entry, a <span class="mono">release-channels</span> declaration, a <span class="mono">deploy-branches.yaml</span> trigger entry, and per-environment values files (<span class="mono">DevOps#380, #385, #388–392, #394</span>). Onboarding a new <em>channel</em> (demo-frozen/prod-frozen) follows the same shape — <span class="mono">environment-meta</span> entry + values files — and is already scaffolded, just not finished (<span class="mono">DevOps#384</span>, open). Onboarding a new <em>region</em> needs zero mechanism change at all: <span class="mono">_helm-deploy.yml</span>'s US path already resolves <span class="mono">values/&lt;env&gt;-us.yaml</span> with a fallback to the shared file, confirmed live in ~15 services for non-frozen environments (e.g. <span class="mono">auth/api/values/dev-us.yaml</span>) — dropping in a <span class="mono">dev-frozen-us.yaml</span> would be picked up on the next deploy, no code change required.
+    </p>
+    <p class="section-note" style="margin-bottom:0;">
+      Two things don't scale the same way. <strong>doc2-api</strong> never entered this recipe — it deploys through its own bespoke <span class="mono">deployment-deploy-*.yml</span> chain, so none of the onboarding-by-recipe economics apply to it until Step 4 retires that chain. <strong>Celery queue isolation</strong> isn't a repeatable recipe either — each service that needs it requires its own hand-written app-level fix (queue name made overridable) plus a hardcoded <span class="mono">command:</span> override in its values file. That this doesn't scale is precisely why operator-celery is stuck: its app can't take a parameter yet, so the deploy-layer recipe has nothing to hook into.
+    </p>
+
+    <h3 style="font-size:0.92rem; margin: 20px 0 8px;">Parametrized? — where it is, where it's copy-paste instead</h3>
+    <p class="section-note" style="margin-bottom:10px;">
+      Environment identity — region, cluster, namespace, <span class="mono">deploy-mode</span>, <span class="mono">base-env</span> — is a genuine parameter set, declared once per environment in <span class="mono">registry.yaml</span>'s <span class="mono">environment-meta</span> block and consumed generically by <span class="mono">registry.py</span>/<span class="mono">deploy.yml</span> for every service. Component enablement (<span class="mono">release-channels</span>) is the same: one schema, read generically, enforced generically.
+    </p>
+    <p class="section-note" style="margin-bottom:0;">
+      <span class="mono">RELEASE_CHANNEL=frozen</span> is not injected this way — it's a literal line manually pasted into each service's own <span class="mono">values/&lt;env&gt;-frozen.yaml</span> file (confirmed identical pattern across all 63 frozen values files checked), rather than something <span class="mono">_helm-deploy.yml</span> sets generically for any pinned/frozen environment. Queue-prefix isolation is further behind: <span class="mono">registry.yaml</span> already reserves a <span class="mono">queue-prefix-var</span> field for exactly this purpose (a service declares which env var its Celery config reads for the prefix, and the pipeline sets it) — but it's unused today. Every current instance of queue isolation is a hand-written <span class="mono">--queues=frozen-&lt;service&gt;-...</span> command override instead. doc2-api's Step 4 cutover is the first place this field is planned to actually get wired up.
+    </p>
+
+    <h3 style="font-size:0.92rem; margin: 20px 0 8px;">As generic as possible? — the plumbing is, two paths around it aren't</h3>
+    <p class="section-note" style="margin-bottom:0;">
+      <span class="mono">registry.py</span>, <span class="mono">_helm-deploy.yml</span>, and <span class="mono">deploy.yml</span> are fully shared, reusable code — one codepath for every service and every channel, not a per-service fork. The two places genericity breaks are the same two named above: <strong>doc2-api's entirely separate bespoke workflow chain</strong> (the single biggest non-generic exception in the whole system), and <strong>queue isolation's hand-written, per-service nature</strong> (a capability that exists as one-off code per service rather than as a mechanism any service can opt into).
+    </p>
+
+    <h3 style="font-size:0.92rem; margin: 20px 0 8px;">Single Source of Truth? — enforced in principle, already broken in three places</h3>
+    <p class="section-note" style="margin-bottom:10px;">
+      <span class="mono">registry.yaml</span> + <span class="mono">environment-meta</span> are genuinely meant to be authoritative — <span class="mono">enforce_release_channel()</span> actively fails a deploy that isn't declared there, which is real enforcement, not just documentation everyone's supposed to remember to update. That said, current reality has already drifted away from it in three concrete places:
+    </p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Where SSoT is broken</th><th>What the SSoT says</th><th>What's actually true</th></tr></thead>
+        <tbody>
+          <tr><td class="mono-cell">doc2-api</td><td><span class="mono">registry.yaml</span> has no <span class="mono">release-channels</span> entry — not part of the frozen mechanism at all</td><td>Live in all 4 checked frozen namespaces via a separate bespoke pipeline</td></tr>
+          <tr><td class="mono-cell">deploy-branches.yaml</td><td>A second, separately-maintained file declaring which repos get a frozen trigger — must be kept in sync with <span class="mono">registry.yaml</span> by a generator script, not derived from it automatically</td><td>Already drifted: <span class="mono">auto-accounting-service</span> still shows <span class="mono">add-frozen: false</span> on <span class="mono">main</span> despite being fully onboarded and live</td></tr>
+          <tr><td class="mono-cell">operator-celery / fulltext-celery</td><td><span class="mono">registry.yaml</span>'s exclusion comments declare both excluded from every frozen channel</td><td>Both running live in 3 of 4 namespaces, sourced from branches that never merged to <span class="mono">main</span></td></tr>
+        </tbody>
+      </table>
     </div>
   </section>
 
