@@ -31,6 +31,9 @@ guides/local-dev-invoice.md
 # Transient session handovers
 .planning/
 
+# Ecosystem-specific working plans — same treatment as plans/ (data, not framework)
+planning/
+
 # Personal / machine-specific setups (generic ones stay committed under setup/)
 setup/local/*
 !setup/local/.gitkeep
@@ -47,3 +50,6 @@ scripts/env/env-rules/*
 .worktrees/
 studio/
 execution/
+
+# Per-machine automation logs (scripts, if any, stay committed under reports/)
+reports/*/logs/

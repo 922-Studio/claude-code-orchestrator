@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.gregor.brew-autoupgrade</string>
+    <string>com.orchestrator.brew-autoupgrade</string>
 
     <key>ProgramArguments</key>
     <array>

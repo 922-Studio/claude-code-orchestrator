@@ -2,7 +2,7 @@
 # remind.sh — fire macOS notifications for reminders due today.
 #
 # Driven by a local, gitignored JSON registry (setup/local/reminders.config.json). Run once daily
-# by launchd (com.gregor.reminders); posts a macOS notification per due, enabled reminder and
+# by launchd (com.orchestrator.reminders); posts a macOS notification per due, enabled reminder and
 # records a per-reminder "last fired" date so it never double-fires on the same day (e.g. when
 # launchd runs a missed-schedule catch-up after wake).
 #

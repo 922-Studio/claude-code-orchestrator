@@ -19,12 +19,12 @@ so they stay machine-local.
 | Path | Purpose |
 |---|---|
 | `setup/reminders/remind.sh` | canonical script: reads the config, fires due notifications |
-| `setup/reminders/com.gregor.reminders.plist.template` | launchd trigger (daily), `__HOME__`/`__CHECK_HOUR__`/`__CHECK_MINUTE__` placeholders |
+| `setup/reminders/com.orchestrator.reminders.plist.template` | launchd trigger (daily), `__HOME__`/`__CHECK_HOUR__`/`__CHECK_MINUTE__` placeholders |
 | `setup/reminders/reminders.config.example.json` | committed example / schema for the registry |
 | `setup/reminders/install.sh` | seeds config, installs script + plist (path/time-rewritten), loads the job |
 | `setup/local/reminders.config.json` | **live registry (gitignored)** — your reminders + check time |
 | `~/.local/bin/claude-remind.sh` | installed script (config path baked in) |
-| `~/Library/LaunchAgents/com.gregor.reminders.plist` | installed launchd job |
+| `~/Library/LaunchAgents/com.orchestrator.reminders.plist` | installed launchd job |
 | `~/.local/state/claude-reminders/*.lastfired` | per-reminder "last fired" state (no double-fire) |
 | `~/Library/Logs/claude-reminders.launchd.{out,err}` | launchd run logs |
 
@@ -48,9 +48,9 @@ nudge enabled). Re-run after changing the check time or editing `remind.sh`.
 
 ## Verify
 ```bash
-launchctl print "gui/$UID/com.gregor.reminders" | head -20   # job loaded, correct schedule
+launchctl print "gui/$UID/com.orchestrator.reminders" | head -20   # job loaded, correct schedule
 REMINDERS_CONFIG="$(pwd)/setup/local/reminders.config.json" bash ~/.local/bin/claude-remind.sh
-launchctl kickstart -k "gui/$UID/com.gregor.reminders"       # run the job on demand
+launchctl kickstart -k "gui/$UID/com.orchestrator.reminders"       # run the job on demand
 ```
 A `daily`/due reminder should pop a macOS notification. First-run notifications require granting
 the delivering app (the Script Editor / `osascript`, or your terminal) notification permission in
@@ -63,12 +63,12 @@ the delivering app (the Script Editor / `osascript`, or your terminal) notificat
 | Fires at the wrong time | Edit `check_hour`/`check_minute` in the config, **re-run `install.sh`** (they live in the plist). |
 | Reminder never becomes due | Check the `frequency` fields; confirm `enabled: true`; a wrong `weekday` spelling silently never matches (`Mon`..`Sun`). |
 | Fired twice in a day | Shouldn't happen — the `*.lastfired` guard blocks it. If it did, check the state dir is writable. |
-| Job won't load | `launchctl bootout "gui/$UID/com.gregor.reminders"` then re-run `install.sh`. |
+| Job won't load | `launchctl bootout "gui/$UID/com.orchestrator.reminders"` then re-run `install.sh`. |
 
 ## Uninstall
 ```bash
-launchctl bootout "gui/$UID/com.gregor.reminders" 2>/dev/null || true
-rm -f ~/Library/LaunchAgents/com.gregor.reminders.plist \
+launchctl bootout "gui/$UID/com.orchestrator.reminders" 2>/dev/null || true
+rm -f ~/Library/LaunchAgents/com.orchestrator.reminders.plist \
       ~/.local/bin/claude-remind.sh
 rm -rf ~/.local/state/claude-reminders
 # setup/local/reminders.config.json is yours — delete it manually if you want it gone.

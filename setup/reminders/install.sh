@@ -21,8 +21,8 @@ CONFIG="$ORCH_ROOT/setup/local/reminders.config.json"
 BIN_DIR="$HOME/.local/bin"
 SCRIPT_DEST="$BIN_DIR/claude-remind.sh"
 LA_DIR="$HOME/Library/LaunchAgents"
-PLIST_DEST="$LA_DIR/com.gregor.reminders.plist"
-LABEL="com.gregor.reminders"
+PLIST_DEST="$LA_DIR/com.orchestrator.reminders.plist"
+LABEL="com.orchestrator.reminders"
 
 mkdir -p "$BIN_DIR" "$LA_DIR" "$ORCH_ROOT/setup/local"
 
@@ -52,7 +52,7 @@ echo "installed script    : $SCRIPT_DEST"
 sed -e "s|__HOME__|$HOME|g" \
     -e "s|__CHECK_HOUR__|$CHECK_HOUR|g" \
     -e "s|__CHECK_MINUTE__|$CHECK_MINUTE|g" \
-    "$SRC/com.gregor.reminders.plist.template" > "$PLIST_DEST"
+    "$SRC/com.orchestrator.reminders.plist.template" > "$PLIST_DEST"
 echo "installed plist     : $PLIST_DEST"
 
 # 5. (Re)load the launchd job.

@@ -1,7 +1,7 @@
 #!/bin/zsh
 #
 # brew-autoupgrade.sh — unattended daily Homebrew upgrade (formulae only).
-# Launched by ~/Library/LaunchAgents/com.gregor.brew-autoupgrade.plist at 07:00,
+# Launched by ~/Library/LaunchAgents/com.orchestrator.brew-autoupgrade.plist at 07:00,
 # or on the next wake if the Mac was asleep/off at that time.
 #
 # Homebrew runs non-interactively by default — `brew upgrade` does NOT prompt

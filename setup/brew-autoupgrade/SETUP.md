@@ -9,13 +9,13 @@ Runs an unattended `brew update && brew upgrade && brew cleanup` (**formulae onl
 | Path | Purpose |
 |---|---|
 | `~/.local/bin/brew-autoupgrade.sh` | the upgrade script |
-| `~/Library/LaunchAgents/com.gregor.brew-autoupgrade.plist` | the schedule (Label `com.gregor.brew-autoupgrade`) |
+| `~/Library/LaunchAgents/com.orchestrator.brew-autoupgrade.plist` | the schedule (Label `com.orchestrator.brew-autoupgrade`) |
 | `~/Library/Logs/brew-autoupgrade.log` | run log (trimmed to last 2000 lines) |
 | `~/Library/Logs/brew-autoupgrade.launchd.{out,err}` | launchd-level stdout/stderr |
 
 Canonical copies of the script and plist template live next to this file:
 - `brew-autoupgrade.sh`
-- `com.gregor.brew-autoupgrade.plist.template` (uses `__HOME__` placeholder)
+- `com.orchestrator.brew-autoupgrade.plist.template` (uses `__HOME__` placeholder)
 
 > **Apple Silicon vs Intel:** the script/plist set `PATH` to `/opt/homebrew/bin:/usr/local/bin:...`, which covers both (Apple Silicon brew is `/opt/homebrew`, Intel is `/usr/local`). No change needed across Mac types.
 
@@ -29,12 +29,12 @@ cp "$SRC/brew-autoupgrade.sh" ~/.local/bin/brew-autoupgrade.sh
 chmod +x ~/.local/bin/brew-autoupgrade.sh
 
 # 2. LaunchAgent (materialize __HOME__ -> your real home)
-sed "s|__HOME__|$HOME|g" "$SRC/com.gregor.brew-autoupgrade.plist.template" \
-  > ~/Library/LaunchAgents/com.gregor.brew-autoupgrade.plist
+sed "s|__HOME__|$HOME|g" "$SRC/com.orchestrator.brew-autoupgrade.plist.template" \
+  > ~/Library/LaunchAgents/com.orchestrator.brew-autoupgrade.plist
 
 # 3. Load (and remember as enabled)
-launchctl unload ~/Library/LaunchAgents/com.gregor.brew-autoupgrade.plist 2>/dev/null
-launchctl load -w ~/Library/LaunchAgents/com.gregor.brew-autoupgrade.plist
+launchctl unload ~/Library/LaunchAgents/com.orchestrator.brew-autoupgrade.plist 2>/dev/null
+launchctl load -w ~/Library/LaunchAgents/com.orchestrator.brew-autoupgrade.plist
 ```
 
 ## Verify
@@ -43,7 +43,7 @@ launchctl load -w ~/Library/LaunchAgents/com.gregor.brew-autoupgrade.plist
 launchctl list | grep brew-autoupgrade
 
 # Run it now on demand, then read the log
-launchctl start com.gregor.brew-autoupgrade
+launchctl start com.orchestrator.brew-autoupgrade
 sleep 10 && tail -n 40 ~/Library/Logs/brew-autoupgrade.log
 ```
 Working state: the label is listed, the log shows a recent `brew-autoupgrade <timestamp>` block ending in `--- done ... ---`.
@@ -59,8 +59,8 @@ Working state: the label is listed, the log shows a recent `brew-autoupgrade <ti
 
 ## Uninstall
 ```bash
-launchctl unload -w ~/Library/LaunchAgents/com.gregor.brew-autoupgrade.plist
-rm ~/Library/LaunchAgents/com.gregor.brew-autoupgrade.plist
+launchctl unload -w ~/Library/LaunchAgents/com.orchestrator.brew-autoupgrade.plist
+rm ~/Library/LaunchAgents/com.orchestrator.brew-autoupgrade.plist
 rm ~/.local/bin/brew-autoupgrade.sh
 # logs in ~/Library/Logs/brew-autoupgrade* can be removed too
 ```
