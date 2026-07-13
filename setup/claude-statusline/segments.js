@@ -51,7 +51,13 @@ const SEGMENTS = [
     ] },
   { id: "cost",    label: "Session cost ($)",    description: "Total USD spent this session.",                          default: true,  line: 1, order: 40 },
   { id: "limit",   label: "5h session limit",    description: "Pro/Max 5h-window quota % + time to reset.",             default: true,  line: 1, order: 50 },
-  { id: "versions",label: "Versions (cc + orch)",description: "Claude Code version + orchestrator version.txt.",         default: true,  line: 2, order: 5 },
+  { id: "versions",label: "Versions (cc + orch)",description: "Claude Code version + orchestrator version.txt.",         default: true,  line: 2, order: 5,
+    defaultVariant: "both",
+    variants: [
+      { id: "both", label: "cc + orch" },
+      { id: "cc",   label: "cc only" },
+      { id: "orch", label: "orch only" },
+    ] },
   { id: "session", label: "Session id",          description: "The Claude Code session UUID.",                          default: true,  line: 2, order: 10 },
   { id: "cwd",     label: "Working directory",   description: "Current working directory (home-relative).",             default: true,  line: 2, order: 20 },
   { id: "branch",  label: "Git branch",          description: "Current branch of the repo in the working directory.",    default: true,  line: 2, order: 30 },
@@ -148,9 +154,16 @@ function renderSegment(id, ctx, variant) {
       return `${limitColor(ctx.limit.pct)}${ctx.limit.pct}%${A.reset} ` +
              `${A.grey}· resets in ${fmtDur(ctx.limit.secs)}${A.reset}`;
     case "versions": {
-      const parts = [];
-      if (ctx.ccVersion) parts.push(`cc: ${ctx.ccVersion}`);
-      if (ctx.orchVersion) parts.push(`orch: ${ctx.orchVersion}`);
+      const cc = ctx.ccVersion ? `cc: ${ctx.ccVersion}` : "";
+      const orch = ctx.orchVersion ? `orch: ${ctx.orchVersion}` : "";
+      let parts;
+      switch (variant) {
+        case "cc":   parts = [cc]; break;
+        case "orch": parts = [orch]; break;
+        case "both":
+        default:     parts = [cc, orch]; break;
+      }
+      parts = parts.filter(Boolean);
       return parts.length ? `${A.grey}${parts.join(", ")}${A.reset}` : "";
     }
     case "session":
