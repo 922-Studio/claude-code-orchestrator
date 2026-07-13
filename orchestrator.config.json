@@ -8,7 +8,7 @@
   },
 
   "execution_mode": {
-    "value": "pr",
+    "value": "autonomous",
     "options": ["pr", "autonomous", "direct"],
     "description": "How code-changing steps run. 'pr' = worktree + feature branch + push + open PR + report URL, pausing for human review between waves. 'autonomous' = same worktree/PR flow but the orchestrator implements, commits, pushes and opens the PR without pausing for per-step approval (still reports URLs). 'direct' = commit straight to the working branch with no worktree/PR (only for throwaway or local-only repos)."
   },
@@ -30,13 +30,13 @@
   },
 
   "auto_commit": {
-    "value": false,
+    "value": true,
     "description": "true = commit completed work without asking. false = stage changes and ask before committing."
   },
 
   "auto_push": {
-    "value": false,
-    "description": "true = push to origin without asking. false = ask before any push (pushing is an outward-facing action)."
+    "value": true,
+    "description": "true = push to origin without asking. false = ask before any push (pushing is an outward-facing action). Note: this authorizes push+PR-open only — merging a PR always requires explicit human approval regardless of this setting."
   },
 
   "require_review": {
@@ -58,6 +58,15 @@
     "value": "sonnet",
     "options": ["sonnet", "opus", "haiku"],
     "description": "Default model for delegated executor sub-agents. Escalate to 'opus' for high-complexity steps."
+  },
+
+  "model_effort_policy": {
+    "value": {
+      "main_loop": { "sonnet": "low", "opus": ["low", "high"] },
+      "sub_agents": { "sonnet": ["low", "medium"], "opus": ["low", "high"] },
+      "escalation": "opus-low"
+    },
+    "description": "Reasoning-effort defaults for the `effort` param on Agent/Workflow agent() calls (and the main session). Sonnet defaults to 'low'; 'medium' is only acceptable inside sub-agents, never at the main-loop/top-level. Opus is 'low' or 'high' only — never 'medium'. When a task needs more than sonnet-low can deliver, escalate to opus-low rather than reaching for sonnet-high."
   },
 
   "plan_index_autobuild": {

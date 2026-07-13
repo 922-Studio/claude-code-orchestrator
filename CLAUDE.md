@@ -28,6 +28,7 @@ shallow-merges over it (local wins). The keys that change what you do:
 | `auto_commit`, `auto_push` | Whether to commit/push without asking |
 | `require_review`, `require_tests_pass`, `require_ci_green` | Quality gates before a step is "done" |
 | `executor_model` | Default model for delegated executor sub-agents |
+| `model_effort_policy` | Reasoning-effort defaults per model: sonnet low (medium only inside sub-agents), opus low/high only (never medium); escalate via opus-low, not sonnet-high |
 | `handover_threshold_pct` | Context % that triggers `/create-handover` |
 
 ---
