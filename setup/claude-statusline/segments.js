@@ -50,7 +50,12 @@ const SEGMENTS = [
       { id: "pct_num_max", label: "% + number + max" },
     ] },
   { id: "cost",    label: "Session cost ($)",    description: "Total USD spent this session.",                          default: true,  line: 1, order: 40 },
-  { id: "limit",   label: "5h session limit",    description: "Pro/Max 5h-window quota % + time to reset.",             default: true,  line: 1, order: 50 },
+  { id: "limit",   label: "5h session limit",    description: "Pro/Max 5h-window quota % + time to reset.",             default: true,  line: 1, order: 50,
+    defaultVariant: "used",
+    variants: [
+      { id: "used", label: "% used (DESC)" },
+      { id: "left", label: "% left (ASC)" },
+    ] },
   { id: "versions",label: "Versions (cc + orch)",description: "Claude Code version + orchestrator version.txt.",         default: true,  line: 2, order: 5,
     defaultVariant: "both",
     variants: [
@@ -149,10 +154,14 @@ function renderSegment(id, ctx, variant) {
     }
     case "cost":
       return `cost: ${A.red}$${ctx.costUsd.toFixed(2)}${A.reset}`;
-    case "limit":
+    case "limit": {
       if (!ctx.limit) return "";
-      return `${limitColor(ctx.limit.pct)}${ctx.limit.pct}%${A.reset} ` +
+      const usedPct = ctx.limit.pct;
+      const shown = variant === "left" ? 100 - usedPct : usedPct;
+      const label = variant === "left" ? "left" : "used";
+      return `${limitColor(usedPct)}${shown}% ${label}${A.reset} ` +
              `${A.grey}· resets in ${fmtDur(ctx.limit.secs)}${A.reset}`;
+    }
     case "versions": {
       const cc = ctx.ccVersion ? `cc: ${ctx.ccVersion}` : "";
       const orch = ctx.orchVersion ? `orch: ${ctx.orchVersion}` : "";
