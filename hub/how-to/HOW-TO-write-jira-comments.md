@@ -13,13 +13,28 @@ notifications, a manager checking status, a colleague pulled in mid-thread — r
 first two lines and nothing else. If the important information isn't there, it doesn't
 reach them.
 
-## What goes in it
+## Write it for someone who knows nothing about the task
 
-The 1–2 most important facts for *someone else*, not for the author:
+This is the part that's easy to get wrong. The TL;DR is **not** a condensed version of
+your technical findings — it's a plain-language status line for a reader who has no
+context on the work at all and never will.
 
-- Is it fixed, in progress, or blocked?
-- What is the impact or the action someone needs to take?
-- The single number, date, or name that matters most.
+- **High level only.** What happened, what state it's in now, what (if anything) anyone
+  has to do. No cert chains, no resource names, no command output, no jargon.
+- **Say it the way you'd say it out loud** to a colleague walking past your desk.
+- Include at most one concrete date or number, and only if it's genuinely the thing
+  people need to remember.
+
+Good — a reader with zero context understands it:
+
+> **TL;DR** — New certificate created and rolled out to all affected services, tested
+> live and validated. Everything is working again. Closing the ticket. The next renewal
+> is due August 2027 and won't happen automatically.
+
+Too technical — this is a summary *of the details*, not a summary *for people*:
+
+> ~~**TL;DR** — Issuer rotated; leaf certs chain to the new root and fail verification
+> against the old root; webhook serving certs expire 2027-08-06 ahead of the issuer.~~
 
 Put the detail — root cause, timeline, validation output, follow-ups — **below** the
 TL;DR, under headings, for the future investigator.
@@ -37,14 +52,14 @@ TL;DR — <status>. <the one thing that matters most.>
 Keep it plain prose. No bullet list inside the TL;DR itself — it should read as one or
 two sentences.
 
-## Example
+## Quick test before you post
 
-> **TL;DR** — Resolved. Linkerd CA rotated on fra1-polydocs, production restored and
-> validated; next cert expiry is **2027-08-06** (webhook certs, not the issuer) and there
-> is no auto-renewal.
+Read only the TL;DR and ask: *would a colleague who has never heard of this task
+understand what happened and whether anything is needed from them?*
 
-Everything that follows — the root cause, the blast radius, the validation evidence, the
-six follow-ups — is for whoever reopens this in a year.
+If they'd need to read further to get the gist, it's still written for you — rewrite it
+higher-level. Everything below the TL;DR is for whoever reopens the ticket in a year;
+the TL;DR itself is for everyone who never will.
 
 ## Related
 
