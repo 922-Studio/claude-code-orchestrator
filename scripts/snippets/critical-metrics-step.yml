@@ -1,0 +1,113 @@
+# PoC output — the step to add to
+# DevOps/.github/workflows/build-deploy-critical-pytest.yml
+#
+# Verified end-to-end against the live Pushgateway and Prometheus on
+# do-fra1-polydocs. Logic identical to scripts/poc-push-critical-metrics.sh.
+#
+# ── Prerequisite: one-line change to the existing pytest step ──────────────
+# The pytest step (currently line 366, "🧪 Run Critical PyTests") has NO id,
+# so its outcome cannot be referenced. Add one:
+#
+#       - name: 🧪 Run Critical PyTests
+#   +     id: pytest
+#
+# ── Placement ─────────────────────────────────────────────────────────────
+# Insert AFTER "📤 Upload Critical Test Allure Results" (line 561) and BEFORE
+# "✅ Set test success" (line 571). It must come after the Allure upload so the
+# results directory is guaranteed populated, and before the success step so a
+# failing push cannot be mistaken for a gate result.
+
+      - name: 📊 Push critical-test metrics
+        # always(): the pytest step exits non-zero on failure, and a failed run
+        # is exactly the one we most need reported.
+        if: always()
+        # continue-on-error: a metrics push must NEVER turn a green run red, nor
+        # mask a red one. Observability is strictly a side effect of the gate.
+        continue-on-error: true
+        env:
+          PUSHGATEWAY_URL: https://pushwebgateway.docbits.com
+          SERVICE: ${{ inputs.service-name }}
+          ENVIRONMENT: ${{ steps.detect-branch.outputs.branch }}
+          OUTCOME: ${{ steps.pytest.outcome }}
+          REPO: ${{ github.event.repository.name }}
+          RUN_ID: ${{ github.run_id }}
+          IMAGE_TAG: ${{ inputs.image-tag }}
+        run: |
+          set -uo pipefail
+
+          # ── counts from Allure ────────────────────────────────────────────
+          # The pytest step already wrote one *-result.json per test. Reusing
+          # them avoids re-running anything and avoids scraping pytest stdout,
+          # whose format changes between versions.
+          #
+          # "broken" is an error, not a pass — fold it into failed. A test that
+          # errored verified nothing.
+          count() {
+            find allure-results -name '*-result.json' -maxdepth 1 2>/dev/null \
+              | xargs -r grep -l "\"status\"[[:space:]]*:[[:space:]]*\"$1\"" 2>/dev/null \
+              | wc -l | tr -d ' '
+          }
+          PASSED=$(count passed)
+          FAILED=$(( $(count failed) + $(count broken) ))
+          SKIPPED=$(count skipped)
+
+          # The gate verdict wins over the counts. pytest exit code 5 (no
+          # critical tests collected) is a deliberate pass in this template and
+          # yields zero of everything — it must still report 1, otherwise every
+          # service without critical tests shows up red.
+          if [ "$OUTCOME" = "success" ]; then STATUS=1; else STATUS=0; fi
+          NOW=$(date +%s)
+          COMMIT=$(echo "${GITHUB_SHA}" | cut -c1-7)
+
+          # ── grouping key ──────────────────────────────────────────────────
+          # Grouping-key labels make the push idempotent: re-pushing the same
+          # key REPLACES the group rather than appending. Verified: a second
+          # push flips the value in place with no duplicate series.
+          #
+          # service+environment keeps dev and stage as separate rows.
+          #
+          # Feature branches contain "/", which would break the URL path, so
+          # such values go through the Pushgateway's label@base64 form
+          # (URL-safe alphabet). Verified with feat/DOCB-1234-thing.
+          seg() {
+            case "$2" in
+              */*) printf '%s@base64/%s' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n' | tr '+/' '-_')" ;;
+              *)   printf '%s/%s' "$1" "$2" ;;
+            esac
+          }
+          URL="$PUSHGATEWAY_URL/metrics/job/critical-tests/$(seg service "$SERVICE")/$(seg environment "$ENVIRONMENT")"
+
+          # ── payload ───────────────────────────────────────────────────────
+          # environment is NOT repeated in the body: it already arrives as a
+          # label via the grouping key, and duplicating it makes the Pushgateway
+          # reject the push.
+          #
+          # run_id/commit/image_tag are high-cardinality and live on _run_info
+          # only. On the status metric they would mint a new series per run.
+          HTTP=$(cat <<EOF | curl -s -o /tmp/pgw.txt -w '%{http_code}' --max-time 30 --data-binary @- "$URL"
+          # TYPE docbits_critical_tests_status gauge
+          docbits_critical_tests_status{branch="$ENVIRONMENT",repo="$REPO"} $STATUS
+          # TYPE docbits_critical_tests_timestamp_seconds gauge
+          docbits_critical_tests_timestamp_seconds{branch="$ENVIRONMENT",repo="$REPO"} $NOW
+          # TYPE docbits_critical_tests_total gauge
+          docbits_critical_tests_total{result="passed"} $PASSED
+          docbits_critical_tests_total{result="failed"} $FAILED
+          docbits_critical_tests_total{result="skipped"} $SKIPPED
+          # TYPE docbits_critical_tests_run_info gauge
+          docbits_critical_tests_run_info{run_id="$RUN_ID",commit="$COMMIT",image_tag="$IMAGE_TAG"} 1
+          EOF
+          )
+
+          echo "service=$SERVICE env=$ENVIRONMENT status=$STATUS passed=$PASSED failed=$FAILED skipped=$SKIPPED"
+          case "$HTTP" in
+            200|202) echo "✅ metrics pushed" ;;
+            *) echo "::warning title=Metrics push failed::HTTP $HTTP — test result is unaffected"; cat /tmp/pgw.txt || true ;;
+          esac
+
+# ── NOTE on the heredoc above ─────────────────────────────────────────────
+# The payload heredoc is indented for readability inside the YAML block. In the
+# real workflow it must use <<-EOF with TAB indentation, or be written flush to
+# column 0, otherwise the leading spaces become part of the metric lines and the
+# Pushgateway rejects them with "text format parsing error".
+# The standalone script (scripts/poc-push-critical-metrics.sh) writes it flush;
+# copy that form when landing this.
