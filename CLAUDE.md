@@ -85,6 +85,43 @@ Then execute wave-by-wave per `execution_mode`, following the Worktree & PR Work
 
 ---
 
+## Mid-Flight Requests — Delegate, Don't Derail
+
+A new task, correction, or wish arriving **while you are mid-execution** does not interrupt the
+running work. Default (`midflight_handling: delegate`): hand it to a sub-agent and keep going.
+
+**1. Classify the incoming request** (one line of thought, no dialog):
+
+| Class | Signal | Action |
+|---|---|---|
+| 🛑 **Abort** | "stop", "halt", "abbrechen", safety/destructive concern, or the request invalidates the work in flight | Stop immediately, confirm, re-plan. Never delegate this. |
+| 📝 **Plan change** | Adds/removes/reorders steps, changes scope or approach of *later* work | Delegate → sub-agent updates the plan file |
+| 🔧 **Small change** | Self-contained, low-risk, done in a few edits, touches files you are **not** editing right now | Delegate → sub-agent implements it |
+| ⏳ **Entangled / large** | Touches the exact files, branch or worktree in flight, or is big enough to need its own plan | Queue it: log it, name it back to Gregor, pick it up at the end of the current step/wave |
+
+When class is genuinely unclear, prefer **plan change** (safe, reversible) over doing it yourself.
+
+**2. Delegate** with `prompts/interrupt-handler.md` as the sub-agent prompt, model per
+`executor_model` / `model_effort_policy`. The sub-agent gets: the request verbatim, the plan path,
+the classification, and an explicit **hands-off list** — the repo/worktree/branch/files the main
+loop currently owns. It never touches them; conflicts are reported back, not resolved unilaterally.
+
+**3. Acknowledge in one line, then continue** — never a paragraph, never a pause:
+
+```
+🔀 Mid-flight: "<request, short>" → [plan update | small change | queued] · agent dispatched · continuing Step N
+```
+
+**4. Report the result** when the sub-agent returns — at the next natural break in the running
+work, folded into the step/wave report (what changed, plan diff, PR URL if any). If the sub-agent
+reports a conflict or a blocked hand-off, surface it immediately instead.
+
+Scope rules for delegated mid-flight work: plan edits touch only the plan file; code changes to a
+*target* repo follow the full Worktree & PR Workflow on their **own** branch (`feat/<slug>`, never
+the in-flight branch); orchestrator-repo changes commit directly per the Local Workflow Exception.
+
+---
+
 ## Worktree & PR Workflow
 
 When `execution_mode` is `pr` or `autonomous`, every code change to a *target* repo runs in an
@@ -122,6 +159,7 @@ isolated worktree and lands via PR:
 | `plans/archive/` | Completed / superseded plans |
 | `pages-design-system.{css,html}` | Shared design system for HTML plans |
 | `prompts/{planner,executor,reviewer}.md` | Agent role prompts |
+| `prompts/interrupt-handler.md` | Sub-agent prompt for mid-flight requests (plan update / small change) |
 | `skills/` | Reusable skills (project-lifecycle, ci-green-sweep, …) |
 | `scripts/` | Helper scripts (audit, plan-index builder) |
 | `setup/` | Machine Setup Registry (portable local tooling) |

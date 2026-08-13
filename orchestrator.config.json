@@ -69,6 +69,12 @@
     "description": "Reasoning-effort defaults for the `effort` param on Agent/Workflow agent() calls (and the main session). Sonnet defaults to 'low'; 'medium' is only acceptable inside sub-agents, never at the main-loop/top-level. Opus is 'low' or 'high' only — never 'medium'. When a task needs more than sonnet-low can deliver, escalate to opus-low rather than reaching for sonnet-high."
   },
 
+  "midflight_handling": {
+    "value": "delegate",
+    "options": ["delegate", "inline", "queue"],
+    "description": "What happens when a new task/correction/wish arrives WHILE a step or wave is running. 'delegate' = classify it and hand it to a sub-agent (prompts/interrupt-handler.md) that updates the plan or implements the small change, while the main loop keeps executing — acknowledged in one line, result reported at the next natural break. 'inline' = the main loop handles it right away (old behavior: interrupt, do it, resume). 'queue' = log it and pick it up after the current step/wave, never dispatch a sub-agent. An abort request ('stop', safety concern, or anything that invalidates the work in flight) is always handled immediately by the main loop regardless of this setting. See CLAUDE.md → 'Mid-Flight Requests'."
+  },
+
   "plan_index_autobuild": {
     "value": true,
     "description": "Regenerate plans/INDEX.md via scripts/build-plan-index.py whenever plans are added, renamed, or change status."

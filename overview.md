@@ -28,6 +28,7 @@ orchestrator/
 │        └─ plans·learnings·discussions/ (gitignored) big-picture notes
 │
 ├── 🛠️  prompts/ · skills/ · scripts/  agent prompts, skills, helper scripts
+│        └─ planner · executor · reviewer · interrupt-handler (mid-flight requests)
 ├── 🎨 pages-design-system.{css,html}  shared design system for html plans
 │
 ├── ⚙️  setup/ ................. Machine Setup Registry (portable local tooling)
@@ -46,6 +47,7 @@ orchestrator/
 | 🧹 clean up / refresh this directory | `hub/how-to/HOW-TO-refresh-the-orchestrator.md` |
 | 🏗️ reshape this directory's structure | `hub/how-to/HOW-TO-change-the-orchestrator.md` |
 | ⏸️ continue last session | `.planning/handover/` |
+| 🔀 a new wish lands mid-execution | `CLAUDE.md` § Mid-Flight Requests · `prompts/interrupt-handler.md` |
 | 🧰 set up a new machine (or migrate one) | `install.sh` · `hub/how-to/HOW-TO-install-on-a-new-machine.md` |
 | 🔧 a setup broke | `setup/` |
 | 🚀 see what it can do | `CAPABILITIES.md` |

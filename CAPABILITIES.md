@@ -12,7 +12,8 @@ The core job: author sequenced plans and drive execution across many repos safel
 
 - **Config-driven behavior** — plan format, execution mode, quality gates, models → `orchestrator.config.json`
 - **Worktree + PR discipline**, base-branch policy, quality gates → `CLAUDE.md` + config
-- **Reusable agent roles** — planner / executor / reviewer → `prompts/`
+- **Reusable agent roles** — planner / executor / reviewer / interrupt-handler → `prompts/`
+- **Mid-flight requests without derailing** — a task/wish arriving during execution is classified and handed to a sub-agent (plan update or small change) while the main loop keeps running → `CLAUDE.md` § Mid-Flight Requests + `prompts/interrupt-handler.md` (`midflight_handling`)
 
 ## 📋 Planning & handovers
 - **Plans** in HTML (design-system styled) or Markdown → `plans/` + `plans/_template.{html,md}`; each leads with a human-only summary and ends with a paste-ready kickoff prompt → `guides/plan-authoring.md`
