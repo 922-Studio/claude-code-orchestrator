@@ -72,13 +72,25 @@
   </div>
 
   <div class="card">
-    <h2>Live preview</h2>
+    <h2>Live preview — status bar</h2>
     <div class="preview" id="preview">…</div>
   </div>
 
   <div class="card">
-    <h2>Segments</h2>
+    <h2>Status bar segments</h2>
     <div id="segs"></div>
+  </div>
+
+  <div class="card">
+    <h2>Live preview — agent panel</h2>
+    <div class="preview" id="agentPreview">…</div>
+    <p class="hint">One row per running sub-agent, shown under the prompt while agents are working.
+      Needs <code class="path">subagentStatusLine</code> wired in settings.json.</p>
+  </div>
+
+  <div class="card">
+    <h2>Agent panel rows</h2>
+    <div id="agentSegs"></div>
   </div>
 
   <div class="btns">
@@ -141,7 +153,9 @@ async function loadState() {
 
 function renderSegs() {
   const el = $("#segs");
+  const ael = $("#agentSegs");
   el.innerHTML = "";
+  ael.innerHTML = "";
   for (const s of STATE.segments) {
     const src = sourceOf(s.id);
     const tag = src === "override" ? "set here" : src === "global" ? "from global" : "default";
@@ -168,20 +182,54 @@ function renderSegs() {
       sel.addEventListener("click", (e) => e.preventDefault());
       sel.addEventListener("change", (e) => { variantSel[s.id] = e.target.value; renderPreview(); });
     }
-    el.appendChild(lab);
+    (s.group === "agentrow" ? ael : el).appendChild(lab);
   }
+}
+
+// Current UI selection, in the {enabled,variants} shape the API expects.
+function selection() {
+  const enabled = {};
+  const variants = {};
+  for (const s of STATE.segments) {
+    enabled[s.id] = !!checks[s.id];
+    if (s.variants) variants[s.id] = variantSel[s.id];
+  }
+  return { enabled, variants };
 }
 
 function renderPreview() {
   const lines = {};
   for (const s of [...STATE.segments].sort((a, b) => a.line - b.line || a.order - b.order)) {
-    if (!checks[s.id]) continue;
+    if (s.group === "agentrow" || !checks[s.id]) continue;
     const html = s.sampleHtmlByVariant ? s.sampleHtmlByVariant[variantSel[s.id]] : s.sampleHtml;
     if (!html) continue;
     (lines[s.line] ||= []).push(html);
   }
   const html = Object.keys(lines).sort().map((l) => lines[l].join(' <span style="color:#8b93a0">|</span> ')).join("<br>");
   $("#preview").innerHTML = html || '<span style="color:#8b93a0">(all segments hidden)</span>';
+  refreshAgentPreview();
+}
+
+// The agent rows have an elastic description and real separators, so they can't
+// be composed from per-segment samples — ask the renderer (debounced).
+let agentTimer;
+function refreshAgentPreview() {
+  clearTimeout(agentTimer);
+  agentTimer = setTimeout(async () => {
+    try {
+      const r = await fetch("/api/preview", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(selection()),
+      });
+      const j = await r.json();
+      setAgentPreview(j.agentPreviewHtml);
+    } catch { /* preview only */ }
+  }, 120);
+}
+
+function setAgentPreview(html) {
+  $("#agentPreview").innerHTML =
+    html || '<span style="color:#8b93a0">(agent rows keep Claude Code\'s default rendering)</span>';
 }
 
 function toast(msg, err) {
@@ -194,12 +242,7 @@ function toast(msg, err) {
 async function apply() {
   const key = currentScopeKey();
   if (scope === "dir" && !key) return toast("Enter a directory path first", true);
-  const enabled = {};
-  const variants = {};
-  for (const s of STATE.segments) {
-    enabled[s.id] = !!checks[s.id];
-    if (s.variants) variants[s.id] = variantSel[s.id];
-  }
+  const { enabled, variants } = selection();
   const r = await fetch("/api/apply", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ scope: scope === "defaults" ? "defaults" : undefined, dir: scope === "dir" ? key : undefined, enabled, variants }),
@@ -208,6 +251,7 @@ async function apply() {
   if (!j.ok) return toast(j.error || "Apply failed", true);
   STATE.config = j.config;
   renderSegs();
+  setAgentPreview(j.agentPreviewHtml);
   toast("Applied ✓");
 }
 

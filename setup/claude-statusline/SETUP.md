@@ -6,7 +6,13 @@
 Custom Claude Code statusline showing, per session: **model** · **effort** · **context-window
 usage** · **cost $** · **5h session-limit % + reset** · **versions** (Claude Code + orchestrator
 `version.txt`) · **session id** · **cwd** · **git branch** · **session uptime** (wall clock) ·
-**active time** (engaged time, idle gaps >5m excluded).
+**active time** (engaged time, idle gaps >5m excluded) · **sub-agents** (how many are running,
+their combined token burn, longest runtime — the segment hides itself when none are).
+
+It also restyles the **agent panel** under the prompt: one row per running sub-agent, showing
+**status** (▶ running · ⏸ pending · ✓ done · ✗ failed) · **name** · **task** · **current action**
+(live) · **model** · **effort** · that agent's **own context %** · optional **token trend**
+sparkline · **runtime** · optional **directory**.
 
 Every one of those is a toggleable **segment**. Which segments show is driven by a config file,
 resolved **per working directory**: no config → everything on (the historical default). Some
@@ -19,17 +25,37 @@ turn — no restart, no regeneration.
 ## Files
 | Path (`~/.claude/statusline/`) | Purpose |
 |---|---|
-| `ctx_monitor.js` | Statusline entry point — wired into `settings.json → statusLine.command` |
-| `segments.js` | **Segment registry** (single source of truth) + renderers |
+| `ctx_monitor.js` | Status **bar** entry point — wired into `settings.json → statusLine.command` |
+| `subagent_monitor.js` | Agent-**panel** entry point — wired into `settings.json → subagentStatusLine.command`; also caches the tasks for the bar's `agents` segment |
+| `segments.js` | **Segment registry** (single source of truth) + bar renderers |
+| `agents.js` | Agent-row segments + row renderer, the sub-agent cache, and the bar's aggregate |
+| `util.js` | Palette, colour ramps and formatters shared by the bar and the rows |
 | `config.js` | Load / merge / save the per-directory config (non-destructive) |
 | `server.js` | Local control-panel server (zero deps) |
 | `panel.html` | The interactive checkbox UI |
 | `open-panel.sh` | Launcher — starts the server (idempotent) + opens the browser scoped to a dir |
 | `segments.config.json` | The saved config (created on first Apply; **absent = all defaults**) |
 | `orch-root` | Pointer to the orchestrator checkout, written by `apply.sh`; the `versions` segment reads `<orch-root>/version.txt` live |
+| `agents-cache/<session>.json` | Machine-local scratch: the last sub-agent tick per session (see below). Swept automatically |
 | `~/.claude/commands/edit-stl.md` | `/edit-stl` slash command → opens the panel for the current dir |
 
 Canonical copies live next to this file in `setup/claude-statusline/`.
+
+## How the sub-agent parts fit together
+Claude Code exposes sub-agent data to **one** hook only: `subagentStatusLine`, which is called once
+per refresh tick with **all** visible agent rows at once (`tasks[]` — id, type, status, description,
+label, startTime, model, effort, contextWindowSize, tokenCount, tokenSamples, cwd). The main
+`statusLine` payload contains **nothing** about sub-agents, and there is no signal for "which agent
+am I currently looking at" — so the bar cannot follow you into an agent view. Instead:
+
+1. `subagent_monitor.js` renders each row **and** writes the tick to `agents-cache/<session>.json`.
+2. The bar's `agents` segment reads that cache. It ignores anything older than 15s, so when the last
+   agent finishes — rows disappear, the hook stops being called — the segment removes itself.
+3. `statusLine.refreshInterval: 5` keeps the bar re-rendering while the main loop is only *waiting*
+   on background agents. Without it the event-driven triggers go quiet and the bar freezes.
+
+A row Claude Code isn't told about keeps its **default** rendering, so switching every agent-row
+segment off in the panel returns the stock `name · description · token count` row.
 
 ## Config format (`segments.config.json`)
 ```json
@@ -54,23 +80,18 @@ enable choice (and only rewrites the file when you actually save a change).
 
 ## Install
 ```bash
-SRC="$(pwd)/setup/claude-statusline"        # run from the orchestrator root
-DST="$HOME/.claude/statusline"
-mkdir -p "$DST"
-cp "$SRC"/{ctx_monitor.js,segments.js,config.js,server.js,panel.html,open-panel.sh} "$DST/"
-chmod +x "$DST/open-panel.sh"
-cp "$SRC/edit-stl.md" "$HOME/.claude/commands/edit-stl.md"   # the /edit-stl command
-printf '%s\n' "$(cd "$SRC/../.." && pwd)" > "$DST/orch-root"  # for the versions segment
-
-# Wire it in (if not already done by claude-code-settings):
-node -e '
-  const fs=require("fs"),p=process.env.HOME+"/.claude/settings.json";
-  const s=fs.existsSync(p)?JSON.parse(fs.readFileSync(p,"utf8")):{};
-  s.statusLine={type:"command",command:`node "${process.env.HOME}/.claude/statusline/ctx_monitor.js"`};
-  fs.writeFileSync(p,JSON.stringify(s,null,2));
-  console.log("statusLine wired:",s.statusLine.command);
-'
+bash setup/claude-statusline/apply.sh        # run from the orchestrator root — idempotent
 ```
+That copies the modules, installs `/edit-stl`, writes `orch-root`, and wires the settings below
+**only where they are absent** (an existing `statusLine.command` is never clobbered):
+```jsonc
+{
+  "statusLine":         { "type": "command", "command": "node \"$HOME/.claude/statusline/ctx_monitor.js\"",
+                          "refreshInterval": 5 },
+  "subagentStatusLine": { "type": "command", "command": "node \"$HOME/.claude/statusline/subagent_monitor.js\"" }
+}
+```
+`refreshInterval` (seconds, min 1) is what keeps the bar alive while sub-agents run — leave it set.
 
 ## Use the control panel
 From a Claude Code session, just run **`/edit-stl`** — it opens the panel in the browser
@@ -81,24 +102,35 @@ node ~/.claude/statusline/server.js        # prints http://127.0.0.1:4790
 bash ~/.claude/statusline/open-panel.sh /abs/path/to/project
 ```
 Open the URL. Pick **This directory** (paste the absolute path you run Claude Code in) or
-**Global default**, tick the segments you want, watch the live preview, press **Apply**. The
+**Global default**, tick the segments you want, watch the live preview, press **Apply**. The page
+has two groups — **Status bar segments** and **Agent panel rows** — each with its own preview. The
 config file path is shown at the top. Override the port with `STATUSLINE_PANEL_PORT`, or the
 config location with `CLAUDE_STATUSLINE_CONFIG`.
 
 ## Verify
 ```bash
-# renders a full line with all defaults:
+# the bar — renders a full line with all defaults:
 node ~/.claude/statusline/ctx_monitor.js <<< '{"model":{"display_name":"Opus"},"cost":{"total_cost_usd":0.12},"cwd":"'"$HOME"'/dev"}'
+
+# the agent rows — one JSON line out per row in:
+cd ~/.claude/statusline && node -e 'const{sampleTasks}=require("./agents");
+  process.stdout.write(JSON.stringify({session_id:"probe",cwd:process.env.HOME,columns:120,tasks:sampleTasks()}))' \
+  | node ~/.claude/statusline/subagent_monitor.js
 ```
 
 ## Fix / troubleshoot
 | Symptom | Remedy |
 |---|---|
 | Blank statusline | `which node`; check `statusLine.command` path; restart Claude Code. |
-| `Cannot find module ./segments` | Re-copy **all five** files (Install step) — they load each other. |
+| `Cannot find module ./segments` | Re-copy **all** modules (`bash setup/claude-statusline/apply.sh`) — they load each other. |
 | Change didn't take effect | Confirm the dir path in the panel matches the session's cwd exactly (or a parent); the effective value shows a `set here / from global / default` tag per segment. |
 | Panel won't start | Port in use → set `STATUSLINE_PANEL_PORT=4791`. |
-| Effort not shown | Read from `~/.claude/settings.json` `effortLevel`; set it (see `claude-code-settings`). |
+| Effort not shown | Read from `~/.claude/settings.json` `effortLevel`; set it (see `claude-code-settings`). Per-agent effort is absent whenever the agent inherits yours. |
+| Agent rows unchanged | `subagentStatusLine` missing from settings, or every agent-row segment is off (that deliberately restores the default row). |
+| `agents` segment never appears | It needs `subagentStatusLine` wired (it feeds the cache) and only shows while agents run. Check `ls ~/.claude/statusline/agents-cache/`. |
+| Bar freezes while agents work | `statusLine.refreshInterval` is missing — event triggers go quiet when the main loop only waits. |
+| Row fields look wrong / build changed the payload | `touch ~/.claude/statusline/.debug-subagent` → the next tick dumps the raw payload to `.debug-subagent.json`. Delete the marker when done. |
 
 ## Uninstall
-Remove `statusLine` from `~/.claude/settings.json` and delete `~/.claude/statusline/`.
+Remove `statusLine` + `subagentStatusLine` from `~/.claude/settings.json` and delete
+`~/.claude/statusline/`.

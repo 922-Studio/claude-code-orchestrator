@@ -15,24 +15,17 @@
 // Existing user configs that predate the new segment simply don't mention it,
 // so it falls through to its registry `default` — old configs keep working and
 // nothing is destroyed. See config.js for the merge rules.
+//
+// The registry also carries the AGENT-PANEL ROW segments (group: "agentrow",
+// defined in agents.js), so sub-agent rows get the same per-directory config
+// and the same control-panel checkboxes. They are NOT part of the bar:
+// renderBar only renders segments whose group is "bar".
 // ============================================================================
 
 const fs = require("fs");
 const { execFileSync } = require("child_process");
-
-// --- ANSI palette -----------------------------------------------------------
-const A = {
-  reset: "\x1b[0m",
-  magenta: "\x1b[95m",
-  cyan: "\x1b[96m",
-  red: "\x1b[31m",
-  blue: "\x1b[34m",
-  brightCyan: "\x1b[36m",
-  grey: "\x1b[90m",
-  yellow: "\x1b[33m",
-  green: "\x1b[32m",
-  orange: "\x1b[38;5;208m",
-};
+const { A, ctxColor, limitColor, fmtDur, comma, usedTotal } = require("./util");
+const { AGENT_ROW_SEGMENTS, agentSummary, renderAgentSummary, sampleSummary } = require("./agents");
 
 // --- Segment registry -------------------------------------------------------
 // `line` groups segments onto output line 1 or 2; `order` sorts within a line.
@@ -68,7 +61,19 @@ const SEGMENTS = [
   { id: "branch",  label: "Git branch",          description: "Current branch of the repo in the working directory.",    default: true,  line: 2, order: 30 },
   { id: "uptime",  label: "Session uptime",      description: "Wall-clock time since this session started.",             default: true,  line: 2, order: 40 },
   { id: "active",  label: "Active time",         description: "Time actually worked in-session (idle gaps >5m excluded).",default: true,  line: 2, order: 50 },
-];
+  { id: "agents",  label: "Sub-agents",          description: "Running sub-agents + their token burn. Hidden when none.", default: true,  line: 2, order: 60,
+    defaultVariant: "full",
+    variants: [
+      { id: "full",   label: "counts + tokens + runtime" },
+      { id: "count",  label: "counts only" },
+      { id: "tokens", label: "counts + tokens" },
+      { id: "names",  label: "counts + agent names" },
+    ] },
+].map((s) => ({ group: "bar", ...s }));
+
+// Agent-panel rows share the registry (and therefore the config + the panel),
+// but render through agents.js — see renderAgentRow().
+SEGMENTS.push(...AGENT_ROW_SEGMENTS);
 
 // ============================================================================
 // buildContext(input) — turn the raw stdin JSON Claude Code passes into the
@@ -115,8 +120,15 @@ function buildContext(input) {
   const ccVersion = String(input.version ?? "").trim();
   const orchVersion = readOrchVersion();
 
+  // Sub-agent aggregate. The main statusline payload carries no sub-agent data,
+  // so this comes from the cache subagent_monitor.js writes; it is null (and the
+  // segment disappears) whenever no agent has reported in the last few seconds.
+  const sessionId = String(input.session_id ?? "");
+  const agents = agentSummary(sessionId);
+
   return {
-    sessionId: String(input.session_id ?? ""),
+    sessionId,
+    agents,
     name, effort, CONTEXT_WINDOW, costUsd,
     cwdParent, cwdBase,
     usage, used, pct, limit,
@@ -185,6 +197,8 @@ function renderSegment(id, ctx, variant) {
       return ctx.activeSecs == null ? "" : `active: ${A.grey}${fmtDur(ctx.activeSecs)}${A.reset}`;
     case "branch":
       return ctx.branch ? `${A.green}⎇ ${ctx.branch}${A.reset}` : "";
+    case "agents":
+      return renderAgentSummary(ctx.agents, variant);
     default:
       return "";
   }
@@ -210,6 +224,7 @@ function sampleContext() {
     branch: "feat/statusline-panel",
     ccVersion: "2.1.205",
     orchVersion: "1.0.7",
+    agents: sampleSummary(),
   };
 }
 
@@ -218,6 +233,7 @@ function renderBar(enabled, variants, ctx) {
   variants = variants || {};
   const byLine = {};
   for (const seg of [...SEGMENTS].sort((a, b) => a.line - b.line || a.order - b.order)) {
+    if (seg.group && seg.group !== "bar") continue; // agent-panel rows aren't bar segments
     if (enabled[seg.id] === false) continue;
     const variant = variants[seg.id] || seg.defaultVariant;
     const s = renderSegment(seg.id, ctx, variant);
@@ -248,36 +264,8 @@ function readOrchVersion() {
     return "";
   }
 }
-function ctxColor(used) {
-  if (used >= 500_000) return A.red;
-  if (used >= 400_000) return A.orange;
-  if (used >= 300_000) return A.yellow;
-  return A.green;
-}
-function limitColor(p) {
-  if (p >= 90) return A.red;
-  if (p >= 75) return A.orange;
-  if (p >= 50) return A.yellow;
-  return A.green;
-}
-function fmtDur(sec) {
-  if (!Number.isFinite(sec) || sec <= 0) return "now";
-  const totalMin = Math.ceil(sec / 60);
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  return h > 0 ? `${h}h${String(m).padStart(2, "0")}m` : `${m}m`;
-}
-const comma = (n) =>
-  new Intl.NumberFormat("en-US").format(Math.max(0, Math.floor(Number(n) || 0)));
-
-function usedTotal(u) {
-  return (
-    (u?.input_tokens ?? 0) +
-    (u?.output_tokens ?? 0) +
-    (u?.cache_read_input_tokens ?? 0) +
-    (u?.cache_creation_input_tokens ?? 0)
-  );
-}
+// ctxColor / limitColor / fmtDur / comma / usedTotal now live in util.js, so
+// the bar and the agent rows format and colour identically.
 
 // Gaps longer than this (seconds) between consecutive transcript entries count
 // as idle (you stepped away) and are excluded from "active" time.

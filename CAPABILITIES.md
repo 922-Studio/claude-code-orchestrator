@@ -38,7 +38,7 @@ Local tooling the orchestrator can install, verify, and fix on its own → `setu
 |---|---|
 | 🧰 One-shot new-machine installer (+ migration from an old orchestrator) | `install.sh` |
 | 🎛️ Claude Code settings (model, effort, theme, permissions) | `setup/claude-code-settings/` |
-| 📊 Context-monitor statusline (model \| effort \| context% \| cost) | `setup/claude-statusline/` |
+| 📊 Context-monitor statusline (model \| effort \| context% \| cost) + per-sub-agent rows and a live sub-agent aggregate | `setup/claude-statusline/` |
 | ⌨️ Orchestrator slash-commands install | `setup/orchestrator-commands/` |
 | 🍺 Daily Homebrew auto-upgrade (launchd) | `setup/brew-autoupgrade/` |
 | 🔄 Repo sync — pull every registry repo | `setup/repo-sync/` |

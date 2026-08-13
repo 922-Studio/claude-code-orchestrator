@@ -17,6 +17,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const { SEGMENTS, sampleContext, renderSegment, renderBar } = require("./segments");
+const { renderRowSegment, renderAgentRow, sampleTasks } = require("./agents");
 const {
   CONFIG_PATH,
   loadConfig,
@@ -68,6 +69,14 @@ function ansiToHtml(str) {
 // --- state payload the panel consumes ---------------------------------------
 function statePayload() {
   const sample = sampleContext();
+  const rowSample = sampleTasks()[0];
+  // Bar segments preview against the sample context, agent-row segments against
+  // a sample task — same renderers the live bar and the agent panel use.
+  const draw = (s, variant) =>
+    s.group === "agentrow"
+      ? renderRowSegment(s.id, rowSample, variant)
+      : renderSegment(s.id, sample, variant);
+
   return {
     configPath: CONFIG_PATH,
     registryDefaults: registryDefaults(),
@@ -78,6 +87,7 @@ function statePayload() {
         label: s.label,
         description: s.description,
         default: s.default,
+        group: s.group || "bar",
         line: s.line,
         order: s.order,
       };
@@ -86,10 +96,10 @@ function statePayload() {
         out.defaultVariant = s.defaultVariant;
         // one sample per variant so the panel previews the chosen mode with no round-trip
         out.sampleHtmlByVariant = {};
-        for (const v of s.variants) out.sampleHtmlByVariant[v.id] = ansiToHtml(renderSegment(s.id, sample, v.id));
+        for (const v of s.variants) out.sampleHtmlByVariant[v.id] = ansiToHtml(draw(s, v.id));
         out.sampleHtml = out.sampleHtmlByVariant[s.defaultVariant] ?? "";
       } else {
-        out.sampleHtml = ansiToHtml(renderSegment(s.id, sample));
+        out.sampleHtml = ansiToHtml(draw(s));
       }
       return out;
     }),
@@ -98,6 +108,14 @@ function statePayload() {
 
 function renderPreview(eff) {
   return ansiToHtml(renderBar(eff.enabled, eff.variants, sampleContext()));
+}
+
+// The agent-panel preview: every sample task rendered as its own row.
+function renderAgentPreview(eff) {
+  return sampleTasks()
+    .map((t) => ansiToHtml(renderAgentRow(eff.enabled, eff.variants, t, 96)))
+    .filter(Boolean)
+    .join("<br>");
 }
 
 // --- http -------------------------------------------------------------------
@@ -130,13 +148,24 @@ const server = http.createServer(async (req, res) => {
       p.effective = loadEffectiveConfig(dir);
       return send(res, 200, p);
     }
+    // Live preview for an UNSAVED selection. The agent rows are laid out with
+    // an elastic description and real separators, so the page can't compose
+    // them from per-segment samples — it asks the real renderer instead.
+    if (req.method === "POST" && url.pathname === "/api/preview") {
+      const body = await readBody(req);
+      const eff = { enabled: body.enabled || {}, variants: body.variants || {} };
+      return send(res, 200, { ok: true, previewHtml: renderPreview(eff), agentPreviewHtml: renderAgentPreview(eff) });
+    }
     if (req.method === "POST" && url.pathname === "/api/apply") {
       const body = await readBody(req);
       const scope = body.scope === "defaults" ? "defaults" : String(body.dir || "").trim();
       if (!scope) return send(res, 400, { ok: false, error: "missing dir/scope" });
       applyOverride(scope, { enabled: body.enabled || {}, variants: body.variants || {} });
       const eff = loadEffectiveConfig(scope === "defaults" ? "" : scope);
-      return send(res, 200, { ok: true, config: loadConfig(), effective: eff, previewHtml: renderPreview(eff) });
+      return send(res, 200, {
+        ok: true, config: loadConfig(), effective: eff,
+        previewHtml: renderPreview(eff), agentPreviewHtml: renderAgentPreview(eff),
+      });
     }
     if (req.method === "POST" && url.pathname === "/api/reset") {
       const body = await readBody(req);
@@ -144,7 +173,10 @@ const server = http.createServer(async (req, res) => {
       if (!scope) return send(res, 400, { ok: false, error: "missing dir/scope" });
       const cfg = clearDirectory(scope);
       const eff = loadEffectiveConfig(scope === "defaults" ? "" : scope);
-      return send(res, 200, { ok: true, config: cfg, effective: eff, previewHtml: renderPreview(eff) });
+      return send(res, 200, {
+        ok: true, config: cfg, effective: eff,
+        previewHtml: renderPreview(eff), agentPreviewHtml: renderAgentPreview(eff),
+      });
     }
     return send(res, 404, { ok: false, error: "not found" });
   } catch (e) {

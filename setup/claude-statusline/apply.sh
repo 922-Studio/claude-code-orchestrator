@@ -4,7 +4,9 @@
 #   - copies the statusline modules into ~/.claude/statusline/
 #   - installs the /edit-stl command into ~/.claude/commands/
 #   - wires statusLine into ~/.claude/settings.json ONLY if it's absent
-#     (the claude-code-settings template owns it otherwise — never clobber).
+#     (the claude-code-settings template owns it otherwise — never clobber)
+#   - wires subagentStatusLine (agent-panel rows) the same way, and sets
+#     statusLine.refreshInterval so the bar stays live while sub-agents run.
 # The per-directory config (~/.claude/statusline/segments.config.json) is
 # machine-local user state and is never touched here.
 set -u
@@ -16,7 +18,7 @@ CMDS="$HOME/.claude/commands"
 SETTINGS="$HOME/.claude/settings.json"
 
 mkdir -p "$DST" "$CMDS"
-cp "$DIR"/{ctx_monitor.js,segments.js,config.js,server.js,panel.html,open-panel.sh} "$DST/"
+cp "$DIR"/{ctx_monitor.js,subagent_monitor.js,segments.js,agents.js,util.js,config.js,server.js,panel.html,open-panel.sh} "$DST/"
 chmod +x "$DST/open-panel.sh" 2>/dev/null || true
 cp "$DIR/edit-stl.md" "$CMDS/edit-stl.md"
 # Pointer to this checkout so the statusline can read version.txt live (the
@@ -37,11 +39,35 @@ except FileNotFoundError:
 except Exception as e:
     print(f"cannot parse {p}: {e} — leaving settings untouched"); sys.exit(0)
 
-if s.get("statusLine"):
-    print("statusLine already set — left as is"); sys.exit(0)
+home = os.environ["HOME"]
+changed = []
 
-cmd = f'node "{os.environ["HOME"]}/.claude/statusline/ctx_monitor.js"'
-s["statusLine"] = {"type": "command", "command": cmd}
+# 1. The bar itself — only on a fresh machine; claude-code-settings owns it.
+if s.get("statusLine"):
+    print("statusLine already set — left as is")
+else:
+    s["statusLine"] = {"type": "command", "command": f'node "{home}/.claude/statusline/ctx_monitor.js"'}
+    changed.append("statusLine")
+
+# 2. Keep the bar ticking while sub-agents run. The event-driven triggers go
+#    quiet whenever the main loop is just waiting on background agents, which
+#    would freeze the agents/uptime/active segments. Additive — never touches
+#    an existing command, and left alone if the user already chose a value.
+sl = s.get("statusLine")
+if isinstance(sl, dict) and "refreshInterval" not in sl:
+    sl["refreshInterval"] = 5
+    changed.append("statusLine.refreshInterval=5")
+
+# 3. The agent-panel rows.
+if s.get("subagentStatusLine"):
+    print("subagentStatusLine already set — left as is")
+else:
+    s["subagentStatusLine"] = {"type": "command", "command": f'node "{home}/.claude/statusline/subagent_monitor.js"'}
+    changed.append("subagentStatusLine")
+
+if not changed:
+    sys.exit(0)
+
 os.makedirs(os.path.dirname(p), exist_ok=True)
 if os.path.exists(p):
     try:
@@ -49,5 +75,5 @@ if os.path.exists(p):
     except Exception: pass
 with open(p, "w") as f:
     json.dump(s, f, indent=2); f.write("\n")
-print("wired statusLine into settings.json (was absent)")
+print("settings.json updated: " + ", ".join(changed))
 PY

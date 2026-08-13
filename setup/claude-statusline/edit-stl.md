@@ -18,3 +18,7 @@ and opens the browser pre-filled with `<cwd>`. Report the URL it prints back as 
 Then let the user know: toggle the segments they want, press **Apply**, and the bar updates on the
 next turn — no restart. The panel manages this directory by default; they can switch to **Global
 default** in the panel to change the baseline for every directory.
+
+The panel has two groups, each with its own live preview: **Status bar segments** (the bar itself)
+and **Agent panel rows** (the per-sub-agent rows shown under the prompt while agents run). Turning
+every agent-row segment off restores Claude Code's default row.

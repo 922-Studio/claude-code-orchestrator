@@ -11,6 +11,11 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "node \"__HOME__/.claude/statusline/ctx_monitor.js\""
+    "command": "node \"__HOME__/.claude/statusline/ctx_monitor.js\"",
+    "refreshInterval": 5
+  },
+  "subagentStatusLine": {
+    "type": "command",
+    "command": "node \"__HOME__/.claude/statusline/subagent_monitor.js\""
   }
 }
