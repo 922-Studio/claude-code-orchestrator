@@ -46,6 +46,8 @@ Local tooling the orchestrator can install, verify, and fix on its own → `setu
 | ♻️ Auto-provisioning — semver migrations gated by root `version.txt` (CI patch-bumps) adopt setup changes on every pull via git post-merge/rewrite hooks; Claude-side steps queued as `prompt.md` | `setup/provision/` |
 | 🔔 Periodic reminders — config-driven macOS notifications (launchd) | `setup/reminders/` |
 | 🧵 Session log — record session id + cwd on every session start so a closed tab / crash / reboot can be resumed via `claude --resume`; list with `recent.sh` | `setup/session-log/` |
+| 📚 Local docs MCP — version-pinned library-doc retrieval from a self-hosted index (no rate limits, no key, offline); `libraries.tsv` is the reproducible source of truth, the index itself stays machine-local | `setup/docs-mcp/` |
+| 🔎 Web research MCP — Exa semantic search / content extraction / deep research, replacing the US-only built-in `WebSearch` | `setup/research-mcp/` |
 | 👤 Personal / machine-specific setups (gitignored) | `setup/local/` |
 
 *Self-service:* say *"X stopped working"* → it finds the setup, runs Verify, applies Fix.

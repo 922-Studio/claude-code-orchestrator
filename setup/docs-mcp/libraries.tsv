@@ -1,0 +1,16 @@
+# Documentation sources indexed into the local docs MCP server.
+# Format: <library>	<url>	<extra JSON args merged into scrape_docs> (tab-separated)
+# Extra args use the MCP tool's camelCase names: maxPages, maxDepth, excludePattern, includePattern, scope.
+# Exclusions matter: changelogs/release-notes and translated doc trees are huge and will eat the
+# page budget, pushing the pages you actually want out of the index. Always exclude them.
+#
+# Regex patterns must be wrapped in slashes. Backslashes need JSON escaping (\\/).
+fastapi	https://fastapi.tiangolo.com/	{"maxPages":900,"maxDepth":4,"excludePattern":["/\\/(es|pt|zh|zh-hant|ru|de|fr|ja|ko|tr|uk|vi|fa|he|hu|id|it|nl|pl|bn|az|em|yo|ur|ta|th|sv|sq)\\//","/release-notes/"]}
+helm	https://helm.sh/docs/	{"maxPages":400,"maxDepth":4}
+celery	https://docs.celeryq.dev/en/stable/	{"maxPages":600,"maxDepth":4,"excludePattern":["/changelog/","/whatsnew/","/history/"]}
+sqlalchemy	https://docs.sqlalchemy.org/en/20/	{"maxPages":700,"maxDepth":4,"excludePattern":["/changelog/","/errors.html/"]}
+alembic	https://alembic.sqlalchemy.org/en/latest/	{"maxPages":300,"maxDepth":4,"excludePattern":["/changelog/"]}
+playwright-python	https://playwright.dev/python/docs/intro	{"maxPages":400,"maxDepth":4,"excludePattern":["/release-notes/"]}
+vue	https://vuejs.org/guide/introduction.html	{"maxPages":400,"maxDepth":4,"scope":"hostname"}
+pydantic	https://docs.pydantic.dev/latest/	{"maxPages":400,"maxDepth":4,"excludePattern":["/changelog/"]}
+redis-py	https://redis.readthedocs.io/en/stable/	{"maxPages":300,"maxDepth":4}

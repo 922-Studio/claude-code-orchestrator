@@ -1,0 +1,664 @@
+<title>Grounded Research Stack</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* ============================================================
+   Tokens — values mirrored from pages-design-system.css so this
+   page reads as part of the orchestrator family. Reproduced here
+   rather than linked because the shared sheet themes via classes
+   on <html>/<body>, which a standalone/published page cannot set.
+   ============================================================ */
+:root {
+  --font-heading: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  --bg: #f8f8f8;
+  --surface: #ffffff;
+  --surface-2: #f0f0f0;
+  --text: #171717;
+  --text-2: #525252;
+  --text-3: #a3a3a3;
+  --border: rgba(0, 0, 0, 0.1);
+  --border-strong: rgba(0, 0, 0, 0.18);
+
+  --accent: #059669;
+  --accent-2: #0891b2;
+  --accent-wash: rgba(5, 150, 105, 0.08);
+
+  --ok: #047857;
+  --warn: #b45309;
+  --warn-wash: rgba(180, 83, 9, 0.08);
+  --bad: #b91c1c;
+
+  --radius: 0.75rem;
+  --radius-sm: 0.5rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface-2: #1a1a1a;
+    --text: #f5f5f5;
+    --text-2: #a3a3a3;
+    --text-3: #525252;
+    --border: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.2);
+
+    --accent: #10b981;
+    --accent-2: #06d6d4;
+    --accent-wash: rgba(16, 185, 129, 0.1);
+
+    --ok: #34d399;
+    --warn: #fbbf24;
+    --warn-wash: rgba(251, 191, 36, 0.1);
+    --bad: #f87171;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --surface: #111111;
+  --surface-2: #1a1a1a;
+  --text: #f5f5f5;
+  --text-2: #a3a3a3;
+  --text-3: #525252;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.2);
+
+  --accent: #10b981;
+  --accent-2: #06d6d4;
+  --accent-wash: rgba(16, 185, 129, 0.1);
+
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --warn-wash: rgba(251, 191, 36, 0.1);
+  --bad: #f87171;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 4.5rem) clamp(1.1rem, 4vw, 2rem) 5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3.25rem;
+}
+
+/* ---------------------------- Header ---------------------------- */
+
+.masthead { display: flex; flex-direction: column; gap: 1rem; }
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+h1 {
+  font-family: var(--font-heading);
+  font-size: clamp(1.95rem, 5.5vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+  margin: 0;
+  text-wrap: balance;
+}
+h1 .grad {
+  background: linear-gradient(100deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.standfirst {
+  font-size: clamp(1.02rem, 2.2vw, 1.16rem);
+  color: var(--text-2);
+  max-width: 46rem;
+  margin: 0;
+}
+
+.pills { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pill {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  padding: 0.3rem 0.6rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.pill--ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+
+/* --------------------------- Sections --------------------------- */
+
+section { display: flex; flex-direction: column; gap: 1.15rem; }
+
+h2 {
+  font-family: var(--font-heading);
+  font-size: clamp(1.3rem, 3vw, 1.65rem);
+  letter-spacing: -0.015em;
+  font-weight: 600;
+  margin: 0;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border);
+  text-wrap: balance;
+}
+
+h3 {
+  font-family: var(--font-heading);
+  font-size: 1.02rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+p { margin: 0; max-width: 46rem; }
+p + p { margin-top: 0.5rem; }
+strong { font-weight: 600; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+ul { margin: 0; padding-left: 1.15rem; max-width: 46rem; }
+li + li { margin-top: 0.4rem; }
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.855em;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.08em 0.34em;
+}
+
+/* ----------------------------- Cards ---------------------------- */
+
+.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.card__label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.card__value {
+  font-family: var(--font-heading);
+  font-size: 1.55rem;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.card p { font-size: 0.9rem; color: var(--text-2); }
+
+/* ---------------------------- Tables ---------------------------- */
+
+.scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { text-align: left; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+thead th {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  font-weight: 500;
+  white-space: nowrap;
+}
+tbody tr:last-child td { border-bottom: none; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.is-pick { background: var(--accent-wash); }
+tr.is-pick td:first-child { font-weight: 600; }
+td code, th code { background: transparent; border: none; padding: 0; }
+
+/* ----------------------------- Code ----------------------------- */
+
+pre {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+pre code { background: none; border: none; padding: 0; font-size: inherit; }
+.c-dim { color: var(--text-3); }
+.c-cmd { color: var(--accent); }
+
+/* --------------------------- Callouts --------------------------- */
+
+.note {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-wash);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 0.9rem 1.1rem;
+  font-size: 0.92rem;
+}
+.note--warn { border-left-color: var(--warn); background: var(--warn-wash); }
+.note strong { display: block; margin-bottom: 0.2rem; }
+
+/* ------------------------- Steps (real sequence) ---------------- */
+
+ol.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1.1rem; }
+ol.steps > li {
+  counter-increment: s;
+  display: grid;
+  grid-template-columns: 1.75rem 1fr;
+  gap: 0.85rem;
+  align-items: start;
+  margin: 0;
+}
+ol.steps > li::before {
+  content: counter(s);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 9999px;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: grid;
+  place-items: center;
+  margin-top: 0.1rem;
+}
+ol.steps .step__body { display: flex; flex-direction: column; gap: 0.55rem; min-width: 0; }
+
+/* --------------------------- Diagram ---------------------------- */
+
+.diagram { border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius); padding: 1.25rem; overflow-x: auto; }
+.diagram svg { display: block; width: 100%; min-width: 34rem; height: auto; }
+.d-box { fill: var(--surface-2); stroke: var(--border-strong); }
+.d-box--local { fill: var(--accent-wash); stroke: var(--accent); }
+.d-title { fill: var(--text); font-family: var(--font-heading); font-size: 13px; font-weight: 600; }
+.d-sub { fill: var(--text-2); font-family: var(--font-mono); font-size: 10.5px; }
+.d-tag { fill: var(--text-3); font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.08em; }
+.d-line { stroke: var(--border-strong); stroke-width: 1.4; fill: none; }
+.d-line--accent { stroke: var(--accent); }
+.d-arrow { fill: var(--border-strong); }
+.d-arrow--accent { fill: var(--accent); }
+
+/* --------------------------- Footer ----------------------------- */
+
+footer {
+  border-top: 1px solid var(--border);
+  padding-top: 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text-3);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+details {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 0.75rem 1rem;
+}
+summary { cursor: pointer; font-weight: 600; font-size: 0.92rem; }
+details > *:not(summary) { margin-top: 0.7rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">orchestrator · setup/docs-mcp + setup/research-mcp</div>
+    <h1>Docs it can't <span class="grad">hallucinate</span>, research it can't run out of</h1>
+    <p class="standfirst">
+      Two MCP servers replace the one thing Claude can't do from memory: look up what an API
+      actually does today. Library docs come from an index on this machine with no quota at all;
+      open-web research runs through Exa, picked because its free tier is the one you won't hit.
+    </p>
+    <div class="pills">
+      <span class="pill pill--ok">docs · local · no limits</span>
+      <span class="pill pill--ok">exa · 20 000 req/month</span>
+      <span class="pill">9 libraries indexed</span>
+      <span class="pill">reproducible via <code>libraries.tsv</code></span>
+    </div>
+  </header>
+
+  <!-- ------------------------------------------------------------ -->
+  <section>
+    <h2>The decision: free-tier headroom, not features</h2>
+    <p>
+      Every candidate does roughly the same job well. What separated them was how long you can work
+      before hitting a wall — and the winner is counter-intuitive. <strong>Context7, the obvious
+      choice for documentation, has the tightest budget of the three.</strong>
+    </p>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Service</th><th>Free tier</th><th>What that means in practice</th><th>Verdict</th></tr>
+        </thead>
+        <tbody>
+          <tr class="is-pick">
+            <td>Exa</td>
+            <td class="num">20 000 req / month</td>
+            <td>~20× the others. Research bursts never hit it; $7 per 1 000 beyond.</td>
+            <td>installed</td>
+          </tr>
+          <tr>
+            <td>Context7</td>
+            <td class="num">1 000 calls / month<br>+ ~60 / hour</td>
+            <td>Cut from ~6 000/month in Jan 2026. The <em>hourly</em> cap is the real problem — doc
+                lookups fire constantly while coding, so one intense session can exhaust it.</td>
+            <td>replaced by self-hosting</td>
+          </tr>
+          <tr>
+            <td>Tavily</td>
+            <td class="num">1 000 credits / month</td>
+            <td>Advanced search costs 2 credits and a single Research call 4–250, so the effective
+                budget is far below the headline number.</td>
+            <td>skipped</td>
+          </tr>
+          <tr>
+            <td>Local index</td>
+            <td class="num">unlimited</td>
+            <td>Own Docker container, own index, offline-capable, no key, no queries leaving the box.</td>
+            <td>installed</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="note">
+      <strong>Why not just use the built-in WebSearch?</strong>
+      It is US-only and returns titles plus short snippets, not page content. It stays as the
+      zero-setup fallback — particularly for headless and cron sessions, which cannot complete Exa's
+      interactive login.
+    </p>
+  </section>
+
+  <!-- ------------------------------------------------------------ -->
+  <section>
+    <h2>How the two halves fit together</h2>
+    <p>
+      One lane never leaves the machine and answers "what does this API look like in the version we
+      pin". The other reaches the open web for everything that isn't in a library's docs.
+    </p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 720 268" role="img" aria-labelledby="diagTitle diagDesc">
+        <title id="diagTitle">Architecture of the two research lanes</title>
+        <desc id="diagDesc">A Claude Code session connects to two MCP servers: a local docs server
+        running in Docker against an on-disk index, and Exa's hosted server reached over HTTPS.</desc>
+
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" class="d-arrow" />
+          </marker>
+          <marker id="aha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" class="d-arrow--accent" />
+          </marker>
+        </defs>
+
+        <!-- session -->
+        <rect x="16" y="98" width="150" height="72" rx="10" class="d-box" />
+        <text x="34" y="128" class="d-title">Claude Code</text>
+        <text x="34" y="147" class="d-sub">session</text>
+
+        <!-- local lane -->
+        <path d="M166 122 H 268" class="d-line d-line--accent" marker-end="url(#aha)" />
+        <text x="182" y="112" class="d-tag">LOCALHOST:6280</text>
+
+        <rect x="276" y="26" width="196" height="118" rx="10" class="d-box d-box--local" />
+        <text x="294" y="52" class="d-title">docs MCP server</text>
+        <text x="294" y="71" class="d-sub">Docker · Grounded Docs</text>
+        <text x="294" y="88" class="d-sub">search_docs · scrape_docs</text>
+        <text x="294" y="112" class="d-tag">NO KEY · NO QUOTA</text>
+        <text x="294" y="129" class="d-tag">ONNX EMBEDDINGS, ON-DEVICE</text>
+
+        <path d="M472 85 H 556" class="d-line d-line--accent" marker-end="url(#aha)" />
+        <rect x="564" y="52" width="140" height="66" rx="10" class="d-box d-box--local" />
+        <text x="582" y="80" class="d-title">Docs index</text>
+        <text x="582" y="98" class="d-sub">Docker volume</text>
+        <text x="582" y="113" class="d-tag">NOT IN THE REPO</text>
+
+        <!-- hosted lane -->
+        <path d="M166 148 H 268" class="d-line" marker-end="url(#ah)" />
+        <text x="182" y="168" class="d-tag">HTTPS + OAUTH</text>
+
+        <rect x="276" y="176" width="196" height="76" rx="10" class="d-box" />
+        <text x="294" y="202" class="d-title">Exa MCP server</text>
+        <text x="294" y="221" class="d-sub">hosted · mcp.exa.ai</text>
+        <text x="294" y="240" class="d-tag">20 000 REQ / MONTH</text>
+
+        <path d="M472 214 H 556" class="d-line" marker-end="url(#ah)" />
+        <rect x="564" y="181" width="140" height="66" rx="10" class="d-box" />
+        <text x="582" y="209" class="d-title">Open web</text>
+        <text x="582" y="227" class="d-sub">semantic search</text>
+      </svg>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <span class="card__label">Ask the local lane</span>
+        <p>"How do I override a FastAPI dependency in a test?" — anything answerable from the docs of
+           a library we pin. Exact, versioned, free.</p>
+      </div>
+      <div class="card">
+        <span class="card__label">Ask the hosted lane</span>
+        <p>"Has anyone hit this Linkerd webhook-cert failure?" — anything that lives in issues, blog
+           posts, or release announcements rather than reference docs.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------ -->
+  <section>
+    <h2>What the orchestrator owns — and what it deliberately doesn't</h2>
+    <p>
+      Everything needed to rebuild this on a fresh machine is committed. The scraped documentation
+      itself is not: it lives in Docker volumes, is regenerable from <code>libraries.tsv</code>, and
+      would otherwise add hundreds of megabytes of third-party prose to the repo.
+    </p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Path</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code>setup/docs-mcp/SETUP.md</code></td><td>Install / Verify / Fix, plus the scrape-budget rules that decide index quality</td></tr>
+          <tr><td><code>setup/docs-mcp/libraries.tsv</code></td><td><strong>Source of truth:</strong> which docs are indexed, with per-library page budget and URL exclusions</td></tr>
+          <tr><td><code>setup/docs-mcp/install.sh</code></td><td>Idempotent: pull image, run container with the right flags, register the MCP server</td></tr>
+          <tr><td><code>setup/docs-mcp/index-libraries.sh</code></td><td>Enqueue every library, wait for the queue, surface failed jobs instead of a silent success</td></tr>
+          <tr><td><code>setup/docs-mcp/mcpcall.sh</code></td><td>Call any server tool from the shell — the verification path</td></tr>
+          <tr><td><code>setup/research-mcp/SETUP.md</code></td><td>Exa install + OAuth, and the reasoning that ruled out Tavily and the community deep-research plugin</td></tr>
+          <tr><td><code>setup/provision/migrations/1.0.23-docs-mcp/</code></td><td>Adopts the setup automatically on other machines at the next pull</td></tr>
+          <tr><td><code>guides/research-and-docs-setup.html</code></td><td>This page</td></tr>
+          <tr><td class="c-dim"><code>docs-mcp-data</code> (Docker volume)</td><td class="c-dim">The index. Machine-local by design, never committed.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------ -->
+  <section>
+    <h2>Rebuilding it from scratch</h2>
+    <p>A real sequence — each step depends on the one before it.</p>
+
+    <ol class="steps">
+      <li><div class="step__body">
+        <h3>Start the server and register it</h3>
+        <pre><code><span class="c-cmd">bash setup/docs-mcp/install.sh</span>
+<span class="c-dim"># pulls the image, starts container 'docs-mcp' on :6280,</span>
+<span class="c-dim"># registers MCP server 'docs' with Claude Code (user scope)</span></code></pre>
+      </div></li>
+
+      <li><div class="step__body">
+        <h3>Build the index</h3>
+        <p>15–30 minutes, network-bound. Add <code>--index</code> to step 1 to do both at once.</p>
+        <pre><code><span class="c-cmd">bash setup/docs-mcp/index-libraries.sh</span>          <span class="c-dim"># all libraries</span>
+<span class="c-cmd">bash setup/docs-mcp/index-libraries.sh fastapi</span>  <span class="c-dim"># just one</span></code></pre>
+      </div></li>
+
+      <li><div class="step__body">
+        <h3>Install Exa and authenticate</h3>
+        <pre><code><span class="c-cmd">claude plugin install exa@claude-plugins-official</span>
+<span class="c-dim"># then restart Claude Code and run:  /mcp → exa → authenticate</span></code></pre>
+      </div></li>
+
+      <li><div class="step__body">
+        <h3>Restart Claude Code, then verify with a real question</h3>
+        <p>MCP servers load only at session start. And a hit list is not a correct hit list — check
+           <em>where</em> the answer came from.</p>
+        <pre><code><span class="c-cmd">setup/docs-mcp/mcpcall.sh</span> list_libraries '{}'
+<span class="c-cmd">setup/docs-mcp/mcpcall.sh</span> search_docs \
+  '{"library":"fastapi","query":"dependency overrides in tests","limit":2}'</code></pre>
+      </div></li>
+    </ol>
+  </section>
+
+  <!-- ------------------------------------------------------------ -->
+  <section>
+    <h2>What's indexed</h2>
+    <p>
+      Derived from the tech stack actually named across the mapped DocBits projects, weighted by how
+      often each appears. Extend by appending a row to <code>libraries.tsv</code> — never scrape
+      ad-hoc, or the next machine ends up with a different index.
+    </p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Library</th><th>Source</th><th>Page budget</th><th>Excluded</th></tr></thead>
+        <tbody>
+          <tr><td>fastapi</td><td>fastapi.tiangolo.com</td><td class="num">900</td><td>release notes, ~20 translated trees</td></tr>
+          <tr><td>sqlalchemy</td><td>docs.sqlalchemy.org/en/20</td><td class="num">700</td><td>changelog</td></tr>
+          <tr><td>celery</td><td>docs.celeryq.dev/en/stable</td><td class="num">600</td><td>changelog, whatsnew, history</td></tr>
+          <tr><td>helm</td><td>helm.sh/docs</td><td class="num">400</td><td>—</td></tr>
+          <tr><td>playwright-python</td><td>playwright.dev/python</td><td class="num">400</td><td>release notes</td></tr>
+          <tr><td>vue</td><td>vuejs.org</td><td class="num">400</td><td>—</td></tr>
+          <tr><td>pydantic</td><td>docs.pydantic.dev/latest</td><td class="num">400</td><td>changelog</td></tr>
+          <tr><td>alembic</td><td>alembic.sqlalchemy.org</td><td class="num">300</td><td>changelog</td></tr>
+          <tr><td>redis-py</td><td>redis.readthedocs.io</td><td class="num">300</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------ -->
+  <section>
+    <h2>Five things that broke on the way in</h2>
+    <p>
+      All five are in the <code>SETUP.md</code> Fix table. They are recorded because each one fails
+      quietly — the setup looks installed and the answers look plausible.
+    </p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Symptom</th><th>Actual cause</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Container restart-loops, <strong>exit code 0</strong></td>
+            <td><code>--protocol auto</code> picks stdio when there's no TTY, reads EOF and exits cleanly. A success exit that looks like a crash.</td>
+            <td>Run <code>server --protocol http --host 0.0.0.0</code>, as <code>install.sh</code> does</td>
+          </tr>
+          <tr>
+            <td><code>list_libraries</code> lists a library, but searching it finds nothing</td>
+            <td>Rows appear when a job <em>starts</em>, not when it finishes. This produced a premature "all 9 indexed" while half the queue was still running.</td>
+            <td>Trust <code>list_jobs</code> and wait for <code>completed</code></td>
+          </tr>
+          <tr>
+            <td>Search answers from a changelog instead of the topic page</td>
+            <td><code>maxPages</code> is a hard cap spent in link order, so big low-value trees starve the pages you want. FastAPI's single huge release-notes page beat <code>advanced/testing-dependencies/</code>; ~20 translated doc trees ate the rest.</td>
+            <td>Exclusions + a raised budget per library in <code>libraries.tsv</code></td>
+          </tr>
+          <tr>
+            <td><code>mcpcall.sh: sh[@]: unbound variable</code></td>
+            <td>macOS ships bash 3.2, which treats an empty array as unbound under <code>set -u</code>. Output vanished silently.</td>
+            <td>The <code>${sh[@]+"${sh[@]}"}</code> guard — don't remove it</td>
+          </tr>
+          <tr>
+            <td>Exa returns <code>401 Authentication required</code></td>
+            <td>The plugin ships no API key by design; it authenticates interactively.</td>
+            <td><code>/mcp</code> → <code>exa</code> → OAuth. Expected before that step, not a broken install.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="note note--warn">
+      <strong>The pattern worth keeping</strong>
+      Four of the five look like success. A clean exit code, a populated library list, a ranked hit
+      list, and an empty shell output all read as "working". Verification has to be a real question
+      with a known-correct answer — not a status check.
+    </p>
+  </section>
+
+  <!-- ------------------------------------------------------------ -->
+  <section>
+    <h2>Living with it</h2>
+
+    <div class="grid">
+      <div class="card">
+        <span class="card__label">Add a library</span>
+        <p>Append a row to <code>libraries.tsv</code> with a page budget and changelog/translation
+           exclusions, then <code>index-libraries.sh &lt;name&gt;</code>.</p>
+      </div>
+      <div class="card">
+        <span class="card__label">After a dependency bump</span>
+        <p>The index is a snapshot. Re-run <code>index-libraries.sh &lt;name&gt;</code>, or
+           <code>refresh_version</code> to re-scrape only changed pages.</p>
+      </div>
+      <div class="card">
+        <span class="card__label">On a new machine</span>
+        <p>The provision migration starts and registers everything at the next pull, then prints the
+           one indexing command it deliberately won't run inside a git hook.</p>
+      </div>
+    </div>
+
+    <details>
+      <summary>Why the community deep-research plugin was skipped</summary>
+      <p>
+        Its design is sound — Haiku scouts build a source corpus, Sonnet specialists cross-challenge
+        findings, an Opus synthesizer writes the result. But the code is third-party (0 stars, last
+        push May 2026) despite being listed in Anthropic's community index, and it builds on the
+        built-in <code>WebSearch</code>, so it inherits the US-only limitation this setup exists to
+        get past. The <code>Workflow</code> tool already provides deterministic multi-agent fan-out,
+        which is the half that plugin reimplements.
+      </p>
+    </details>
+  </section>
+
+  <footer>
+    <div>Upstream: <a href="https://github.com/arabold/docs-mcp-server">arabold/docs-mcp-server</a> (MIT) · <a href="https://github.com/exa-labs/exa-mcp-server">exa-labs/exa-mcp-server</a> (MIT)</div>
+    <div>Figures verified August 2026. Free tiers move — re-check before treating the table as current.</div>
+  </footer>
+
+</div>

@@ -74,6 +74,8 @@ so it ports across users/machines. Run **Verify** after each.
 | Auto-provisioning (adopt setup changes on every pull) | `provision` | git hook + reconciler | any | `setup/provision/` | 🟡 optional |
 | Periodic reminders (config-driven notifications) | `reminders` | launchd LaunchAgent | macOS | `setup/reminders/` | 🟡 optional |
 | Session log (record session ids for crash/close recovery) | `session-log` | Claude Code hook | any | `setup/session-log/` | 🟡 optional |
+| Local docs MCP (limit-free library-doc retrieval) | `docs-mcp` | Docker container + MCP server | any (needs Docker) | `setup/docs-mcp/` | ✅ active |
+| Web research MCP (Exa hosted search + deep research) | `research-mcp` | Claude Code plugin | any | `setup/research-mcp/` | ✅ active |
 | *(personal setups)* | — | — | — | `setup/local/` (gitignored) | — |
 
 *Status legend: ✅ active · 🟡 documented/optional · 🔴 broken/needs attention*
