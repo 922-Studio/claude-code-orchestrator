@@ -495,9 +495,9 @@ details > *:not(summary) { margin-top: 0.7rem; }
         <thead><tr><th>Path</th><th>Role</th></tr></thead>
         <tbody>
           <tr><td><code>setup/docs-mcp/SETUP.md</code></td><td>Install / Verify / Fix, plus the scrape-budget rules that decide index quality</td></tr>
-          <tr><td><code>setup/docs-mcp/libraries.tsv</code></td><td><strong>Source of truth:</strong> which docs are indexed, with per-library page budget and URL exclusions</td></tr>
+          <tr><td><code>setup/docs-mcp/libraries.tsv</code></td><td><strong>Source of truth:</strong> which docs are indexed, as URL plus the <code>scrape</code> CLI flags passed verbatim — no translation layer that can drop an option</td></tr>
           <tr><td><code>setup/docs-mcp/install.sh</code></td><td>Idempotent: pull image, run container with the right flags, register the MCP server</td></tr>
-          <tr><td><code>setup/docs-mcp/index-libraries.sh</code></td><td>Enqueue every library, wait for the queue, surface failed jobs instead of a silent success</td></tr>
+          <tr><td><code>setup/docs-mcp/index-libraries.sh</code></td><td>Rebuild the index: stop server → scrape each library via CLI → restart (even on failure)</td></tr>
           <tr><td><code>setup/docs-mcp/mcpcall.sh</code></td><td>Call any server tool from the shell — the verification path</td></tr>
           <tr><td><code>setup/research-mcp/SETUP.md</code></td><td>Exa install + OAuth, and the reasoning that ruled out Tavily and the community deep-research plugin</td></tr>
           <tr><td><code>setup/provision/migrations/1.0.23-docs-mcp/</code></td><td>Adopts the setup automatically on other machines at the next pull</td></tr>
@@ -523,7 +523,8 @@ details > *:not(summary) { margin-top: 0.7rem; }
 
       <li><div class="step__body">
         <h3>Build the index</h3>
-        <p>15–30 minutes, network-bound. Add <code>--index</code> to step 1 to do both at once.</p>
+        <p>15–30 minutes, network-bound. The server is stopped while this runs, because the crawler
+           needs exclusive access to the store — the script restarts it afterwards either way.</p>
         <pre><code><span class="c-cmd">bash setup/docs-mcp/index-libraries.sh</span>          <span class="c-dim"># all libraries</span>
 <span class="c-cmd">bash setup/docs-mcp/index-libraries.sh fastapi</span>  <span class="c-dim"># just one</span></code></pre>
       </div></li>
@@ -556,17 +557,17 @@ details > *:not(summary) { margin-top: 0.7rem; }
 
     <div class="scroll">
       <table>
-        <thead><tr><th>Library</th><th>Source</th><th>Page budget</th><th>Excluded</th></tr></thead>
+        <thead><tr><th>Library</th><th>Source</th><th>Pages indexed</th><th>Notable config</th></tr></thead>
         <tbody>
-          <tr><td>fastapi</td><td>fastapi.tiangolo.com</td><td class="num">900</td><td>release notes, ~20 translated trees</td></tr>
-          <tr><td>sqlalchemy</td><td>docs.sqlalchemy.org/en/20</td><td class="num">700</td><td>changelog</td></tr>
-          <tr><td>celery</td><td>docs.celeryq.dev/en/stable</td><td class="num">600</td><td>changelog, whatsnew, history</td></tr>
-          <tr><td>helm</td><td>helm.sh/docs</td><td class="num">400</td><td>—</td></tr>
-          <tr><td>playwright-python</td><td>playwright.dev/python</td><td class="num">400</td><td>release notes</td></tr>
-          <tr><td>vue</td><td>vuejs.org</td><td class="num">400</td><td>—</td></tr>
-          <tr><td>pydantic</td><td>docs.pydantic.dev/latest</td><td class="num">400</td><td>changelog</td></tr>
-          <tr><td>alembic</td><td>alembic.sqlalchemy.org</td><td class="num">300</td><td>changelog</td></tr>
-          <tr><td>redis-py</td><td>redis.readthedocs.io</td><td class="num">300</td><td>—</td></tr>
+          <tr><td>celery</td><td>docs.celeryq.dev/en/stable</td><td class="num">395</td><td>excludes changelog, whatsnew, history</td></tr>
+          <tr><td>fastapi</td><td>fastapi.tiangolo.com</td><td class="num">304</td><td>excludes release notes + ~20 translated trees</td></tr>
+          <tr><td>vue</td><td>vuejs.org</td><td class="num">284</td><td><code>--scope hostname</code></td></tr>
+          <tr><td>sqlalchemy</td><td>docs.sqlalchemy.org/en/20</td><td class="num">191</td><td>excludes changelog</td></tr>
+          <tr><td>helm</td><td>helm.sh/docs</td><td class="num">126</td><td>excludes the <code>/v2/</code> and <code>/v3/</code> mirrors</td></tr>
+          <tr><td>alembic</td><td>alembic.sqlalchemy.org</td><td class="num">47</td><td>excludes changelog</td></tr>
+          <tr><td>redis-py</td><td>redis.readthedocs.io</td><td class="num">26</td><td>—</td></tr>
+          <tr><td>pydantic</td><td>pydantic.dev/docs/validation</td><td class="num">—</td><td>moved host; needs hostname scope + include pattern</td></tr>
+          <tr><td>playwright-python</td><td>playwright.dev/python</td><td class="num">—</td><td>client-rendered; needs <code>--scrape-mode playwright</code></td></tr>
         </tbody>
       </table>
     </div>
@@ -574,9 +575,9 @@ details > *:not(summary) { margin-top: 0.7rem; }
 
   <!-- ------------------------------------------------------------ -->
   <section>
-    <h2>Five things that broke on the way in</h2>
+    <h2>Eight things that broke on the way in</h2>
     <p>
-      All five are in the <code>SETUP.md</code> Fix table. They are recorded because each one fails
+      All eight are in the <code>SETUP.md</code> Fix table. They are recorded because each one fails
       quietly — the setup looks installed and the answers look plausible.
     </p>
 
@@ -596,8 +597,23 @@ details > *:not(summary) { margin-top: 0.7rem; }
           </tr>
           <tr>
             <td>Search answers from a changelog instead of the topic page</td>
-            <td><code>maxPages</code> is a hard cap spent in link order, so big low-value trees starve the pages you want. FastAPI's single huge release-notes page beat <code>advanced/testing-dependencies/</code>; ~20 translated doc trees ate the rest.</td>
+            <td><code>--max-pages</code> is a hard cap spent in link order, so big low-value trees starve the pages you want. FastAPI's single huge release-notes page beat <code>advanced/testing-dependencies/</code>; ~20 translated doc trees ate the rest.</td>
             <td>Exclusions + a raised budget per library in <code>libraries.tsv</code></td>
+          </tr>
+          <tr>
+            <td>Every search result appears twice</td>
+            <td>A mirrored version tree — <code>helm.sh/docs/</code> and <code>helm.sh/docs/v3/</code> serve identical pages, so half the budget bought nothing and duplicates crowded out distinct hits.</td>
+            <td>Exclude the <code>/vN/</code> mirror; duplicate URLs in a result list are the tell</td>
+          </tr>
+          <tr>
+            <td>A library indexes "successfully" with one page</td>
+            <td>Two separate causes, same green checkmark. A <strong>cross-host redirect</strong> leaves the crawl boundary — computed from the URL you gave — matching nothing (<code>docs.pydantic.dev/latest/</code> now 301s to <code>pydantic.dev/docs/validation/…</code>). Or the site is <strong>client-rendered</strong>, so <code>fetch</code> mode sees no links at all (playwright.dev).</td>
+            <td><code>--scope hostname</code> + an include pattern, or <code>--scrape-mode playwright</code>. The script now flags any library under 5 pages and exits non-zero.</td>
+          </tr>
+          <tr>
+            <td>Exclusions configured, yet everything is still in the index</td>
+            <td><strong>The worst one.</strong> The MCP <code>scrape_docs</code> tool has no exclude parameter and drops unknown arguments without complaint. Raising the page budget at the same time buried the noise under enough real pages that searches <em>looked</em> fixed — so the wrong cause got credited.</td>
+            <td>Index only through the CLI, which is why <code>libraries.tsv</code> holds literal CLI flags</td>
           </tr>
           <tr>
             <td><code>mcpcall.sh: sh[@]: unbound variable</code></td>
@@ -615,9 +631,11 @@ details > *:not(summary) { margin-top: 0.7rem; }
 
     <p class="note note--warn">
       <strong>The pattern worth keeping</strong>
-      Four of the five look like success. A clean exit code, a populated library list, a ranked hit
-      list, and an empty shell output all read as "working". Verification has to be a real question
-      with a known-correct answer — not a status check.
+      Seven of the eight look like success. A clean exit code, a populated library list, a ranked hit
+      list, an empty shell output, a config option accepted without complaint, a green checkmark on a
+      one-page index — all read as "working". Two habits catch this class: verify with a real question
+      whose answer you already know, and when a fix works, check that it worked <em>for the reason you
+      think</em>. Here the exclusions got credited for a result that came from the page budget alone.
     </p>
   </section>
 

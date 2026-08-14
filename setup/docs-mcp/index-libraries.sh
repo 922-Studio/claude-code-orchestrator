@@ -1,48 +1,94 @@
 #!/usr/bin/env bash
-# Enqueue scrape jobs for every entry in libraries.tsv, then wait for the queue to drain.
-# Idempotent: scrape_docs defaults to --clean, so re-running replaces each library's index.
-# Usage: index-libraries.sh [library ...]     (no args = all)
+# (Re)build the local documentation index from libraries.tsv.
+# Usage: index-libraries.sh [library ...]     (no args = every library in the file)
+#
+# Why this stops the server: indexing runs through the `scrape` CLI, not the MCP `scrape_docs` tool,
+# because exclude/include patterns are CLI-only — the MCP tool silently drops them, which produces a
+# populated-but-wrong index. The CLI needs exclusive access to the SQLite store, so the server is
+# stopped for the duration and restarted afterwards (including on failure, via the EXIT trap).
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MCPCALL="${HERE}/mcpcall.sh"
 TSV="${HERE}/libraries.tsv"
 PORT="${DOCS_MCP_PORT:-6280}"
+IMAGE="ghcr.io/arabold/docs-mcp-server:latest"
+NAME="docs-mcp"
 
-curl -s --max-time 5 -o /dev/null "http://localhost:${PORT}/" || {
-  echo "✖ docs MCP server not reachable on :${PORT} — run install.sh first" >&2; exit 1; }
+command -v docker >/dev/null || { echo "✖ docker not found" >&2; exit 1; }
+docker info >/dev/null 2>&1 || { echo "✖ docker daemon not running" >&2; exit 1; }
+docker inspect "$NAME" >/dev/null 2>&1 || {
+  echo "✖ container '${NAME}' does not exist — run install.sh first" >&2; exit 1; }
+
+server_was_running=no
+docker ps --format '{{.Names}}' | grep -qx "$NAME" && server_was_running=yes
+
+restore_server() {
+  if [ "$server_was_running" = yes ]; then
+    echo "▸ restarting the server"
+    docker start "$NAME" >/dev/null 2>&1
+    for _ in $(seq 1 30); do
+      curl -s --max-time 3 -o /dev/null "http://localhost:${PORT}/" && break
+      sleep 2
+    done
+  fi
+}
+trap restore_server EXIT
+
+if [ "$server_was_running" = yes ]; then
+  echo "▸ stopping the server for exclusive store access"
+  docker stop "$NAME" >/dev/null
+fi
 
 want=("$@")
 selected() {
-  [ $# -eq 0 ] && return 0
   [ ${#want[@]} -eq 0 ] && return 0
   local n; for n in ${want[@]+"${want[@]}"}; do [ "$n" = "$1" ] && return 0; done; return 1
 }
 
-while IFS=$'\t' read -r lib url extra; do
+failed=()
+indexed=()
+suspect=()
+
+while IFS=$'\t' read -r lib url flags; do
   case "${lib:-}" in ''|\#*) continue ;; esac
   selected "$lib" || continue
-  extra="${extra:-{\}}"
-  args=$(python3 -c '
-import json, sys
-lib, url, extra = sys.argv[1], sys.argv[2], sys.argv[3]
-a = {"library": lib, "url": url, "waitForCompletion": False}
-a.update(json.loads(extra))
-print(json.dumps(a))
-' "$lib" "$url" "$extra") || { echo "✖ ${lib}: bad extra-args JSON" >&2; continue; }
-  printf '%-20s ' "$lib"
-  "$MCPCALL" scrape_docs "$args" | tr -d '\n'; echo
+
+  echo "▸ ${lib} — ${url}"
+  # `eval` so the quoted glob patterns in the TSV reach the CLI as individual arguments.
+  # shellcheck disable=SC2086
+  if out=$(eval docker run --rm \
+        -v docs-mcp-data:/data -v docs-mcp-config:/config \
+        "$IMAGE" scrape "$lib" "$url" --logo=false ${flags:-} 2>&1 \
+        | grep -viE 'cpuid_info|cpuinfo_vendor'); then
+    pages=$(printf '%s\n' "$out" | grep -oE 'scraped [0-9]+ pages' | grep -oE '[0-9]+' | tail -1)
+    # A successful exit with a handful of pages is the silent failure mode of this crawler:
+    # a cross-host redirect puts everything outside the scope boundary, or a client-rendered
+    # site yields no links in `fetch` mode. Both report success. Flag it instead of hiding it.
+    if [ -n "${pages:-}" ] && [ "$pages" -lt "${MIN_PAGES:-5}" ]; then
+      echo "  ⚠ only ${pages} page(s) — almost certainly wrong. Check for a cross-host redirect"
+      echo "    (then --scope hostname + --include-pattern) or a client-rendered site"
+      echo "    (then --scrape-mode playwright). See libraries.tsv header."
+      suspect+=("${lib}:${pages}")
+    else
+      echo "  ✓ ${pages:-?} pages"
+    fi
+    indexed+=("${lib}:${pages:-?}")
+  else
+    echo "  ✖ failed:"; printf '%s\n' "$out" | tail -5 | sed 's/^/    /'
+    failed+=("$lib")
+  fi
 done < "$TSV"
 
-echo "⏳ waiting for the queue to drain…"
-until [ "$("$MCPCALL" list_jobs '{}' 2>/dev/null | grep -c 'Status: \(queued\|running\)')" = "0" ]; do
-  sleep 15
-done
-
-# Surface failures instead of reporting a silent success.
-if "$MCPCALL" list_jobs '{}' 2>/dev/null | grep -q 'Status: failed'; then
-  echo "⚠ some jobs failed:"
-  "$MCPCALL" list_jobs '{}' | grep -B2 -A2 'Status: failed'
+echo
+echo "indexed: ${indexed[*]:-none}"
+if [ ${#suspect[@]} -gt 0 ]; then
+  echo "⚠ suspiciously small: ${suspect[*]} — these scraped without error but are almost certainly incomplete" >&2
 fi
-echo "✅ done — indexed libraries:"
-"$MCPCALL" list_libraries '{}'
+if [ ${#failed[@]} -gt 0 ]; then
+  echo "⚠ failed: ${failed[*]}" >&2
+  exit 1
+fi
+[ ${#suspect[@]} -gt 0 ] && exit 1
+
+echo "✅ done. Verify with a real question, not a status check:"
+echo "   ${HERE}/mcpcall.sh search_docs '{\"library\":\"fastapi\",\"query\":\"dependency overrides in tests\",\"limit\":2}'"

@@ -1,16 +1,33 @@
 # Documentation sources indexed into the local docs MCP server.
-# Format: <library>	<url>	<extra JSON args merged into scrape_docs> (tab-separated)
-# Extra args use the MCP tool's camelCase names: maxPages, maxDepth, excludePattern, includePattern, scope.
-# Exclusions matter: changelogs/release-notes and translated doc trees are huge and will eat the
-# page budget, pushing the pages you actually want out of the index. Always exclude them.
+# Format (tab-separated):  <library>	<url>	<CLI flags passed verbatim to `docs-mcp-server scrape`>
 #
-# Regex patterns must be wrapped in slashes. Backslashes need JSON escaping (\\/).
-fastapi	https://fastapi.tiangolo.com/	{"maxPages":900,"maxDepth":4,"excludePattern":["/\\/(es|pt|zh|zh-hant|ru|de|fr|ja|ko|tr|uk|vi|fa|he|hu|id|it|nl|pl|bn|az|em|yo|ur|ta|th|sv|sq)\\//","/release-notes/"]}
-helm	https://helm.sh/docs/	{"maxPages":400,"maxDepth":4}
-celery	https://docs.celeryq.dev/en/stable/	{"maxPages":600,"maxDepth":4,"excludePattern":["/changelog/","/whatsnew/","/history/"]}
-sqlalchemy	https://docs.sqlalchemy.org/en/20/	{"maxPages":700,"maxDepth":4,"excludePattern":["/changelog/","/errors.html/"]}
-alembic	https://alembic.sqlalchemy.org/en/latest/	{"maxPages":300,"maxDepth":4,"excludePattern":["/changelog/"]}
-playwright-python	https://playwright.dev/python/docs/intro	{"maxPages":400,"maxDepth":4,"excludePattern":["/release-notes/"]}
-vue	https://vuejs.org/guide/introduction.html	{"maxPages":400,"maxDepth":4,"scope":"hostname"}
-pydantic	https://docs.pydantic.dev/latest/	{"maxPages":400,"maxDepth":4,"excludePattern":["/changelog/"]}
-redis-py	https://redis.readthedocs.io/en/stable/	{"maxPages":300,"maxDepth":4}
+# The third column holds real CLI flags, NOT JSON. This is deliberate: the MCP `scrape_docs` tool
+# accepts only url/library/version/maxPages/maxDepth/scope/followRedirects/preserveHashes and
+# SILENTLY DROPS anything else — exclude/include patterns are CLI-only. Routing through the CLI and
+# keeping the flags verbatim means what you write here is what the crawler gets.
+#
+# --max-pages is a hard cap spent in link order, so exclude the big low-value trees or they starve
+# the pages you actually want. Three offenders, all three seen here:
+#   1. changelogs / release-notes   (one huge page that mentions every feature once)
+#   2. translated doc trees         (FastAPI ships ~20 languages inside the default subpages scope)
+#   3. mirrored version trees       (helm.sh/docs == helm.sh/docs/v3 — half the budget bought
+#                                    nothing AND every search returned each page twice)
+#
+# Use glob patterns (**/x/**). Regex form (/pattern/) also exists but globs are what is verified here.
+#
+# Two traps that produce a 1-page "success" instead of an error:
+#   - A cross-host redirect. The default `subpages` boundary is computed from the URL you gave, so
+#     after a redirect to another host nothing matches. pydantic does this: docs.pydantic.dev/latest/
+#     301s to pydantic.dev/docs/validation/... — point at the real target and scope by hostname.
+#   - A client-rendered site. In the default `fetch` mode the crawler sees no links at all in
+#     playwright.dev's HTML; it needs --scrape-mode playwright.
+# Always sanity-check the page count: a big doc site returning single digits means one of these.
+fastapi	https://fastapi.tiangolo.com/	--max-pages 900 --max-depth 4 --exclude-pattern '**/release-notes/**' --exclude-pattern '**/em/**' --exclude-pattern '**/es/**' --exclude-pattern '**/pt/**' --exclude-pattern '**/zh/**' --exclude-pattern '**/zh-hant/**' --exclude-pattern '**/ru/**' --exclude-pattern '**/de/**' --exclude-pattern '**/fr/**' --exclude-pattern '**/ja/**' --exclude-pattern '**/ko/**' --exclude-pattern '**/tr/**' --exclude-pattern '**/uk/**' --exclude-pattern '**/vi/**' --exclude-pattern '**/fa/**' --exclude-pattern '**/he/**' --exclude-pattern '**/hu/**' --exclude-pattern '**/id/**' --exclude-pattern '**/it/**' --exclude-pattern '**/nl/**' --exclude-pattern '**/pl/**' --exclude-pattern '**/bn/**' --exclude-pattern '**/az/**' --exclude-pattern '**/yo/**' --exclude-pattern '**/ur/**' --exclude-pattern '**/ta/**' --exclude-pattern '**/th/**' --exclude-pattern '**/sv/**' --exclude-pattern '**/sq/**'
+sqlalchemy	https://docs.sqlalchemy.org/en/20/	--max-pages 700 --max-depth 4 --exclude-pattern '**/changelog/**'
+celery	https://docs.celeryq.dev/en/stable/	--max-pages 600 --max-depth 4 --exclude-pattern '**/changelog/**' --exclude-pattern '**/whatsnew*/**' --exclude-pattern '**/history/**'
+helm	https://helm.sh/docs/	--max-pages 500 --max-depth 4 --exclude-pattern '**/docs/v2/**' --exclude-pattern '**/docs/v3/**'
+playwright-python	https://playwright.dev/python/docs/intro	--max-pages 400 --max-depth 4 --scrape-mode playwright --scope hostname --include-pattern '**/python/**' --exclude-pattern '**/release-notes/**' --exclude-pattern '**/docs/next/**'
+vue	https://vuejs.org/guide/introduction.html	--max-pages 400 --max-depth 4 --scope hostname
+pydantic	https://pydantic.dev/docs/validation/latest/get-started/	--max-pages 400 --max-depth 4 --scope hostname --include-pattern '**/docs/validation/latest/**' --exclude-pattern '**/changelog/**'
+alembic	https://alembic.sqlalchemy.org/en/latest/	--max-pages 300 --max-depth 4 --exclude-pattern '**/changelog/**'
+redis-py	https://redis.readthedocs.io/en/stable/	--max-pages 300 --max-depth 4
